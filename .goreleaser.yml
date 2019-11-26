@@ -1,0 +1,41 @@
+project_name: zzz
+
+builds:
+  - main: ./main.go
+    ldflags:
+      - -s -w -X 'github.com/sohaha/zzz/cmd.buildTime={{.Date}}' -X 'github.com/sohaha/zzz/cmd.version={{.Version}}'
+    goos:
+      - windows
+      - linux
+      - darwin
+    # goarch:
+    goarm:
+      - 6
+      - 7
+    ignore:
+    env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "next"
+
+changelog:
+  # skip: true
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - (?i)--
