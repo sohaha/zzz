@@ -41,3 +41,12 @@ zzz help
 # 查看所有命令
 zzz help
 ```
+
+
+## 其他
+
+如果下载安装很慢，可以尝试修改下 host 来提速，如：
+
+```bash
+sudo echo "52.217.32.124 github-production-release-asset-2e65be.s3.amazonaws.com" >> /etc/hosts
+```
