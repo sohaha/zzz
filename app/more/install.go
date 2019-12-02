@@ -31,7 +31,7 @@ func (m *Methods) Install(vars []string) {
 			util.Log.Fatal(err)
 		}
 	}
-	
+
 	util.Log.Success("The installation is complete")
 }
 
@@ -51,7 +51,7 @@ func copyFile(src, dest string) (w int64, err error) {
 	}
 	defer srcFile.Close()
 	destSplitPathDirs := strings.Split(dest, string(filepath.Separator))
-	
+
 	destSplitPath := ""
 	for index, dir := range destSplitPathDirs {
 		if index < len(destSplitPathDirs)-1 {
@@ -70,6 +70,6 @@ func copyFile(src, dest string) (w int64, err error) {
 		return
 	}
 	defer dstFile.Close()
-	
+
 	return io.Copy(dstFile, srcFile)
 }

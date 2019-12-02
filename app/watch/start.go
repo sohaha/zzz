@@ -54,12 +54,12 @@ func run(cmd *cobra.Command) {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			util.Log.Error(ErrCfgNotFoun)
 			showInitCmd(cmd)
-			
+
 		} else {
 			util.Log.Error(err)
 			showInitCmd(cmd)
 		}
-		
+
 		return
 	}
 	// v.WatchConfig()
@@ -77,14 +77,14 @@ func start() {
 		err  error
 		cmds []*exec.Cmd
 	)
-	
+
 	// watcher, err = fsnotify.NewWatcher()
 	watcher, err = NewWatcher()
 	if err != nil {
 		util.Log.Fatal(err)
 	}
 	defer watcher.Close()
-	
+
 	go func() {
 		for {
 			select {
@@ -99,7 +99,7 @@ func start() {
 				}
 				util.Log.Println("error:", err)
 			}
-			
+
 		}
 	}()
 	addWatcher()
@@ -118,7 +118,7 @@ func start() {
 			cloes(v.cmd)
 		}
 		cloes(task.cmd)
-		
+
 		if lastPid > 0 {
 			p, e := os.FindProcess(-lastPid)
 			if e == nil {
@@ -129,11 +129,11 @@ func start() {
 		done <- true
 	}()
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM)
-	
+
 	if startup {
 		task.preRun(new(changedFile))
 	}
-	
+
 	httpRun()
 	<-done
 }

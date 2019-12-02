@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"github.com/sohaha/zlsgo/zenv"
 	"io"
 	"io/ioutil"
 	"log"
@@ -26,6 +27,10 @@ var fileManagerCmd = &cobra.Command{
 }
 
 func init() {
+	if zenv.IsWin() {
+		// win failed
+		return
+	}
 	rootCmd.AddCommand(fileManagerCmd)
 	enablePreview = fileManagerCmd.PersistentFlags().BoolP("preview", "p", true, "enable preview panel")
 	// enableLog = fileManagerCmd.PersistentFlags().BoolP("log", "", false, "enable log")

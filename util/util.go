@@ -13,7 +13,7 @@ import (
 
 var (
 	Log *zlog.Logger
-	
+
 	once        sync.Once
 	installPath string
 )
@@ -61,4 +61,12 @@ func ExecCommand(commandName string, arg ...string) (string, error) {
 		return data, err
 	}
 	return data, nil
+}
+
+func CheckIfError(err error) {
+	if err == nil {
+		return
+	}
+
+	Log.Fatal(err)
 }
