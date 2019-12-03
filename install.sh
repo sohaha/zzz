@@ -13,11 +13,11 @@ mkdir /tmp/zzz
 cd /tmp/zzz
 
 echo "Get Version..."
-LAST_VERSION=$(curl --silent "https://api.github.com/repos/sohaha/zzz/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+LAST_VERSION=$(curl --silent "https://api.github.com/repos/sohaha/zzz/releases/latest" | grep  "tag_name" | cut -d '"' -f 4  | cut -d 'v' -f 2)
 F="zzz_${LAST_VERSION/v/}_${os}_${arch}.tar.gz"
 
 echo "Download tar.gz ..."
-wget "https://github.com/sohaha/zzz/releases/download/${LAST_VERSION}/$F"
+wget "https://github.com/sohaha/zzz/releases/download/v${LAST_VERSION}/$F"
 
 echo "Untar..."
 tar zxvf "$F"
