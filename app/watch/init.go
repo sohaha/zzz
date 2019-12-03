@@ -10,7 +10,7 @@ import (
 
 var (
 	initCmdUse = "init"
-	initCmd = &cobra.Command{
+	initCmd    = &cobra.Command{
 		Use:   initCmdUse,
 		Short: "Generate config file",
 		Run: func(cmd *cobra.Command, args []string) {

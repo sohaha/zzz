@@ -193,8 +193,9 @@ func (gui *Gui) EntryManagerKeybinding() {
 		case 'e':
 			editor := os.Getenv("EDITOR")
 			if editor == "" {
-				log.Println("$EDITOR is empty, please set $EDITOR")
-				return event
+				editor = "vim"
+				// log.Println("$EDITOR is empty, please set $EDITOR")
+				// return event
 			}
 
 			entry := gui.EntryManager.GetSelectEntry()

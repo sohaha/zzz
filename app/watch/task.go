@@ -147,7 +147,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 			util.Log.Println("command Error: ", err)
 			break
 		}
-		
+
 		ch := make(chan bool)
 		show := func(line string) {
 			prefix := fmt.Sprintf("%s%s", logPrefix, line)
@@ -166,7 +166,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 					}
 					return true
 				}
-				
+
 				if strings.Contains(line, "exit status 2") {
 					return true
 				}
@@ -178,7 +178,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 			go func(stdout io.Reader) {
 				ch <- exportStd(stdout)
 			}(stdout)
-			
+
 			exportStd(stderr)
 			waiting := func() {
 				for ii := 1; ii <= 1; ii++ {
@@ -203,12 +203,12 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 					}
 				}
 			}
-			
+
 		}
 	}
-	
+
 	return t
-	
+
 }
 
 func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd {
@@ -243,7 +243,7 @@ func cloes(cmd *exec.Cmd) {
 			_, _ = cmd.CombinedOutput()
 		}
 		_ = cmd.Process.Kill()
-		
+
 	}
 }
 

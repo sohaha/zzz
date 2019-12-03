@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// copyright: github.com/skanehira/ff
+// copyright: https://github.com/skanehira/ff
 var fileManagerCmd = &cobra.Command{
 	Use:     "filemanager",
 	Aliases: []string{"f"},

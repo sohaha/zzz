@@ -21,7 +21,7 @@ import (
 
 const (
 	prefixSpace = "    "
-	
+
 	httpsTemplate = `` +
 		prefixSpace + `  DNS Lookup   TCP Connection   TLS Handshake   Server Processing   Content Transfer` + "\n" +
 		prefixSpace + ` %s  |     %s  |    %s  |        %s  |       %s  |` + "\n" +
@@ -31,7 +31,7 @@ const (
 		prefixSpace + `                                   pretransfer:%s         |                  |` + "\n" +
 		prefixSpace + `                                                     starttransfer:%s        |` + "\n" +
 		prefixSpace + `                                                                                total:%s`
-	
+
 	httpTemplate = `` +
 		prefixSpace + `  DNS Lookup   TCP Connection   Server Processing   Content Transfer` + "\n" +
 		prefixSpace + ` %s  |     %s  |        %s  |       %s  |` + "\n" +
@@ -118,7 +118,7 @@ func httpSendRequest(reqData *RequestContext, signal Signal) {
 	}
 	var t0, t1, t2, t3, t4, t5, t6, t7 time.Time
 	connectedInfo := zstring.Buffer()
-	
+
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(_ httptrace.DNSStartInfo) { t0 = time.Now() },
 		DNSDone:  func(_ httptrace.DNSDoneInfo) { t1 = time.Now() },
@@ -150,7 +150,7 @@ func httpSendRequest(reqData *RequestContext, signal Signal) {
 	if reqData.Method != "GET" {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	}
-	
+
 	req.Header.Set("Connection", "close")
 	for _, v := range reqData.HeaderKVSlice {
 		req.Header.Add(v[0], v[1])
@@ -210,7 +210,7 @@ func httpSendRequest(reqData *RequestContext, signal Signal) {
 			logsData.WriteString(zlog.ColorTextWrap(zlog.ColorRed, strconv.Itoa(resp.StatusCode)))
 		}
 	}
-	
+
 	// totalTime := t7.Sub(t0)
 	totalTime := t7.Sub(t0) - t2.Sub(t0)
 	if httpError {
@@ -222,7 +222,7 @@ func httpSendRequest(reqData *RequestContext, signal Signal) {
 	if httpError {
 		logsData.WriteString(fmt.Sprintf("%.2f", diffTime))
 	} else {
-		
+
 		logsData.WriteString(fmt.Sprintf("%.3f", diffTime))
 	}
 	logsData.WriteString("s")
@@ -235,12 +235,12 @@ func httpSendRequest(reqData *RequestContext, signal Signal) {
 		logsData.WriteString("?")
 		logsData.WriteString(req.URL.RawQuery)
 	}
-	
+
 	signal.MaxMinValue <- diffTime
 	fmta := func(d time.Duration) string {
 		return fmt.Sprintf("%7dms", int(d/time.Millisecond))
 	}
-	
+
 	fmtb := func(d time.Duration) string {
 		return fmt.Sprintf("%-9s", strconv.Itoa(int(d/time.Millisecond))+"ms")
 	}
@@ -280,7 +280,7 @@ func httpSendRequest(reqData *RequestContext, signal Signal) {
 			util.Log.Printf("%s\n============================================\n", log)
 		}
 	}
-	
+
 	return
 }
 
@@ -311,7 +311,7 @@ func isDuration(startTime time.Time, fn func()) {
 
 func replaceMaxMinValue(ch <-chan float64) {
 	defer waitStats.Done()
-	
+
 	for {
 		select {
 		case v, ok := <-ch:
@@ -332,7 +332,7 @@ func replaceMaxMinValue(ch <-chan float64) {
 
 func failedTransactionCount(ch <-chan bool) {
 	defer waitStats.Done()
-	
+
 	for {
 		select {
 		case _, ok := <-ch:
@@ -345,7 +345,7 @@ func failedTransactionCount(ch <-chan bool) {
 }
 func errorTransactionCount(ch <-chan bool) {
 	defer waitStats.Done()
-	
+
 	for {
 		select {
 		case _, ok := <-ch:
@@ -359,7 +359,7 @@ func errorTransactionCount(ch <-chan bool) {
 
 func totalRequestCount(ch <-chan bool) {
 	defer waitStats.Done()
-	
+
 	for {
 		select {
 		case _, ok := <-ch:

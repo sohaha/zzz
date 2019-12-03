@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	
+
 	"github.com/sohaha/zlsgo/zlog"
 )
 
@@ -22,13 +22,13 @@ func RunStatic(src, dest, pkgTags, pkg string, noMtime, noCompress, force bool) 
 	if err != nil {
 		zlog.Fatal(err)
 	}
-	
+
 	destDir := path.Join(dest, pkg)
 	err = os.MkdirAll(destDir, 0755)
 	if err != nil {
 		zlog.Fatal(err)
 	}
-	
+
 	err = rename(file.Name(), path.Join(destDir, nameSourceFile), force)
 	if err != nil {
 		zlog.Fatal(err)
@@ -41,16 +41,16 @@ func generateSource(srcPath, pkgTags, pkg string, noMtime, noCompress bool) (fil
 		buffer    bytes.Buffer
 		zipWriter io.Writer
 	)
-	
+
 	zipWriter = &buffer
 	f, err := ioutil.TempFile("", pkg)
 	if err != nil {
 		return
 	}
-	
+
 	zipWriter = io.MultiWriter(zipWriter, f)
 	defer f.Close()
-	
+
 	w := zip.NewWriter(zipWriter)
 	if err = filepath.Walk(srcPath, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -91,18 +91,18 @@ func generateSource(srcPath, pkgTags, pkg string, noMtime, noCompress bool) (fil
 		return
 	}
 	var qb bytes.Buffer
-	
+
 	if pkgTags != "" {
 		_, _ = fmt.Fprintf(&qb, `%s`, "// +build "+pkgTags+"\n")
 	}
 	_, _ = fmt.Fprintf(&qb, `package %s
 %s
 const zipData = "`, pkg, importString)
-	
+
 	fprintZipData(&qb, buffer.Bytes())
-	
+
 	_, _ = fmt.Fprintf(&qb, `"%s`, functionStrings)
-	
+
 	if err = ioutil.WriteFile(f.Name(), qb.Bytes(), 0644); err != nil {
 		return
 	}
@@ -121,7 +121,7 @@ func rename(src, dest string, flagForce bool) error {
 		rc.Close()
 		_ = os.Remove(src)
 	}()
-	
+
 	if _, err = os.Stat(dest); !os.IsNotExist(err) {
 		if flagForce {
 			if err = os.Remove(dest); err != nil {
@@ -131,13 +131,13 @@ func rename(src, dest string, flagForce bool) error {
 			return fmt.Errorf("file %q already exists; use -force to overwrite", dest)
 		}
 	}
-	
+
 	wc, err := os.Create(dest)
 	if err != nil {
 		return err
 	}
 	defer wc.Close()
-	
+
 	if _, err = io.Copy(wc, rc); err != nil {
 		_ = os.Remove(dest)
 	}

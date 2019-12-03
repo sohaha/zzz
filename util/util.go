@@ -13,7 +13,7 @@ import (
 
 var (
 	Log *zlog.Logger
-	
+
 	once        sync.Once
 	installPath string
 )
@@ -23,9 +23,13 @@ func init() {
 	Log.ResetFlags(zlog.BitLevel)
 }
 
-func IsInstall() bool {
+func IsInstall() (exist bool) {
 	path := GetInstallPath()
-	return zfile.FileExist(path)
+	exist = zfile.FileExist(path)
+	if !exist && !zenv.IsWin() {
+		exist = zfile.FileExist("/usr/bin/zzz")
+	}
+	return
 }
 
 func GetInstallPath() string {
@@ -61,4 +65,12 @@ func ExecCommand(commandName string, arg ...string) (string, error) {
 		return data, err
 	}
 	return data, nil
+}
+
+func CheckIfError(err error) {
+	if err == nil {
+		return
+	}
+
+	Log.Fatal(err)
 }
