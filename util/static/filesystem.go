@@ -105,6 +105,7 @@ func GetMewnFiles(args []string, ignoreErrors bool) []string {
 			if err != nil && !ignoreErrors {
 				util.Log.Fatal(err)
 			}
+			inputFile = filepath.ToSlash(inputFile)
 			goFiles = append(goFiles, inputFile)
 		}
 
