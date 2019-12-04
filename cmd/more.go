@@ -21,7 +21,7 @@ var moreCmd = &cobra.Command{
 		}
 		err := more.RunMethod(args[0], args)
 		if err != nil {
-			util.Log.Errorf("unknown commands: %s\n",args[0])
+			util.Log.Errorf("unknown commands: %s\n", args[0])
 			_ = cmd.Help()
 		}
 	},
@@ -31,10 +31,15 @@ func init() {
 	var example = zstring.Buffer()
 	example.WriteString(fmt.Sprintf("  %-12s", "install"))
 	example.WriteString(" ")
-	example.WriteString("Install Zzz into the system")
+	example.WriteString("Install zzz into the system")
 	if util.IsInstall() {
 		example.WriteString(zlog.ColorTextWrap(zlog.ColorRed, " (Installed)"))
 	}
+
+	example.WriteString(fmt.Sprintf("\n  %-12s", "sh"))
+	example.WriteString(" ")
+	example.WriteString("Zzz one-click installation command")
+
 	moreCmd.Example = example.String()
 	rootCmd.AddCommand(moreCmd)
 }

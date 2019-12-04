@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/sohaha/zzz/app/bindata"
 	"github.com/sohaha/zzz/util"
-	
+
 	"github.com/spf13/cobra"
 )
 

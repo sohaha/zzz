@@ -12,7 +12,7 @@ func Run(vars *Cli) {
 	if *vars.RequestUrl == "" {
 		example("RequestUrl cannot be empty")
 	}
-	
+
 	if *vars.Concurrency < 1 {
 		example("The number of concurrency cannot be less than 1")
 	}
@@ -29,13 +29,13 @@ func client(vars *Cli) {
 	var reqData RequestContext
 	var signal Signal
 	reqData.RawUrl = strings.TrimSpace(*vars.RequestUrl)
-	
+
 	if len(reqData.RawUrl) < 8 {
 		reqData.RawUrl = "http://" + reqData.RawUrl
 	} else if reqData.RawUrl[:7] != "http://" && reqData.RawUrl[:8] != "https://" {
 		reqData.RawUrl = "http://" + reqData.RawUrl
 	}
-	
+
 	if *vars.Header != "" {
 		headerSlice := strings.Split(*vars.Header, "&")
 		for _, v := range headerSlice {
@@ -49,27 +49,27 @@ func client(vars *Cli) {
 			kvArray[1] = kv[1]
 			reqData.HeaderKVSlice = append(reqData.HeaderKVSlice, kvArray)
 		}
-		
+
 	} else {
 		reqData.HeaderKVSlice = nil
 	}
-	
+
 	reqData.Body = strings.TrimSpace(*vars.Body)
 	reqData.Method = strings.ToUpper(strings.TrimSpace(*vars.Method))
-	
+
 	signal.MaxMinValue = make(chan float64)
 	signal.FailedTransactions = make(chan bool)
 	signal.ErrorTransactions = make(chan bool)
 	signal.TotalRequest = make(chan bool)
-	
+
 	waitStats.Add(4)
 	go replaceMaxMinValue(signal.MaxMinValue)
 	go failedTransactionCount(signal.FailedTransactions)
 	go errorTransactionCount(signal.ErrorTransactions)
 	go totalRequestCount(signal.TotalRequest)
-	
+
 	startTime := time.Now()
-	
+
 	waitReq.Add(int(concurrency))
 	runFn := func() {
 		var i uint = 0
@@ -78,7 +78,7 @@ func client(vars *Cli) {
 			i++
 		}
 	}
-	
+
 	runFn()
 	if duration > 1 {
 		continued := int(duration/time.Second) - 1
@@ -92,25 +92,25 @@ func client(vars *Cli) {
 	// 	waitReq.Add(1)
 	// 	go httpSendRequest(&reqData, signal)
 	// })
-	
+
 	waitReq.Wait()
-	
+
 	close(signal.MaxMinValue)
 	close(signal.FailedTransactions)
 	close(signal.ErrorTransactions)
 	close(signal.TotalRequest)
-	
+
 	waitStats.Wait()
-	
+
 	ElapsedTime = time.Now().Sub(startTime).Seconds()
 	SuccessTransactions := TotalRequest - FailedTransactions
-	
+
 	if SuccessTransactions == 0 || TotalRequest == 0 {
 		SuccessRate = 0
 	} else {
 		SuccessRate = float64(SuccessTransactions) / float64(TotalRequest) * 100
 	}
-	
+
 	TransactionRate = float64(TotalRequest) / ElapsedTime
 	if tooManyOpenFiles {
 		util.Log.Warn("Too many open files error:", "https://stackoverflow.com/questions/880557/socket-accept-too-many-open-files")
@@ -120,7 +120,7 @@ func client(vars *Cli) {
 	}
 	util.Log.Println("Total requests:    ", TotalRequest)
 	util.Log.Println("Successful:        ", SuccessTransactions)
-	
+
 	if FailedTransactions > 0 {
 		util.Log.Println(util.Log.ColorTextWrap(zlog.ColorRed, "Failures:           "+fmt.Sprintf("%d", FailedTransactions)))
 	} else {
@@ -129,7 +129,7 @@ func client(vars *Cli) {
 	if ErrorTransactions > 0 {
 		util.Log.Println(util.Log.ColorTextWrap(zlog.ColorRed, "Error:              "+fmt.Sprintf("%d", ErrorTransactions)))
 	}
-	
+
 	if SuccessRate < 100 {
 		util.Log.Println(util.Log.ColorTextWrap(zlog.ColorRed, "Success rate:       "+fmt.Sprintf("%.2f", SuccessRate)+"%"))
 	} else {

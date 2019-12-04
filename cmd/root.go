@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	
+
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"os"
@@ -39,14 +39,14 @@ var rootCmd = &cobra.Command{
 		if viper.GetBool("other.du") {
 			dujt = "\n" + util.GetLineDujt()
 		}
-		
+
 		logo := fmt.Sprintf(`  _____
  / _  /________
  \// /|_  /_  /
   / //\/ / / /
  /____/___/___| v%s%s
 `, version, dujt)
-		
+
 		fmt.Println(logo)
 		_ = cmd.Help()
 	},
@@ -116,7 +116,7 @@ func initConfig() {
 	}
 	viper.SetEnvPrefix("ZZZ_")
 	viper.AutomaticEnv()
-	
+
 	if err := viper.ReadInConfig(); err == nil {
 		// fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
