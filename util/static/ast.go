@@ -49,7 +49,7 @@ func (r *ReferencedAssets) HasAsset(name string) bool {
 // GetReferencedAssets gets a list of referenced assets from the AST
 func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 	var result []*ReferencedAssets
-	rootDir := zfile.RealPath(".", true)
+	rootDir := filepath.ToSlash(zfile.RealPath(".", true))
 	assetMap := make(map[string]*ReferencedAssets)
 
 	groups := make(map[string]*Group)
@@ -64,7 +64,7 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 		var packageName string
 
 		// Normalise per directory imports
-		var baseDir = filepath.Dir(filename)
+		var baseDir = filepath.ToSlash(filepath.Dir(filename))
 		var thisAssetBundle = assetMap[baseDir]
 		if thisAssetBundle == nil {
 			thisAssetBundle = &ReferencedAssets{Caller: filename, BaseDir: baseDir}
@@ -84,11 +84,12 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 					if objName == "static" {
 						switch thisAsset.RHS.Method {
 						case "NewFileserver", "Group":
-							baseDir := filepath.Dir(filename)
 							fullPath, err := filepath.Abs(filepath.Join(baseDir, thisAsset.RHS.Path))
 							if err != nil {
 								return false
 							}
+							fullPath = filepath.ToSlash(fullPath)
+							fullPath = strings.TrimPrefix(fullPath, rootDir)
 							thisGroup := &Group{Name: thisAsset.LHS, LocalPath: thisAsset.RHS.Path, FullPath: fullPath}
 							thisAssetBundle.Groups = append(thisAssetBundle.Groups, thisGroup)
 							groups[thisAsset.LHS] = thisGroup

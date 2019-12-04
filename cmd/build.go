@@ -20,9 +20,9 @@ var (
 var buildCmd = &cobra.Command{
 	Use:   "build",
 	Short: "Generates asset packs replace 'go build'",
+	Args:  cobra.ArbitraryArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		// util.Log.Println("Building...")
-		mewnFiles := lib.GetMewnFiles(args, buildIgnore)
+		mewnFiles := lib.GetMewnFiles([]string{}, buildIgnore)
 		targetFiles := make([]string, 0)
 		if len(mewnFiles) > 0 {
 			referencedAssets, err := lib.GetReferencedAssets(mewnFiles)

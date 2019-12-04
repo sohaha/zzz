@@ -1,13 +1,12 @@
 package static
 
 import (
+	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/znet"
 	"mime"
 	"path/filepath"
 
-	// "github.com/sohaha/zlsgo/znet"
 	lib "github.com/sohaha/zzz/util/static"
-	"log"
 )
 
 // mainAssetDirectory stores all the assets
@@ -18,7 +17,7 @@ var err error
 func init() {
 	rootFileGroup, err = mainAssetDirectory.NewFileGroup(".")
 	if err != nil {
-		log.Fatal(err)
+		zlog.Fatal(err)
 	}
 }
 
@@ -48,7 +47,7 @@ func AddAsset(groupName, name, value string) {
 	if fileGroup == nil {
 		fileGroup, err = mainAssetDirectory.NewFileGroup(groupName)
 		if err != nil {
-			log.Fatal(err)
+			zlog.Fatal(err)
 		}
 	}
 	_ = fileGroup.AddAsset(name, value)

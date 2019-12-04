@@ -31,7 +31,7 @@ func (f *FileGroup) AddAsset(name, data string) error {
 // If you need hard failures, use MustString.
 func (f *FileGroup) String(filename string) string {
 	contents, _ := f.loadAsset(filename)
-	return string(contents)
+	return zstring.Bytes2String(contents)
 }
 
 // Bytes returns the asset as a Byte slice.

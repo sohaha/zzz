@@ -14,7 +14,7 @@ func getAllFilesInDirectory(dir string) ([]string, error) {
 		if e != nil {
 			return e
 		}
-
+		path = filepath.ToSlash(path)
 		// check if it is a regular file (not dir)
 		if info.Mode().IsRegular() {
 			result = append(result, path)
@@ -37,6 +37,7 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 		for _, group := range assetBundle.Groups {
 			// Read all assets from the directory
 			files, err := getAllFilesInDirectory(group.FullPath)
+			groupPrefix := filepath.ToSlash(group.FullPath)
 			if err != nil {
 				return "", err
 			}
@@ -46,8 +47,8 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 				if err != nil && !ignoreErrors {
 					return "", err
 				}
-				localPath := strings.TrimPrefix(file, group.FullPath+"/")
-				result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", group.LocalPath, localPath, packedData)
+				localPath := strings.TrimPrefix(file, groupPrefix+"/")
+				result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
 				filesProcessed[file] = true
 				// fmt.Printf("Packed: %s\n", file)
 			}
