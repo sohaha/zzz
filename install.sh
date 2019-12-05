@@ -23,11 +23,11 @@ echo "Untar..."
 tar zxvf "$F"
 
 
-cp -f zzz /usr/bin/
-chmod +x /usr/bin/zzz
+cp -f zzz /usr/local/bin
+chmod +x /usr/local/bin/zzz
 
 echo "Install done"
 
-/usr/bin/zzz --help
+/usr/local/bin/zzz --help
 
 rm -rf /tmp/zzz
