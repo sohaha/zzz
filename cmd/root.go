@@ -6,26 +6,23 @@ import (
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zzz/app/root"
 	"github.com/sohaha/zzz/util"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/mitchellh/go-homedir"
-	"github.com/spf13/cobra"
-	"os"
 )
 
 const cfgFilename = ".zzz/config.yaml"
 
 var (
 	use            = "zzz"
-	version        = "1.2.2"
+	version        = "1.0.1"
 	buildTime      = ""
 	buildGoVersion = ""
 	homePath       string
-	homePathErr    error
 	cfgFile        string
 )
 
@@ -70,7 +67,7 @@ func init() {
 		versionText = fmt.Sprintf("%s%s\n", versionText, buildGoVersion)
 	}
 	rootCmd.SetVersionTemplate(versionText)
-	homePath, homePathErr = homedir.Dir()
+	homePath = util.GetHome()
 	// if homePathErr == nil {
 	// 	defConfig = fmt.Sprintf("config file (default is $HOME/%s)", cfgFilename)
 	// }
@@ -108,9 +105,6 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		if homePathErr != nil {
-			util.Log.Fatal(homePathErr)
-		}
 		viper.AddConfigPath(homePath)
 		viper.SetConfigName(strings.TrimSuffix(cfgFilename, ".yaml"))
 	}
