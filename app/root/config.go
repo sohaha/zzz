@@ -14,6 +14,37 @@ other:
     du: true
 `
 
+var ExampleStressConfig = `# zzz stress%v 配置
+
+# 请求次数
+Count: 10
+Concurrency: 5
+Quiet: false
+Compress: true
+UserAgent: zzz-stress
+Timeout: 10s
+DNSPrefetch: true
+Headers: "Accept-Encoding:gzip"
+
+# 请求链接列表
+Targets:
+  # 普通链接
+  - URL: https://www.qq.com/
+  # 正则链接
+  #- URL: https://wx\.qq\.com/api/user/[0-9]{1,4}
+  #  RegexURL: true
+  # 其他选项
+  #- URL: https://qq.com
+  #  Method: POST
+  #  Compress: false
+  #  Body: "{\"username\": \"newuser1\", \"email\": \"newuser1@domain.com\"}"
+  #  Headers: "Accept-Encoding:gzip, Content-Type:application/json"
+  #  Cookies: "data=123; session=456"
+  #  UserAgent: "zzz"
+  #  Count: 1
+
+`
+
 var ExampleWatchConfig = `# zzz watch 配置
 core:
     # 配置版本号，勿手动修改
@@ -85,4 +116,8 @@ func GetExampleConfig(version string) string {
 
 func GetExampleWatchConfig(version string) string {
 	return fmt.Sprintf(ExampleWatchConfig, version)
+}
+
+func GetExampleStressConfig(version string) string {
+	return fmt.Sprintf(ExampleStressConfig, version)
 }
