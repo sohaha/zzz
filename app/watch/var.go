@@ -1,12 +1,14 @@
 package watch
 
 import (
-	"github.com/sohaha/zzz/util"
 	"path/filepath"
 
-	"github.com/spf13/viper"
+	"github.com/sohaha/zzz/util"
+
 	"os"
 	"sync"
+
+	"github.com/spf13/viper"
 )
 
 const (
@@ -15,7 +17,6 @@ const (
 )
 
 var (
-	cfgPath            string
 	projectFolder      = "."
 	watcher            FileWatcher
 	watchDirs          = make([]string, 0)
