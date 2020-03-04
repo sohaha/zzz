@@ -1,11 +1,12 @@
 package watch
 
 import (
+	"io/ioutil"
+
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zzz/app/root"
 	"github.com/sohaha/zzz/util"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 )
 
 var (
@@ -34,11 +35,21 @@ func InitCmd(watchCmd *cobra.Command) {
 }
 
 func init() {
-	initCmd.Flags().BoolVarP(&force, "force", "f", false, "Override config file")
+	initCmd.Flags().BoolVarP(&force, "force", "F", false, "Override config file")
 }
 
 func initCfg(path string) error {
-	config := root.GetExampleWatchConfig(v.GetString("core.version"))
+	version := util.Version
+
+	// homePath := util.GetHome() + util.CfgFilepath
+	// v.AddConfigPath(homePath)
+	// v.SetConfigName(util.CfgFilename)
+
+	// if err := v.ReadInConfig(); err == nil {
+	// 	version = v.GetString("core.version")
+	// }
+
+	config := root.GetExampleWatchConfig(version)
 
 	return ioutil.WriteFile(path, []byte(config), 0644)
 }

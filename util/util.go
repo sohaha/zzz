@@ -1,23 +1,33 @@
 package util
 
 import (
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
+
 	"github.com/blang/semver"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/zstring"
-	"os"
-	"os/exec"
-	"strings"
-	"sync"
+)
+
+const (
+	CfgFilepath = ".zzz/"
+	CfgFilename = "config"
+	CfgFileExt  = ".yaml"
 )
 
 var (
-	Log         *zlog.Logger
-	once        sync.Once
-	installPath string
-	homePath    string
+	Log            *zlog.Logger
+	once           sync.Once
+	installPath    string
+	homePath       string
+	Version        = "1.0.4"
+	BuildTime      = ""
+	BuildGoVersion = ""
 )
 
 func init() {
@@ -79,7 +89,7 @@ func CheckIfError(err error) {
 }
 
 func GetHome() string {
-	return homePath
+	return homePath + "/"
 }
 
 func DoSelfUpdate(version string) {
@@ -101,19 +111,4 @@ func DoSelfUpdate(version string) {
 	Log.Debug(v.String())
 	Log.Debug(newV.String())
 	Log.Debug(cmdPath)
-}
-
-func dd() {
-	//
-	// stat, err := os.Lstat(cmdPath)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Failed to stat '%s'. File may not exist: %s", cmdPath, err)
-	// }
-	// if stat.Mode()&os.ModeSymlink != 0 {
-	// 	p, err := filepath.EvalSymlinks(cmdPath)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("Failed to resolve symlink '%s' for executable: %s", cmdPath, err)
-	// 	}
-	// 	cmdPath = p
-	// }
 }

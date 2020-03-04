@@ -2,26 +2,29 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zzz/app/root"
 	"github.com/sohaha/zzz/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
-const cfgFilename = ".zzz/config.yaml"
+const (
+	cfgFilename = util.CfgFilepath + util.CfgFilename + util.CfgFileExt
+)
 
 var (
 	use            = "zzz"
-	version        = "1.0.1"
-	buildTime      = ""
-	buildGoVersion = ""
+	version        = util.Version
+	buildTime      = util.BuildTime
+	buildGoVersion = util.BuildGoVersion
 	homePath       string
 	cfgFile        string
 )

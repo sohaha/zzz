@@ -1,15 +1,16 @@
 package watch
 
 import (
+	"os"
+	"os/exec"
+	"os/signal"
+	"syscall"
+
 	"github.com/mitchellh/go-homedir"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zzz/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"os/exec"
-	"os/signal"
-	"syscall"
 )
 
 func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
@@ -32,7 +33,7 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 			if cfgPath != "" {
 				v.SetConfigFile(cfgPath)
 			}
-			cfgPath = zfile.RealPath(cfgPath)
+			// cfgPath = zfile.RealPath(cfgPath)
 			run(cmd)
 		},
 	}
