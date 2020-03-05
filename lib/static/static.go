@@ -1,10 +1,11 @@
 package static
 
 import (
-	"github.com/sohaha/zlsgo/zlog"
-	"github.com/sohaha/zlsgo/znet"
 	"mime"
 	"path/filepath"
+
+	"github.com/sohaha/zlsgo/zlog"
+	"github.com/sohaha/zlsgo/znet"
 
 	lib "github.com/sohaha/zzz/util/static"
 )
@@ -63,6 +64,11 @@ func Reset() {
 	rootFileGroup.Reset()
 }
 
+// All All
+func All() map[string]string {
+	return rootFileGroup.All()
+}
+
 // Group holds a group of assets
 func Group(name string) (result *lib.FileGroup, err error) {
 	result = mainAssetDirectory.GetGroup(name)
@@ -82,7 +88,7 @@ func NewFileserver(dir string) func(c *znet.Context) {
 		}
 		content, err := f.MustString(name)
 		if err != nil {
-			c.Engine.HandleNotFound(c, []znet.HandlerFunc{})
+			c.String(404, err.Error())
 			return
 		}
 		ctype := mime.TypeByExtension(filepath.Ext(name))
