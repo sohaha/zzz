@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
-	"runtime"
+	// "runtime"
 )
 
 // FileGroup holds a collection of files
@@ -71,6 +71,11 @@ func (f *FileGroup) Reset() {
 	f.assetDirectory = make(map[string]string)
 }
 
+// All All
+func (f *FileGroup) All() map[string]string {
+	return f.assetDirectory
+}
+
 // loadAsset loads the asset for the given filename
 func (f *FileGroup) loadAsset(filename string) (contents []byte, err error) {
 	// Check internal
@@ -78,13 +83,14 @@ func (f *FileGroup) loadAsset(filename string) (contents []byte, err error) {
 	if storedAsset != "" {
 		return DecompressHexString(storedAsset)
 	}
-
+	
 	// Get caller directory
 	// fix ---
-	_, file, _, _ := runtime.Caller(3)
-	callerDir := filepath.Dir(file)
+	// _, file, _, _ := runtime.Caller(3)
+	// callerDir := filepath.Dir(file)
 	// Calculate full path
-	fullFilePath := filepath.Join(callerDir, f.baseDirectory, filename)
+	fullFilePath := filepath.Join(f.baseDirectory, filename)
+	// fullFilePath := filepath.Join(callerDir, f.baseDirectory, filename)
 
 	contents, err = ioutil.ReadFile(fullFilePath)
 	if err != nil {

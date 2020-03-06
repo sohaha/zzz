@@ -1,7 +1,7 @@
 package static
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 )
 
 // AssetDirectory is a collection of file groups
@@ -18,16 +18,14 @@ func NewAssetDirectory() *AssetDirectory {
 
 // NewFileGroup creates a new file group
 func (a *AssetDirectory) NewFileGroup(baseDirectory string) (*FileGroup, error) {
-	_, exists := a.FileGroups[baseDirectory]
-	if exists {
-		return nil, errors.Errorf("FileGroup '%s' already registered", baseDirectory)
+	if _, exists := a.FileGroups[baseDirectory];exists {
+		return nil, errors.New("FileGroup '"+baseDirectory+"' already registered")
 	}
 	result := &FileGroup{
 		baseDirectory:  baseDirectory,
 		assetDirectory: make(map[string]string),
 	}
 	a.FileGroups[baseDirectory] = result
-
 	return result, nil
 }
 
