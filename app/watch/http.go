@@ -59,7 +59,7 @@ func httpRun() {
 	service := znet.New()
 	service.Log.ResetFlags(0)
 	service.Log.SetPrefix("")
-	service.NotFoundFunc(func(c *znet.Context) {
+	service.NotFoundHandler(func(c *znet.Context) {
 		httpEntrance(c)
 	})
 

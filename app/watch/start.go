@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -24,12 +25,19 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 				cfgPath, _ = cmd.Parent().Flags().GetString("cfg")
 			}
 			if !zfile.FileExist(cfgPath) {
-				homePath, homePathErr := homedir.Dir()
-				if homePathErr == nil {
-					v.AddConfigPath(homePath)
-					v.SetConfigName("zls-watch")
+				oldCfg := "./zls-watch.yaml"
+				if !zfile.FileExist(oldCfg) {
+					homePath, homePathErr := homedir.Dir()
+					if homePathErr == nil {
+						v.AddConfigPath(homePath)
+						v.SetConfigName("zzz-watch")
+						v.SetConfigName("zls-watch")
+					}
+				} else {
+					cfgPath = oldCfg
 				}
 			}
+			fmt.Println(cfgPath)
 			if cfgPath != "" {
 				v.SetConfigFile(cfgPath)
 			}

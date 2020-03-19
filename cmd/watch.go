@@ -25,9 +25,13 @@ var watchCmd = &cobra.Command{
 	// Example: fmt.Sprintf(`  %s %s    Start listening service (equal "%[1]s %[2]s start")
 	// `, use, watchUse),
 	Run: func(cmd *cobra.Command, args []string) {
+		oldCfg := "./zls-watch.yaml"
 		if !zfile.FileExist(watchCfg) {
-			_ = cmd.Help()
-			return
+			// compatibleWithOlderVersions
+			if !zfile.FileExist(oldCfg) {
+				_ = cmd.Help()
+				return
+			}
 		}
 		go func() {
 			time.Sleep(1 * time.Second)
@@ -41,5 +45,5 @@ func init() {
 	rootCmd.AddCommand(watchCmd)
 	watch.InitCmd(watchCmd)
 	startCmd = watch.StartCmd(watchCmd)
-	watchCmd.PersistentFlags().StringVarP(&watchCfg, "cfg", "C", "./zls-watch.yaml", "Watch config file path")
+	watchCmd.PersistentFlags().StringVarP(&watchCfg, "cfg", "C", "./zzz-watch.yaml", "Watch config file path")
 }
