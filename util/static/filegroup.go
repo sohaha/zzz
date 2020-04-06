@@ -83,7 +83,7 @@ func (f *FileGroup) loadAsset(filename string) (contents []byte, err error) {
 	if storedAsset != "" {
 		return DecompressHexString(storedAsset)
 	}
-	
+
 	// Get caller directory
 	// fix ---
 	// _, file, _, _ := runtime.Caller(3)
@@ -97,4 +97,8 @@ func (f *FileGroup) loadAsset(filename string) (contents []byte, err error) {
 		err = errors.Errorf("The asset '%s' was not found!", filename)
 	}
 	return
+}
+
+func (f *FileGroup) GetBaseDir() string {
+	return f.baseDirectory
 }

@@ -9,7 +9,6 @@ import (
 
 func getAllFilesInDirectory(dir string) ([]string, error) {
 	var result []string
-
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, e error) error {
 		if e != nil {
 			return e
@@ -27,9 +26,7 @@ func getAllFilesInDirectory(dir string) ([]string, error) {
 
 // GeneratePackFileString creates the contents of a pack file
 func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (string, error) {
-
 	var filesProcessed = make(map[string]bool)
-	// fmt.Printf("Bundling this asset: %+v\n", assetBundle)
 	result := fmt.Sprintf("package %s\n\n", assetBundle.PackageName)
 	if len(assetBundle.Groups) > 0 || len(assetBundle.Assets) > 0 {
 		result += "import \"github.com/sohaha/zzz/lib/static\"\n\n"
@@ -44,11 +41,13 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			for _, file := range files {
 				// Read in File
 				packedData, err := CompressFile(file)
+
 				if err != nil && !ignoreErrors {
 					return "", err
 				}
 				localPath := strings.TrimPrefix(file, groupPrefix+"/")
-				result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
+				result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", group.LocalPath, localPath, packedData)
+				// result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
 				filesProcessed[file] = true
 				// fmt.Printf("Packed: %s\n", file)
 			}
@@ -71,7 +70,6 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			}
 			result += fmt.Sprintf("  static.AddAsset(\".\", \"%s\", \"%s\")\n", asset.Name, packedData)
 			filesProcessed[fullPath] = true
-			// fmt.Printf("Packed: %s\n", fullPath)
 		}
 		result += "}\n"
 	}

@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/hex"
-	"github.com/sohaha/zzz/util"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sohaha/zzz/util"
 )
 
 var cwd string
@@ -23,8 +24,7 @@ func init() {
 	}
 }
 
-// CompressFile reads the given file and converts it to a
-// gzip compressed hex string
+// CompressFile reads the given file and converts it to a gzip compressed hex string
 func CompressFile(filename string) (string, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -33,15 +33,15 @@ func CompressFile(filename string) (string, error) {
 
 	var byteBuffer bytes.Buffer
 	writer := gzip.NewWriter(&byteBuffer)
-	writer.Write(data)
-	writer.Close()
+	_, _ = writer.Write(data)
+	_ = writer.Close()
 
 	return hex.EncodeToString(byteBuffer.Bytes()), nil
 }
 
 // FindGoFiles finds all go files recursively from the given directory
 func FindGoFiles(directory string) ([]string, error) {
-	result := []string{}
+	result := make([]string,0)
 	err := filepath.Walk(directory,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -49,7 +49,7 @@ func FindGoFiles(directory string) ([]string, error) {
 			}
 			goFilePath := filepath.Ext(path)
 			if goFilePath == ".go" {
-				isMewnFile := strings.HasSuffix(path, "-mewn.go")
+				isMewnFile := strings.HasSuffix(path, "____tmp.go")
 				if !isMewnFile {
 					result = append(result, path)
 				}
@@ -61,7 +61,6 @@ func FindGoFiles(directory string) ([]string, error) {
 
 // DecompressHexString decompresses the gzip/hex encoded data
 func DecompressHexString(hexdata string) ([]byte, error) {
-
 	data, err := hex.DecodeString(hexdata)
 	if err != nil {
 		panic(err)
@@ -77,8 +76,6 @@ func DecompressHexString(hexdata string) ([]byte, error) {
 	return ioutil.ReadAll(gzipReader)
 }
 
-// HasMewnReference determines if the current file has a reference
-// to the mewn library
 func HasMewnReference(filename string) (bool, error) {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
@@ -93,12 +90,9 @@ func HasMewnReference(filename string) (bool, error) {
 	return false, nil
 }
 
-// GetMewnFiles returns a list of files referencing mewn assets
 func GetMewnFiles(args []string, ignoreErrors bool) []string {
-
 	var goFiles []string
 	var err error
-
 	if len(args) > 0 {
 		for _, inputFile := range args {
 			inputFile, err = filepath.Abs(inputFile)
@@ -108,9 +102,7 @@ func GetMewnFiles(args []string, ignoreErrors bool) []string {
 			inputFile = filepath.ToSlash(inputFile)
 			goFiles = append(goFiles, inputFile)
 		}
-
 	} else {
-		// Find all go files
 		goFiles, err = FindGoFiles(cwd)
 		if err != nil && !ignoreErrors {
 			util.Log.Fatal(err)
@@ -118,7 +110,6 @@ func GetMewnFiles(args []string, ignoreErrors bool) []string {
 	}
 
 	var mewnFiles []string
-
 	for _, goFile := range goFiles {
 		isReferenced, err := HasMewnReference(goFile)
 		if err != nil && !ignoreErrors {

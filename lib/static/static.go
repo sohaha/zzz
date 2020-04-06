@@ -2,6 +2,7 @@ package static
 
 import (
 	"mime"
+	"net/http"
 	"path/filepath"
 
 	"github.com/sohaha/zlsgo/zlog"
@@ -78,21 +79,30 @@ func Group(name string) (result *lib.FileGroup, err error) {
 	return
 }
 
-func NewFileserver(dir string) func(c *znet.Context) {
+func NewFileserver(dir string, fn ...func(ctype string, content []byte, err error)) func(c *znet.Context) {
 	const defFile = "index.html"
 	f, _ := Group(dir)
+	isCb := len(fn) > 0
 	return func(c *znet.Context) {
 		name := c.GetParam("file")
 		if name == "" {
 			name = defFile
 		}
-		content, err := f.MustString(name)
+		content, err := f.MustBytes(name)
+		ctype := mime.TypeByExtension(filepath.Ext(name))
+		if isCb {
+			fn[0](ctype, content, err)
+			return
+		}
 		if err != nil {
 			c.String(404, err.Error())
 			return
 		}
-		ctype := mime.TypeByExtension(filepath.Ext(name))
-		c.SetHeader("Content-Type", ctype)
-		c.String(200, content)
+		c.SetContent(&znet.PrevData{
+			Code:    http.StatusOK,
+			Type:    ctype,
+			Content: content,
+		})
+
 	}
 }
