@@ -2,6 +2,7 @@ package static
 
 import (
 	"errors"
+	"github.com/sohaha/zlsgo/zfile"
 )
 
 // AssetDirectory is a collection of file groups
@@ -18,11 +19,11 @@ func NewAssetDirectory() *AssetDirectory {
 
 // NewFileGroup creates a new file group
 func (a *AssetDirectory) NewFileGroup(baseDirectory string) (*FileGroup, error) {
-	if _, exists := a.FileGroups[baseDirectory];exists {
-		return nil, errors.New("FileGroup '"+baseDirectory+"' already registered")
+	if _, exists := a.FileGroups[baseDirectory]; exists {
+		return nil, errors.New("FileGroup '" + baseDirectory + "' already registered")
 	}
 	result := &FileGroup{
-		baseDirectory:  baseDirectory,
+		baseDirectory:  zfile.RealPath(baseDirectory),
 		assetDirectory: make(map[string]string),
 	}
 	a.FileGroups[baseDirectory] = result

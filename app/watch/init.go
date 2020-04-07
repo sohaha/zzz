@@ -40,15 +40,6 @@ func init() {
 
 func initCfg(path string) error {
 	version := util.Version
-
-	// homePath := util.GetHome() + util.CfgFilepath
-	// v.AddConfigPath(homePath)
-	// v.SetConfigName(util.CfgFilename)
-
-	// if err := v.ReadInConfig(); err == nil {
-	// 	version = v.GetString("core.version")
-	// }
-
 	config := root.GetExampleWatchConfig(version)
 
 	return ioutil.WriteFile(path, []byte(config), 0644)

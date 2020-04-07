@@ -2,13 +2,14 @@ package static
 
 import (
 	"fmt"
-	"github.com/sohaha/zlsgo/zfile"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"github.com/sohaha/zlsgo/zfile"
 )
 
 // ReferencedAsset holds the information for an asset referenced
@@ -46,6 +47,10 @@ func (r *ReferencedAssets) HasAsset(name string) bool {
 	return false
 }
 
+func clearPath(file, baseDir, rootDir string) string {
+	return strings.TrimPrefix(file, strings.TrimPrefix(baseDir, rootDir)+"/")
+}
+
 // GetReferencedAssets gets a list of referenced assets from the AST
 func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 	var result []*ReferencedAssets
@@ -62,7 +67,6 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 		}
 
 		var packageName string
-
 		// Normalise per directory imports
 		var baseDir = filepath.ToSlash(filepath.Dir(filename))
 		var thisAssetBundle = assetMap[baseDir]
@@ -81,20 +85,24 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 				thisAsset := ParseAssignment(x)
 				if thisAsset != nil {
 					objName := thisAsset.RHS.Obj
+					RHSPath :=thisAsset.RHS.Path
+					// util.Log.Dump(RHSPath,filename)
+					// RHSPath = clearPath(thisAsset.RHS.Path, baseDir, rootDir)
+					// util.Log.Dump(RHSPath)
 					if objName == "static" {
 						switch thisAsset.RHS.Method {
 						case "NewFileserver", "Group":
-							fullPath, err := filepath.Abs(filepath.Join(baseDir, thisAsset.RHS.Path))
+							fullPath, err := filepath.Abs(filepath.Join(rootDir, RHSPath))
 							if err != nil {
 								return false
 							}
 							fullPath = filepath.ToSlash(fullPath)
-							fullPath = strings.TrimPrefix(fullPath, rootDir)
-							thisGroup := &Group{Name: thisAsset.LHS, LocalPath: thisAsset.RHS.Path, FullPath: fullPath}
+							// fullPath = strings.TrimPrefix(fullPath, rootDir)
+							thisGroup := &Group{Name: thisAsset.LHS, LocalPath: RHSPath, FullPath: fullPath}
 							thisAssetBundle.Groups = append(thisAssetBundle.Groups, thisGroup)
 							groups[thisAsset.LHS] = thisGroup
 						case "String", "MustString", "Bytes", "MustBytes":
-							AssetPath := strings.TrimPrefix(zfile.RealPath(baseDir+"/"+thisAsset.RHS.Path), rootDir)
+							AssetPath := strings.TrimPrefix(zfile.RealPath(rootDir+"/"+thisAsset.RHS.Path), rootDir)
 							newAsset := &ReferencedAsset{Name: thisAsset.RHS.Path, Group: nil, AssetPath: AssetPath}
 							thisAssetBundle.Assets = append(thisAssetBundle.Assets, newAsset)
 						default:
@@ -106,7 +114,7 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 						group, exists := groups[objName]
 						if exists {
 							// We have a group call!
-							newAsset := &ReferencedAsset{Name: thisAsset.RHS.Path, Group: group, AssetPath: thisAsset.RHS.Path}
+							newAsset := &ReferencedAsset{Name: thisAsset.RHS.Path, Group: group, AssetPath: RHSPath}
 							thisAssetBundle.Assets = append(thisAssetBundle.Assets, newAsset)
 						}
 					}
