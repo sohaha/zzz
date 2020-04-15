@@ -1,11 +1,28 @@
-package static
+package build
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zstring"
 )
+
+func Basename(pwd string) string {
+	name := filepath.Base(pwd)
+	if zfile.FileExist(pwd + "go.mod") {
+		content, _ := ioutil.ReadFile(pwd + "go.mod")
+		str, err := zstring.RegexExtract(`module (.*)`, zstring.Bytes2String(content))
+		if err == nil && len(str) > 0 {
+			p := strings.Split(str[1], "/")
+			name = p[len(p)-1]
+		}
+	}
+	return name
+}
 
 func getAllFilesInDirectory(dir string) ([]string, error) {
 	var result []string

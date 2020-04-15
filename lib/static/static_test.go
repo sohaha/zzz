@@ -1,11 +1,10 @@
-package static_test
+package static
 
 import (
 	"testing"
 
 	"github.com/sohaha/zlsgo"
 	"github.com/sohaha/zlsgo/zfile"
-	"github.com/sohaha/zzz/lib/static"
 )
 
 func TestStatic(t *testing.T) {
@@ -13,7 +12,7 @@ func TestStatic(t *testing.T) {
 
 	tt.EqualExit(true, zfile.FileExist("../../LICENSE"))
 
-	g, _ := static.Group("../../")
+	g, _ := Group("../../")
 	// g.SetCaller(2)
 	s, err := g.MustString("LICENSE")
 	tt.EqualNil(err)

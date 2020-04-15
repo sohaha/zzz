@@ -7,13 +7,12 @@ import (
 
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/znet"
-
-	lib "github.com/sohaha/zzz/util/static"
+	"github.com/sohaha/zzz/app/build"
 )
 
 // mainAssetDirectory stores all the assets
-var mainAssetDirectory = lib.NewAssetDirectory()
-var rootFileGroup *lib.FileGroup
+var mainAssetDirectory = build.NewAssetDirectory()
+var rootFileGroup *build.FileGroup
 var err error
 
 func init() {
@@ -71,7 +70,7 @@ func All() map[string]string {
 }
 
 // Group holds a group of assets
-func Group(name string) (result *lib.FileGroup, err error) {
+func Group(name string) (result *build.FileGroup, err error) {
 	result = mainAssetDirectory.GetGroup(name)
 	if result == nil {
 		result, err = mainAssetDirectory.NewFileGroup(name)

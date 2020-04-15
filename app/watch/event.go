@@ -1,12 +1,14 @@
 package watch
 
 import (
+	"path"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zlog"
-	"path"
-	"path/filepath"
-	"time"
 )
 
 func eventDispatcher(event fsnotify.Event) {
@@ -30,6 +32,10 @@ func eventDispatcher(event fsnotify.Event) {
 func fileChange(event fsnotify.Event) {
 	switch event.Op {
 	case fsnotify.Write, fsnotify.Remove, fsnotify.Rename:
+		if strings.HasSuffix(event.Name, "____tmp.go") {
+			// ignore zzz build temporary files
+			return
+		}
 		ext := path.Ext(event.Name)
 		fileName, _ := filepath.Abs(event.Name)
 		fileName = filepath.ToSlash(fileName)
@@ -47,6 +53,7 @@ func fileChange(event fsnotify.Event) {
 			task.Put(data)
 			sendChang(data)
 		}
+
 		if lashTime, ok := pushTimer.Load(relativeFilePath); ok {
 			lashTime.(*time.Timer).Stop()
 			pushTimer.Delete(relativeFilePath)

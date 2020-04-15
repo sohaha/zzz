@@ -1,4 +1,4 @@
-package static
+package build
 
 import (
 	"fmt"
@@ -85,7 +85,7 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 				thisAsset := ParseAssignment(x)
 				if thisAsset != nil {
 					objName := thisAsset.RHS.Obj
-					RHSPath :=thisAsset.RHS.Path
+					RHSPath := thisAsset.RHS.Path
 					// util.Log.Dump(RHSPath,filename)
 					// RHSPath = clearPath(thisAsset.RHS.Path, baseDir, rootDir)
 					// util.Log.Dump(RHSPath)
