@@ -45,7 +45,7 @@ Targets:
 
 `
 
-var ExampleWatchConfig = `# zzz watch 配置
+var ExampleWatchConfig = `# zzz watch 配置 https://github.com/sohaha/zzz
 core:
     # 配置版本号，勿手动修改
     version: %v
@@ -79,7 +79,7 @@ command:
     # 支持变量占位符,{{file}} {{ext}} {{changed}}
     exec:
         - go build -o tmpApp
-		- ./tmpApp
+        - ./tmpApp
 
     # 开启监听后自动执行一次上面 exec 配置的全部命令
     startup: true

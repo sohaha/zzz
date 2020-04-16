@@ -1,4 +1,4 @@
-package static
+package build
 
 import (
 	"bytes"
@@ -41,7 +41,7 @@ func CompressFile(filename string) (string, error) {
 
 // FindGoFiles finds all go files recursively from the given directory
 func FindGoFiles(directory string) ([]string, error) {
-	result := make([]string,0)
+	result := make([]string, 0)
 	err := filepath.Walk(directory,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {

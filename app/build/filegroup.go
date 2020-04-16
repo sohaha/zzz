@@ -1,12 +1,13 @@
-package static
+package build
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/sohaha/zlsgo/zstring"
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+
+	"github.com/pkg/errors"
+	"github.com/sohaha/zlsgo/zstring"
 	// "runtime"
 )
 

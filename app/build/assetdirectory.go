@@ -1,7 +1,8 @@
-package static
+package build
 
 import (
 	"errors"
+
 	"github.com/sohaha/zlsgo/zfile"
 )
 

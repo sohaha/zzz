@@ -25,7 +25,7 @@ var (
 	once           sync.Once
 	installPath    string
 	homePath       string
-	Version        = "1.0.5"
+	Version        = "1.0.9"
 	BuildTime      = ""
 	BuildGoVersion = ""
 )
@@ -90,6 +90,13 @@ func CheckIfError(err error) {
 
 func GetHome() string {
 	return homePath + "/"
+}
+
+func Run(cmd *exec.Cmd) error {
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 func DoSelfUpdate(version string) {
