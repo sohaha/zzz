@@ -10,7 +10,7 @@ require (
 	github.com/lucasjones/reggen v0.0.0-20180717132126-cdb49ff09d77
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/sohaha/zlsgo v0.1.28
+	github.com/sohaha/zlsgo v0.1.29
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.6.3
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
