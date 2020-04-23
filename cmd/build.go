@@ -19,6 +19,7 @@ var (
 	isVendor    bool
 	buildIgnore bool
 	isPack      bool
+	skipStatic  bool
 	isCGO       bool
 	cross       string
 	goVersion   string
@@ -37,31 +38,43 @@ var buildCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		dirPath := zfile.RealPath(".", true)
 		name := build.Basename(dirPath)
-		mewnFiles := build.GetMewnFiles([]string{}, buildIgnore)
-		targetFiles := make([]string, 0)
-		if len(mewnFiles) > 0 {
-			referencedAssets, err := build.GetReferencedAssets(mewnFiles)
-			util.CheckIfError(err)
-			for _, referencedAsset := range referencedAssets {
-				packfileData, err := build.GeneratePackFileString(referencedAsset, buildIgnore)
+		if !skipStatic {
+			mewnFiles := build.GetMewnFiles([]string{}, buildIgnore)
+			targetFiles := make([]string, 0)
+			if len(mewnFiles) > 0 {
+				referencedAssets, err := build.GetReferencedAssets(mewnFiles)
 				util.CheckIfError(err)
-				targetFile := filepath.Join(referencedAsset.BaseDir, referencedAsset.PackageName+"____tmp.go")
-				targetFiles = append(targetFiles, targetFile)
-				err = ioutil.WriteFile(targetFile, []byte(packfileData), 0644)
-				util.CheckIfError(err)
+				for _, referencedAsset := range referencedAssets {
+					packfileData, err := build.GeneratePackFileString(referencedAsset, buildIgnore)
+					util.CheckIfError(err)
+					targetFile := filepath.Join(referencedAsset.BaseDir, referencedAsset.PackageName+"____tmp.go")
+					targetFiles = append(targetFiles, targetFile)
+					err = ioutil.WriteFile(targetFile, []byte(packfileData), 0644)
+					util.CheckIfError(err)
+				}
 			}
+			defer func() {
+				for _, filename := range targetFiles {
+					_ = os.Remove(filename)
+				}
+			}()
 		}
-		defer func() {
-			for _, filename := range targetFiles {
-				_ = os.Remove(filename)
-			}
-		}()
 		buildArgs := args
+		buildArgs = append(buildArgs, ` -ldflags`)
+		ldflags := zstring.Buffer()
+		ldflags.WriteString(` "`)
+		ldflags.WriteString(` -X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
+		ldflags.WriteString(` -X 'main.BUILD_GOVERSION=` + build.GetGoVersion() + `'`)
+		ldflags.WriteString(` -X 'main.BUILD_TIME=` + build.GetBuildTime() + `'`)
+		ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildTime=` + build.GetBuildTime() + `'`)
+		ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGoVersion=` + build.GetGoVersion() + `'`)
+		ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGitCommitID=` + build.GetBuildGitID() + `'`)
 		if isPack {
-			buildArgs = append(buildArgs, `-ldflags`)
-			buildArgs = append(buildArgs, `-w -s`)
+			ldflags.WriteString(` -w -s `)
 		}
+		ldflags.WriteString(` "`)
 
+		buildArgs = append(buildArgs, ldflags.String())
 		if zfile.DirExist(dirPath + "vendor") {
 			isVendor = true
 		}
@@ -72,11 +85,11 @@ var buildCmd = &cobra.Command{
 		if outDir != "" && !strings.HasSuffix(outDir, "/") {
 			outDir = outDir + "/"
 		}
-		targets := make([]build.BuildOS, 0)
+		targets := make([]build.OSData, 0)
 		for _, v := range build.ParserTarget(cross) {
 			for k, v := range build.TargetsCommad(v) {
 				for _, a := range v {
-					targets = append(targets, build.BuildOS{
+					targets = append(targets, build.OSData{
 						Goos:   k,
 						Goarch: a,
 					})
@@ -91,7 +104,7 @@ var buildCmd = &cobra.Command{
 			return
 		}
 		if err := build.CheckDocker(); err != nil {
-			util.Log.Fatalf("Failed to check docker installation: %v\n", err)
+			util.Log.Fatalf("Failed to check docker: %v\n", err)
 		}
 		if goVersion == "" {
 			goVersion = "latest"
@@ -105,11 +118,17 @@ var buildCmd = &cobra.Command{
 				util.Log.Fatalf("Failed to pull docker image from the registry: %v", err)
 			}
 		}
+		buildGoversionOld := ` -X 'main.BUILD_GOVERSION=` + build.GetGoVersion() + `'`
+		buildGoversionNew := ` -X 'main.BUILD_GOVERSION=` + build.DockerDist + goVersion + `'`
+		if goVersion == "1.11" {
+			GOPROXY = "GO111MODULE=on " + strings.Split(GOPROXY, ",")[0]
+		}
 		for _, v := range buildCommads {
 			v = GOPROXY + " " + v + strings.Join(buildArgs, " ")
+			v = strings.Replace(v, buildGoversionOld, buildGoversionNew, 1)
 			cmd := strings.Split(fmt.Sprintf(`docker run --rm -v %s:/app -w /app seekwe/go-builder:%s sh -c`, dirPath, goVersion), " ")
 			cmd = append(cmd, v)
-			name, err := zstring.RegexExtract(`-o=([\w\\\/\-\_]*) `, v)
+			name, err := zstring.RegexExtract(`-o=([\w\\\/\-\_\.]*) `, v)
 			if err == nil && len(name) > 1 {
 				util.Log.Printf("Build %s ...\n", name[1])
 			}
@@ -150,6 +169,7 @@ func isDocker() bool {
 
 func init() {
 	rootCmd.AddCommand(buildCmd)
+	buildCmd.Flags().BoolVarP(&skipStatic, "skip-static", "", false, "skip static analysis, do not use package static file function")
 	buildCmd.Flags().BoolVarP(&isPack, "pack", "P", false, "Same as build, will compile with '-w -s' flags")
 	buildCmd.Flags().StringVarP(&cross, "os", "O", "", "Cross-compile, compile to the specified system application, use more ',' separate")
 	buildCmd.Flags().StringVarP(&outDir, "out", "", "", "Output directory")

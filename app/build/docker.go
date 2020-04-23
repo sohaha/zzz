@@ -12,9 +12,9 @@ import (
 	"github.com/sohaha/zzz/util"
 )
 
-var dockerDist = "seekwe/go-builder:"
+var DockerDist = "seekwe/go-builder:"
 
-type BuildOS struct {
+type OSData struct {
 	Goos   string
 	Goarch string
 	CXX    string
@@ -22,7 +22,7 @@ type BuildOS struct {
 }
 
 func CheckDocker() error {
-	util.Log.Println("Checking docker installation...")
+	util.Log.Println("Checking docker ...")
 	if _, _, _, err := zshell.Run("docker version"); err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func CheckDocker() error {
 }
 
 func CheckDockerImage(goVersion string) (bool, error, string) {
-	image := dockerDist + goVersion
+	image := DockerDist + goVersion
 	util.Log.Printf("Checking for required docker image %s ...\n", image)
 	out, err := exec.Command("docker", "images", "--no-trunc").Output()
 	if err != nil {
@@ -48,7 +48,7 @@ func PullDockerImage(image string) error {
 	return err
 }
 
-func CommadString(os []BuildOS, isVendor, isCGO bool, packageName, outDir string) (commad []string) {
+func CommadString(os []OSData, isVendor, isCGO bool, packageName, outDir string) (commad []string) {
 	cgo := ""
 	vendor := ""
 	if isCGO {
@@ -95,7 +95,6 @@ func TargetsCommad(target string) map[string][]string {
 		goarch = ""
 		commad = map[string][]string{}
 	)
-
 	t := strings.Split(target, "/")
 	if len(t) > 1 {
 		goos = t[0]
@@ -108,8 +107,16 @@ func TargetsCommad(target string) map[string][]string {
 		commad["linux"] = ParserArch(goarch, []string{"386", "amd64"})
 	case "d", "darwin", "mac":
 		commad["darwin"] = ParserArch(goarch, []string{"amd64"})
+	case "android", "a":
+		commad["android"] = ParserArch(goarch, []string{"arm64"})
 	default:
-		commad["goos"] = ParserArch(goarch, []string{})
+		if goos == "" {
+			break
+		}
+		if goarch == "*" || goarch == "" {
+			util.Log.Fatalf("There is no GOARCH preset for %s, please complete it, for example: linux/amd64,windows/386\n", goos)
+		}
+		commad[goos] = ParserArch(goarch, []string{})
 	}
 	return commad
 }

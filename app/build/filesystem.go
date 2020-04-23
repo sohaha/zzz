@@ -47,6 +47,9 @@ func FindGoFiles(directory string) ([]string, error) {
 			if err != nil {
 				return err
 			}
+			if strings.HasPrefix(filepath.Base(path), ".") {
+				return filepath.SkipDir
+			}
 			goFilePath := filepath.Ext(path)
 			if goFilePath == ".go" {
 				isMewnFile := strings.HasSuffix(path, "____tmp.go")
