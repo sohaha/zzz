@@ -63,7 +63,7 @@ var buildCmd = &cobra.Command{
 		buildArgs = append(buildArgs, ` -ldflags`)
 		ldflags := zstring.Buffer()
 		ldflags.WriteString(` "`)
-		ldflags.WriteString(` -X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
+		ldflags.WriteString(`-X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_GOVERSION=` + build.GetGoVersion() + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_TIME=` + build.GetBuildTime() + `'`)
 		ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildTime=` + build.GetBuildTime() + `'`)
@@ -72,7 +72,7 @@ var buildCmd = &cobra.Command{
 		if isPack {
 			ldflags.WriteString(` -w -s `)
 		}
-		ldflags.WriteString(` "`)
+		ldflags.WriteString(`"`)
 
 		buildArgs = append(buildArgs, ldflags.String())
 		if zfile.DirExist(dirPath + "vendor") {
@@ -154,7 +154,13 @@ func localCommad(v string, buildArgs []string) {
 	zshell.Env = osEnv
 	cmd := strings.Split(v, " ")
 	cmd = append(cmd, buildArgs...)
-	_, _, _, err := zshell.ExecCommand(cmd, nil, os.Stdout, os.Stderr)
+	cmds := []string{}
+	for _, v := range cmd {
+		v = strings.Trim(v, " ")
+		v = strings.Trim(v, "\"")
+		cmds = append(cmds, v)
+	}
+	_, _, _, err := zshell.ExecCommand(cmds, nil, os.Stdout, os.Stderr)
 	if err != nil {
 		util.Log.Fatalf("%v\n", err)
 	}
