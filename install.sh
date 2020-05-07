@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+# set -e
 
 os=$(uname -s)
 arch=$(uname -m)
@@ -25,15 +25,15 @@ F="zzz_${LAST_VERSION/v/}_${os}_${arch}.tar.gz"
 echo "Download tar.gz ..."
 wget "${isChinaProxy}https://github.com/sohaha/zzz/releases/download/v${LAST_VERSION}/$F"
 
-echo "Untar..."
-tar zxvf "$F"
-
-
-cp -f zzz /usr/local/bin
-chmod +x /usr/local/bin/zzz
-
-echo "Install done"
-
-/usr/local/bin/zzz --help
-
-rm -rf /tmp/zzz
+if [ $? -eq 0 ];then
+  echo "Untar..."
+  tar zxvf "$F"
+  cp -f zzz /usr/local/bin
+  chmod +x /usr/local/bin/zzz
+  echo "Install done"
+  /usr/local/bin/zzz --help
+  rm -rf /tmp/zzz
+else
+  echo "Install fail..."
+  exit
+fi
