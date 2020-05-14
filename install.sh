@@ -13,12 +13,8 @@ mkdir /tmp/zzz
 cd /tmp/zzz
 
 isChinaProxy="https://github.73zls.com/"
-isChina=""
-if [ "--no-china" != $1 ]; then
-  isChina=$(curl --silent "cip.cc" | grep "中国")
-fi
-
-if [ "" == isChina ]; then
+isChina=$(curl --silent "cip.cc" | grep "中国")
+if [[ "" == isChina || "--no-china" == $1 || "1" == $NoChina ]]; then
   isChinaProxy=""
 fi
 
