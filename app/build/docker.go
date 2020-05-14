@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zshell"
 	"github.com/sohaha/zlsgo/zutil"
 	"github.com/sohaha/zzz/util"
@@ -83,8 +84,13 @@ func CommadString(os []OSData, isVendor, isCGO bool, packageName, outDir string)
 		name := packageName + "_" + v.Goos + "_" + v.Goarch
 		commad = append(commad, fmt.Sprintf("%s%s GOARCH=%s GOOS=%s go build -o=%s%s%s", cc, cgo, v.Goarch, v.Goos, outDir, zutil.IfVal(v.Goos == "windows", name+".exe", name).(string), vendor))
 	}
+
 	if len(commad) == 0 {
 		commad = []string{"go build"}
+		if outDir != "" {
+			name := packageName
+			commad = []string{"go build -o=" + outDir + zutil.IfVal(zenv.IsWin(), name+".exe", name).(string)}
+		}
 	}
 	return
 }
