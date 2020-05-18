@@ -20,6 +20,12 @@ fi
 
 echo "Get Version..."
 LAST_VERSION=$(curl --silent "${isChinaProxy}https://api.github.com/repos/sohaha/zzz/releases/latest" | grep  "tag_name" | cut -d '"' -f 4  | cut -d 'v' -f 2)
+
+if [[ "" == $LAST_VERSION ]]; then
+  echo "Failed to get version, please check the network"
+  exit 1
+fi
+
 F="zzz_${LAST_VERSION/v/}_${os}_${arch}.tar.gz"
 
 echo "Download tar.gz ..."
