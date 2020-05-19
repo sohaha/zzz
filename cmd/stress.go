@@ -21,8 +21,9 @@ var stressCfg string
 
 // copyright: https://github.com/bengadbois/pewpew
 var stressCmd = &cobra.Command{
-	Use:   stressUse,
-	Short: "Run stress tests",
+	Use:     stressUse,
+	Short:   "Run stress tests",
+	Aliases: []string{"s"},
 	// 	Example: fmt.Sprintf(`  %s %s www.baidu.com
 	//   %[1]s %[2]s -c 10 -t 10 -u https://www.baidu.com`, use, stressUse),
 	RunE: func(cmd *cobra.Command, args []string) error {

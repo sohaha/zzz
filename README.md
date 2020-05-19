@@ -9,7 +9,7 @@
 一键安装
 
 ```bash
-sudo curl -L https://raw.githubusercontent.com/sohaha/zzz/master/install.sh | bash
+curl -L https://raw.githubusercontent.com/sohaha/zzz/master/install.sh | sudo bash
 ```
 
 手动安装
