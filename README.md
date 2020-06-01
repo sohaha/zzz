@@ -9,7 +9,7 @@
 如果本地有 Go 环境推荐使用该方式
 
 ```bash
-go install github.com/sohaha/zzz
+go get -u github.com/sohaha/zzz
 ```
 
 **Linux or MacOS**
