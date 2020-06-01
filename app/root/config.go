@@ -1,6 +1,10 @@
 package root
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/sohaha/zlsgo/zenv"
+)
 
 var ExampleConfig = `# zzz 主配置
 # 核心配置
@@ -78,8 +82,8 @@ command:
     # 监听的文件有更改会执行的命令，不支持复杂的命令，如需要请写成脚本调用
     # 支持变量占位符,{{file}} {{ext}} {{changed}}
     exec:
-        - go build -o tmpApp
-        - ./tmpApp
+        - go build -o %s
+        - ./%s
 
     # 开启监听后自动执行一次上面 exec 配置的全部命令
     startup: true
@@ -116,7 +120,11 @@ func GetExampleConfig(version string) string {
 }
 
 func GetExampleWatchConfig(version string) string {
-	return fmt.Sprintf(ExampleWatchConfig, version)
+	name := "tmpApp"
+	if zenv.IsWin() {
+		name = "tmpApp.exe"
+	}
+	return fmt.Sprintf(ExampleWatchConfig, version, name, name)
 }
 
 func GetExampleStressConfig(version string) string {
