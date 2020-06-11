@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zzz/util"
 )
 
@@ -47,8 +48,12 @@ func FindGoFiles(directory string) ([]string, error) {
 			if err != nil {
 				return err
 			}
-			if strings.HasPrefix(filepath.Base(path), ".") {
-				return filepath.SkipDir
+			basePath := filepath.Base(path)
+			if strings.HasPrefix(basePath, ".") {
+				if zfile.DirExist(basePath) {
+					return filepath.SkipDir
+				}
+				return nil
 			}
 			goFilePath := filepath.Ext(path)
 			if goFilePath == ".go" {

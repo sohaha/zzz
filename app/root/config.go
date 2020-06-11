@@ -112,7 +112,7 @@ http:
 # 其他
 other:
     # 延迟执行指令通知时间（毫秒），不限制为 0
-    delayMillSecond: 300
+    delayMillSecond: 100
 `
 
 func GetExampleConfig(version string) string {
