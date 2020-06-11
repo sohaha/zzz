@@ -7,13 +7,17 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zhttp"
+	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zlog"
-	"github.com/sohaha/zzz/app/root"
-	"github.com/sohaha/zzz/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/sohaha/zzz/app/root"
+	"github.com/sohaha/zzz/util"
 )
 
 const (
@@ -75,7 +79,8 @@ func init() {
 	// 	defConfig = fmt.Sprintf("config file (default is $HOME/%s)", cfgFilename)
 	// }
 	// rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "", "", defConfig)
-	cobra.OnInitialize(initConfig)
+	initConfig()
+	// cobra.OnInitialize(initConfig)
 	cobra.AddTemplateFunc("StyleHeading", func(e string) string {
 		return zlog.ColorTextWrap(zlog.ColorGreen, e)
 	})
@@ -115,7 +120,7 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
-		// fmt.Println("Using config file:", viper.ConfigFileUsed())
+		// fmt.Println("Using config file:", viper.ConfigFileUsed(), viper.AllSettings())
 	}
 	// _ = updateCfg(cfgFilepath)
 }
@@ -131,4 +136,30 @@ func createCfg(cfgFilepath string) error {
 
 func updateCfg(cfgFilepath string) error {
 	return viper.WriteConfigAs(cfgFilepath)
+}
+
+func updateDetectionTime(now int64) {
+	viper.Set("core.detection_time", now)
+	_ = viper.WriteConfig()
+}
+
+func GetNewVersion(c chan struct{}) {
+	now := time.Now().Unix()
+	lastNow := viper.GetInt64("core.detection_time")
+	if lastNow != 0 && ((now - lastNow) < 60*10) {
+		c <- struct{}{}
+		return
+	}
+	updateDetectionTime(now)
+	res, err := zhttp.Get("https://api.github.com/repos/sohaha/zzz/releases/latest")
+	if err != nil {
+		c <- struct{}{}
+		return
+	}
+	json := zjson.ParseBytes(res.Bytes())
+	version := strings.TrimPrefix(json.Get("tag_name").String(), "v")
+	if util.VersionCompare(util.Version, version, "<") {
+		util.Log.Warnf("New version (v%v) is released, please go to GitHub to update: https://github.com/sohaha/zzz\n", version)
+	}
+	c <- struct{}{}
 }

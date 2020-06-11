@@ -25,7 +25,7 @@ func (a *AssetDirectory) NewFileGroup(baseDirectory string) (*FileGroup, error) 
 	}
 	result := &FileGroup{
 		baseDirectory:  zfile.RealPath(baseDirectory),
-		assetDirectory: make(map[string]string),
+		assetDirectory: make(map[string][]byte),
 	}
 	a.FileGroups[baseDirectory] = result
 	return result, nil

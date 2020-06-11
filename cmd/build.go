@@ -1,18 +1,21 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zshell"
 	"github.com/sohaha/zlsgo/zstring"
+	"github.com/spf13/cobra"
+
 	"github.com/sohaha/zzz/app/build"
 	"github.com/sohaha/zzz/util"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -55,7 +58,9 @@ var buildCmd = &cobra.Command{
 			}
 			defer func() {
 				for _, filename := range targetFiles {
-					_ = os.Remove(filename)
+					if zenv.Getenv("NODELETETMP") == "" {
+						_ = os.Remove(filename)
+					}
 				}
 			}()
 		}
@@ -132,7 +137,7 @@ var buildCmd = &cobra.Command{
 			if err == nil && len(name) > 1 {
 				util.Log.Printf("Build %s ...\n", name[1])
 			}
-			_, _, _, err = zshell.ExecCommand(cmd, nil, os.Stdout, os.Stderr)
+			_, _, _, err = zshell.ExecCommand(context.Background(), cmd, nil, os.Stdout, os.Stderr)
 			if err != nil {
 				util.Log.Fatalf("Failed to check docker image availability: %v\n", err)
 			}
@@ -160,7 +165,7 @@ func localCommad(v string, buildArgs []string) {
 		v = strings.Trim(v, "\"")
 		cmds = append(cmds, v)
 	}
-	_, _, _, err := zshell.ExecCommand(cmds, nil, os.Stdout, os.Stderr)
+	_, _, _, err := zshell.ExecCommand(context.Background(), cmds, nil, os.Stdout, os.Stderr)
 	if err != nil {
 		util.Log.Fatalf("%v\n", err)
 	}

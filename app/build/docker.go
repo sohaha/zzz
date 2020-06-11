@@ -1,6 +1,7 @@
 package build
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zshell"
 	"github.com/sohaha/zlsgo/zutil"
+
 	"github.com/sohaha/zzz/util"
 )
 
@@ -45,7 +47,7 @@ func CheckDockerImage(goVersion string) (bool, error, string) {
 
 func PullDockerImage(image string) error {
 	util.Log.Printf("Pulling %s from docker registry...\n", image)
-	_, _, _, err := zshell.ExecCommand([]string{"docker", "pull", image}, nil, os.Stdout, os.Stderr)
+	_, _, _, err := zshell.ExecCommand(context.Background(), []string{"docker", "pull", image}, nil, os.Stdout, os.Stderr)
 	return err
 }
 

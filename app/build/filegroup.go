@@ -14,11 +14,21 @@ import (
 // FileGroup holds a collection of files
 type FileGroup struct {
 	baseDirectory  string
-	assetDirectory map[string]string
+	assetDirectory map[string][]byte
 }
 
 // AddAsset to the FileGroup
 func (f *FileGroup) AddAsset(name, data string) error {
+	_, exists := f.assetDirectory[name]
+	if exists {
+		return fmt.Errorf("asset '%s' already registered in FileGroup '%s'", name, f.baseDirectory)
+	}
+	f.assetDirectory[name] = zstring.String2Bytes(data)
+	return nil
+}
+
+// AddAsset to the FileGroup
+func (f *FileGroup) AddByteAsset(name string, data []byte) error {
 	_, exists := f.assetDirectory[name]
 	if exists {
 		return fmt.Errorf("asset '%s' already registered in FileGroup '%s'", name, f.baseDirectory)
@@ -69,20 +79,20 @@ func (f *FileGroup) Entries() []string {
 
 // Reset the FileGroup
 func (f *FileGroup) Reset() {
-	f.assetDirectory = make(map[string]string)
+	f.assetDirectory = make(map[string][]byte)
 }
 
 // All All
-func (f *FileGroup) All() map[string]string {
+func (f *FileGroup) All() map[string][]byte {
 	return f.assetDirectory
 }
 
 // loadAsset loads the asset for the given filename
 func (f *FileGroup) loadAsset(filename string) (contents []byte, err error) {
 	// Check internal
-	storedAsset := f.assetDirectory[filename]
-	if storedAsset != "" {
-		return DecompressHexString(storedAsset)
+	storedAsset, ok := f.assetDirectory[filename]
+	if ok {
+		return DecompressHex(storedAsset)
 	}
 
 	// Get caller directory

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/blang/semver"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zfile"
@@ -25,7 +24,7 @@ var (
 	once           sync.Once
 	installPath    string
 	homePath       string
-	Version        = "1.0.14"
+	Version        = "1.0.15"
 	BuildTime      = ""
 	BuildGoVersion = ""
 )
@@ -90,32 +89,4 @@ func CheckIfError(err error) {
 
 func GetHome() string {
 	return homePath + "/"
-}
-
-func Run(cmd *exec.Cmd) error {
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
-}
-
-func DoSelfUpdate(version string) {
-	cmdPath, err := os.Executable()
-	if err != nil {
-		return
-	}
-	v, err := semver.Make(version)
-	if err != nil {
-		Log.Error(err)
-		return
-	}
-	newV, err := semver.Make("1.0.0")
-	if err != nil {
-		Log.Error(err)
-		return
-	}
-	Log.Debug(v.LTE(newV))
-	Log.Debug(v.String())
-	Log.Debug(newV.String())
-	Log.Debug(cmdPath)
 }

@@ -58,12 +58,11 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			for _, file := range files {
 				// Read in File
 				packedData, err := CompressFile(file)
-
 				if err != nil && !ignoreErrors {
 					return "", err
 				}
 				localPath := strings.TrimPrefix(file, groupPrefix+"/")
-				result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", group.LocalPath, localPath, packedData)
+				result += fmt.Sprintf("  static.AddByteAsset(\"%s\", \"%s\",%#v)\n", group.LocalPath, localPath, packedData)
 				// result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
 				filesProcessed[file] = true
 				// fmt.Printf("Packed: %s\n", file)
@@ -78,14 +77,14 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			if err != nil {
 				return "", err
 			}
-			if _, exists := filesProcessed[fullPath]; exists == true {
-				continue
-			}
+			// if _, exists := filesProcessed[fullPath]; exists == true {
+			// 	continue
+			// }
 			packedData, err := CompressFile(fullPath)
 			if err != nil && !ignoreErrors {
 				return "", err
 			}
-			result += fmt.Sprintf("  static.AddAsset(\".\", \"%s\", \"%s\")\n", asset.Name, packedData)
+			result += fmt.Sprintf("  static.AddByteAsset(\".\", \"%s\", %#v)\n", asset.Name, packedData)
 			filesProcessed[fullPath] = true
 		}
 		result += "}\n"

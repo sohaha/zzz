@@ -7,6 +7,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/znet"
+
 	"github.com/sohaha/zzz/app/build"
 )
 
@@ -54,6 +55,18 @@ func AddAsset(groupName, name, value string) {
 	_ = fileGroup.AddAsset(name, value)
 }
 
+// AddByteAsset adds the given asset to the root context
+func AddByteAsset(groupName, name string, value []byte) {
+	fileGroup := mainAssetDirectory.GetGroup(groupName)
+	if fileGroup == nil {
+		fileGroup, err = mainAssetDirectory.NewFileGroup(groupName)
+		if err != nil {
+			zlog.Fatal(err)
+		}
+	}
+	_ = fileGroup.AddByteAsset(name, value)
+}
+
 // Entries returns the file entries as a slice of filenames
 func Entries() []string {
 	return rootFileGroup.Entries()
@@ -65,7 +78,7 @@ func Reset() {
 }
 
 // All All
-func All() map[string]string {
+func All() map[string][]byte {
 	return rootFileGroup.All()
 }
 
