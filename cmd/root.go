@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/sohaha/zlsgo/zhttp"
 	"github.com/sohaha/zlsgo/zjson"
 	"github.com/sohaha/zlsgo/zlog"
+	"github.com/sohaha/zlsgo/zstring"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -146,13 +148,16 @@ func updateDetectionTime(now int64) {
 func GetNewVersion(c chan struct{}) {
 	now := time.Now().Unix()
 	lastNow := viper.GetInt64("core.detection_time")
-	if lastNow != 0 && ((now - lastNow) < 60*10) {
+	if lastNow != 0 && ((now - lastNow) < 600) {
 		c <- struct{}{}
 		return
 	}
 	updateDetectionTime(now)
-	res, err := zhttp.Get("https://api.github.com/repos/sohaha/zzz/releases/latest")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(zstring.RandInt(1, 4))*time.Second)
+	defer cancel()
+	res, err := zhttp.Get("https://api.github.com/repos/sohaha/zzz/releases/latest", ctx)
 	if err != nil {
+		zlog.Debug(err)
 		c <- struct{}{}
 		return
 	}
