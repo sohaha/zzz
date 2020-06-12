@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/sohaha/zlsgo/zfile"
+
 	"github.com/sohaha/zzz/util"
 )
 
@@ -26,18 +27,16 @@ func init() {
 }
 
 // CompressFile reads the given file and converts it to a gzip compressed hex string
-func CompressFile(filename string) (string, error) {
+func CompressFile(filename string) ([]byte, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return "", err
+		return []byte{}, err
 	}
-
 	var byteBuffer bytes.Buffer
 	writer := gzip.NewWriter(&byteBuffer)
 	_, _ = writer.Write(data)
 	_ = writer.Close()
-
-	return hex.EncodeToString(byteBuffer.Bytes()), nil
+	return byteBuffer.Bytes(), nil
 }
 
 // FindGoFiles finds all go files recursively from the given directory
@@ -65,6 +64,18 @@ func FindGoFiles(directory string) ([]string, error) {
 			return nil
 		})
 	return result, err
+}
+
+// DecompressHex decompresses the gzip/hex encoded data
+func DecompressHex(hexdata []byte) ([]byte, error) {
+	datareader := bytes.NewReader(hexdata)
+	gzipReader, err := gzip.NewReader(datareader)
+	if err != nil {
+		return nil, err
+	}
+	defer gzipReader.Close()
+
+	return ioutil.ReadAll(gzipReader)
 }
 
 // DecompressHexString decompresses the gzip/hex encoded data

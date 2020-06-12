@@ -2,6 +2,7 @@ package root
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/sohaha/zlsgo/zenv"
 )
@@ -11,6 +12,8 @@ var ExampleConfig = `# zzz 主配置
 core:
     # 配置版本号，勿手动修改
     version: %v
+    # 版本检测时间，勿手动修改
+    detection_time: %v
 
 # 其他配置
 other:
@@ -116,7 +119,7 @@ other:
 `
 
 func GetExampleConfig(version string) string {
-	return fmt.Sprintf(ExampleConfig, version)
+	return fmt.Sprintf(ExampleConfig, version, time.Now().Unix())
 }
 
 func GetExampleWatchConfig(version string) string {
