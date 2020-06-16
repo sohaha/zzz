@@ -24,7 +24,7 @@ var (
 	once           sync.Once
 	installPath    string
 	homePath       string
-	Version        = "1.0.15"
+	Version        = "1.0.16"
 	BuildTime      = ""
 	BuildGoVersion = ""
 )

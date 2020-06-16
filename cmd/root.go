@@ -157,7 +157,6 @@ func GetNewVersion(c chan struct{}) {
 	defer cancel()
 	res, err := zhttp.Get("https://api.github.com/repos/sohaha/zzz/releases/latest", ctx)
 	if err != nil {
-		zlog.Debug(err)
 		c <- struct{}{}
 		return
 	}
