@@ -18,10 +18,10 @@ func eventDispatcher(event fsnotify.Event) {
 		if zfile.DirExist(event.Name) {
 			if event.Op == fsnotify.Create {
 				addNewWatcher(event.Name)
-				// } else if event.Op == fsnotify.Remove {
-				// 	removeWatcher(event.Name)
-				// } else {
-				// 	otherWatcher(event.Name, event.Op)
+			} else if event.Op == fsnotify.Remove {
+				removeWatcher(event.Name)
+			} else {
+				otherWatcher(event.Name, event.Op)
 			}
 		}
 		return

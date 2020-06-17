@@ -1,12 +1,11 @@
 package watch
 
 import (
+	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/sohaha/zzz/util"
-
-	"os"
-	"sync"
 
 	"github.com/spf13/viper"
 )
@@ -30,6 +29,7 @@ var (
 	startup            bool
 	pushTimer          sync.Map
 	v                  *viper.Viper
+	ignoreDirectory    = [...]string{".git", ".vscode", ".svn", ".idea"}
 	// waitGroup     sync.WaitGroup
 )
 
