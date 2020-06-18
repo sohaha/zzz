@@ -2,14 +2,16 @@ package watch
 
 import (
 	"errors"
-	"github.com/sohaha/zlsgo/ztype"
 	"io/ioutil"
 	"net"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sohaha/zlsgo/ztype"
 )
 
 func dirParse2Array(s string) []string {
@@ -24,7 +26,21 @@ func dirParse2Array(s string) []string {
 	return r
 }
 
+func isIgnoreDirectory(folder string) bool {
+	base := filepath.Base(folder)
+	for _, v := range ignoreDirectory {
+		if base == v {
+			return true
+		}
+	}
+	return false
+}
+
 func listFile(folder string, fun func(string)) {
+	if isIgnoreDirectory(folder) {
+		return
+	}
+
 	files, _ := ioutil.ReadDir(folder)
 	for _, file := range files {
 		if file.IsDir() {

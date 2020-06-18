@@ -9,9 +9,10 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/sohaha/zlsgo/zfile"
-	"github.com/sohaha/zzz/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/sohaha/zzz/util"
 )
 
 func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
@@ -63,7 +64,6 @@ func run(cmd *cobra.Command) {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			util.Log.Error(ErrCfgNotFoun)
 			showInitCmd(cmd)
-
 		} else {
 			util.Log.Error(err)
 			showInitCmd(cmd)
@@ -86,9 +86,13 @@ func start() {
 		err  error
 		cmds []*exec.Cmd
 	)
-
+	poll := v.GetBool("monitor.poll")
 	// watcher, err = fsnotify.NewWatcher()
-	watcher, err = NewWatcher()
+	if poll {
+		watcher = NewPollingWatcher()
+	} else {
+		watcher, err = NewWatcher()
+	}
 	if err != nil {
 		util.Log.Fatal(err)
 	}

@@ -1,10 +1,11 @@
 package watch
 
 import (
-	"github.com/fsnotify/fsnotify"
-	"github.com/sohaha/zlsgo/zlog"
 	"path/filepath"
 	"strings"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/sohaha/zlsgo/zlog"
 )
 
 func addWatcher() {
@@ -47,12 +48,25 @@ func addNewWatcher(dir string) {
 	}
 }
 
-func removeWatcher(name string) {
-	zlog.Debug("removeWatcher", name)
+func removeWatcher(dir string) {
+	fullDir := filepath.ToSlash(dir)
+	err := watcher.Remove(fullDir)
+	if err == nil && inStringArray(fullDir, watchDirs) {
+		if len(watchDirs) > 0 {
+			for i, v := range watchDirs {
+				if v == fullDir {
+					watchDirs = append(watchDirs[:i], watchDirs[i+1:]...)
+					break
+				}
+			}
+		}
+
+	}
+	zlog.Println("RemoveWatcher: ", fullDir)
 }
 
 func otherWatcher(name string, event fsnotify.Op) {
-	zlog.Debug("otherWatcher", name, event)
+	// zlog.Debug("otherWatcher", name, event)
 }
 
 func arrIncludeDirs() {
@@ -109,7 +123,6 @@ func arrIncludeDirs() {
 
 func arrExceptDirs() (update bool) {
 	exceptDirs := v.GetStringSlice("monitor.ExceptDirs")
-
 	for i := 0; i < len(exceptDirs); i++ {
 		p := exceptDirs[i]
 		if !filepath.IsAbs(p) {

@@ -3,8 +3,8 @@ package watch
 import (
 	"errors"
 	"fmt"
-	"github.com/sohaha/zlsgo/zlog"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -28,18 +28,19 @@ type filePoller struct {
 
 func (w *filePoller) Add(name string) error {
 	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	if w.closed {
+		w.mu.Unlock()
 		return errPollerClosed
 	}
 
 	f, err := os.Open(name)
 	if err != nil {
+		w.mu.Unlock()
 		return err
 	}
 	fi, err := os.Stat(name)
 	if err != nil {
+		w.mu.Unlock()
 		f.Close()
 		return err
 	}
@@ -48,11 +49,22 @@ func (w *filePoller) Add(name string) error {
 		w.watches = make(map[string]chan struct{})
 	}
 	if _, exists := w.watches[name]; exists {
+		w.mu.Unlock()
 		f.Close()
-		return fmt.Errorf("watch exists")
+		return nil
+		// return fmt.Errorf("watch exists")
 	}
 	chClose := make(chan struct{})
 	w.watches[name] = chClose
+	w.mu.Unlock()
+	if fi.IsDir() {
+		return filepath.Walk(f.Name(), func(path string, info os.FileInfo, err error) error {
+			if isIgnoreDirectory(info.Name()) {
+				return filepath.SkipDir
+			}
+			return w.Add(path)
+		})
+	}
 
 	go w.watch(f, fi, chClose)
 	return nil
@@ -68,7 +80,6 @@ func (w *filePoller) remove(name string) error {
 	if w.closed {
 		return errPollerClosed
 	}
-
 	chClose, exists := w.watches[name]
 	if !exists {
 		return errNoSuchWatch
@@ -100,6 +111,7 @@ func (w *filePoller) Close() error {
 	w.closed = true
 	return nil
 }
+
 func (w *filePoller) sendEvent(e fsnotify.Event, chClose <-chan struct{}) error {
 	select {
 	case w.events <- e:
@@ -133,7 +145,7 @@ func (w *filePoller) watch(f *os.File, lastFi os.FileInfo, chClose chan struct{}
 		select {
 		case <-timer.C:
 		case <-chClose:
-			zlog.Debugf("watch for %s closed", f.Name())
+			// zlog.Debugf("watch for %s closed", f.Name())
 			return
 		}
 
