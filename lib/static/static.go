@@ -8,7 +8,7 @@ import (
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/znet"
 
-	"github.com/sohaha/zzz/app/build"
+	"github.com/sohaha/zstatic/build"
 )
 
 // mainAssetDirectory stores all the assets
