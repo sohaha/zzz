@@ -10,9 +10,10 @@ require (
 	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sohaha/zlsgo v0.1.46
-	github.com/sohaha/zstatic v0.0.1
+	github.com/sohaha/zstatic v0.0.2
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
 	gopkg.in/olahol/melody.v1 v1.0.0-20170518105555-d52139073376
 )
