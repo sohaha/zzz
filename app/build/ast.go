@@ -56,16 +56,13 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 	var result []*ReferencedAssets
 	rootDir := filepath.ToSlash(zfile.RealPath(".", true))
 	assetMap := make(map[string]*ReferencedAssets)
-
 	groups := make(map[string]*Group)
-
 	for _, filename := range filenames {
 		fset := token.NewFileSet()
 		node, err := parser.ParseFile(fset, filename, nil, parser.AllErrors)
 		if err != nil {
 			return nil, err
 		}
-
 		var packageName string
 		// Normalise per directory imports
 		var baseDir = filepath.ToSlash(filepath.Dir(filename))
@@ -74,7 +71,6 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 			thisAssetBundle = &ReferencedAssets{Caller: filename, BaseDir: baseDir}
 			assetMap[baseDir] = thisAssetBundle
 		}
-
 		ast.Inspect(node, func(node ast.Node) bool {
 			switch x := node.(type) {
 			case *ast.File:
@@ -89,7 +85,7 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 					// util.Log.Dump(RHSPath,filename)
 					// RHSPath = clearPath(thisAsset.RHS.Path, baseDir, rootDir)
 					// util.Log.Dump(RHSPath)
-					if objName == "static" {
+					if objName == "zstatic" {
 						switch thisAsset.RHS.Method {
 						case "NewFileserver", "Group":
 							fullPath, err := filepath.Abs(filepath.Join(rootDir, RHSPath))
@@ -120,9 +116,6 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 					}
 				}
 				// default:
-				// 	if x !=nil{
-				// 		util.Log.Errorf("%v,%#v\n",x,x)
-				// 	}
 			}
 			return true
 		})

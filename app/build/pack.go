@@ -47,7 +47,7 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 	var filesProcessed = make(map[string]bool)
 	result := fmt.Sprintf("package %s\n\n", assetBundle.PackageName)
 	if len(assetBundle.Groups) > 0 || len(assetBundle.Assets) > 0 {
-		result += "import \"github.com/sohaha/zzz/lib/static\"\n\n"
+		result += "import \"github.com/sohaha/zstatic\"\n\n"
 		result += "func init() {\n"
 		for _, group := range assetBundle.Groups {
 			// Read all assets from the directory
@@ -63,8 +63,8 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 					return "", err
 				}
 				localPath := strings.TrimPrefix(file, groupPrefix+"/")
-				result += fmt.Sprintf("  static.AddByteAsset(\"%s\", \"%s\",%#v)\n", group.LocalPath, localPath, packedData)
-				// result += fmt.Sprintf("  static.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
+				result += fmt.Sprintf("  zstatic.AddByteAsset(\"%s\", \"%s\",%#v)\n", group.LocalPath, localPath, packedData)
+				// result += fmt.Sprintf("  zstatic.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
 				filesProcessed[file] = true
 				// fmt.Printf("Packed: %s\n", file)
 			}
@@ -85,11 +85,10 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			if err != nil && !ignoreErrors {
 				return "", err
 			}
-			result += fmt.Sprintf("  static.AddByteAsset(\".\", \"%s\", %#v)\n", asset.Name, packedData)
+			result += fmt.Sprintf("  zstatic.AddByteAsset(\".\", \"%s\", %#v)\n", asset.Name, packedData)
 			filesProcessed[fullPath] = true
 		}
 		result += "}\n"
 	}
-
 	return result, nil
 }
