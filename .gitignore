@@ -1,5 +1,14 @@
-﻿.idea
+.idea
 dist/
-zls-watch.yaml
+zzz-watch.yaml
 test
 zzz
+test-tem\
+zzz-stress.toml
+/zzz.exe
+.vscode
+/vendor/
+.DS_Store
+/zzz_*
+/tmpApp
+tmp

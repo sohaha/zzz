@@ -14,6 +14,8 @@ import (
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/spf13/cobra"
 
+	zbuild "github.com/sohaha/zstatic/build"
+
 	"github.com/sohaha/zzz/app/build"
 	"github.com/sohaha/zzz/util"
 )
@@ -42,7 +44,10 @@ var buildCmd = &cobra.Command{
 		dirPath := zfile.RealPath(".", true)
 		name := build.Basename(dirPath)
 		if !skipStatic {
-			mewnFiles := build.GetMewnFiles([]string{}, buildIgnore)
+			mewnFiles, err := zbuild.GetMewnFiles([]string{}, buildIgnore)
+			if err != nil {
+				util.Log.Fatal(err)
+			}
 			targetFiles := make([]string, 0)
 			if len(mewnFiles) > 0 {
 				referencedAssets, err := build.GetReferencedAssets(mewnFiles)

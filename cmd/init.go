@@ -31,37 +31,42 @@ var (
 			if argsL >= 2 {
 				tmp = args[1]
 			} else {
-				res, err := zhttp.Get("https://api.github.com/repos/sohaha/zlsgo-app/branches")
-				if err == nil {
-					body := res.Bytes()
-					var branches []string
-					zjson.ParseBytes(body).ForEach(func(key, value zjson.Res) bool {
-						name := value.Get("name").String()
-						if name == "master" {
-							return true
-						}
-						branches = append(branches, "zlsgo-app/"+name)
-						return true
-					})
-					prompt := promptui.Select{
-						Label: "Select Template",
-						Items: branches,
-					}
-					_, result, err := prompt.Run()
+				depots := map[string]string{
+					"zlsgo-app": "https://api.github.com/repos/sohaha/zlsgo-app/branches",
+					// "ZlsPHP": "https://api.github.com/repos/sohaha/ZlsPHP/branches",
+				}
+				var branches []string
+				for k, v := range depots {
+					res, err := zhttp.Get(v)
 					if err == nil {
-						tmp = "sohaha/" + result
+						body := res.Bytes()
+						zjson.ParseBytes(body).ForEach(func(key, value zjson.Res) bool {
+							name := value.Get("name").String()
+							if name == "dev" {
+								return true
+							}
+							branches = append(branches, k+":"+name)
+							return true
+						})
 					}
 				}
+				prompt := promptui.Select{
+					Label: "Select Template",
+					Items: branches,
+				}
+				_, result, err := prompt.Run()
+				if err == nil {
+					tmp = "sohaha/" + result
+				}
 			}
-
-			temples := strings.Split(tmp, "/")
+			temples := strings.Split(tmp, ":")
 			branch := "master"
 			name := tmp
-			if len(temples) > 2 {
-				branch = temples[2]
-				name = strings.Join(temples[:2], "/")
+			if len(temples) >= 2 {
+				branch = temples[1]
+				name = temples[0]
+				// name = strings.Join(temples[:2], "/")
 			}
-
 			dir := ""
 			if argsL > 0 {
 				dir = zfile.RealPath(args[0])
@@ -72,7 +77,9 @@ var (
 				}
 				dir = zfile.RealPath(dir)
 			}
-
+			if name == "" {
+				return
+			}
 			util.Log.Info("Start downloading the template...")
 			err := initApp.Clone(dir, name, branch)
 			if err != nil {

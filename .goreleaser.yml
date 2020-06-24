@@ -3,7 +3,7 @@ project_name: zzz
 builds:
   - main: ./main.go
     ldflags:
-      - -s -w -X 'github.com/sohaha/zzz/cmd.buildTime={{.Date}}' -X 'github.com/sohaha/zzz/cmd.version={{.Version}}'
+      - -s -w -X 'github.com/sohaha/zzz/util.BuildTime={{.Date}}' -X 'github.com/sohaha/zzz/util.Version={{.Version}} -X github.com/sohaha/zzz/util.BuildGoVersion={{.Env.GOVERSION}}'
     goos:
       - windows
       - linux
@@ -15,6 +15,7 @@ builds:
     ignore:
     env:
       - CGO_ENABLED=0
+      - GOVERSION_NR=$(go version | awk '{print $3;}')
       - GO111MODULE=on
 
 archives:
@@ -29,7 +30,7 @@ checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: "next"
+  name_template: 'next'
 
 changelog:
   # skip: true

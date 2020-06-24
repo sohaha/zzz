@@ -9,6 +9,7 @@ import (
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zstring"
+	zstatic "github.com/sohaha/zstatic/build"
 )
 
 func Basename(pwd string) string {
@@ -57,7 +58,7 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			}
 			for _, file := range files {
 				// Read in File
-				packedData, err := CompressFile(file)
+				packedData, err := zstatic.CompressFile(file)
 				if err != nil && !ignoreErrors {
 					return "", err
 				}
@@ -80,7 +81,7 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			// if _, exists := filesProcessed[fullPath]; exists == true {
 			// 	continue
 			// }
-			packedData, err := CompressFile(fullPath)
+			packedData, err := zstatic.CompressFile(fullPath)
 			if err != nil && !ignoreErrors {
 				return "", err
 			}
