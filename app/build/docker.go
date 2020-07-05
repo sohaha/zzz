@@ -88,10 +88,11 @@ func CommadString(os []OSData, isVendor, isCGO bool, packageName, outDir string)
 	}
 
 	if len(commad) == 0 {
-		commad = []string{"go build"}
+		cmd := "go build " + vendor
+		commad = []string{cmd}
 		if outDir != "" {
 			name := packageName
-			commad = []string{"go build -o=" + outDir + zutil.IfVal(zenv.IsWin(), name+".exe", name).(string)}
+			commad = []string{cmd + " -o=" + outDir + zutil.IfVal(zenv.IsWin(), name+".exe", name).(string)}
 		}
 	}
 	return

@@ -103,7 +103,7 @@ command:
 
 # 本地静态服务器
 http:
-    # 类型: vue-spa, web, 留空表示不启动
+    # 类型: vue-run, vue-spa, web, 留空表示不启动
     type: none
     # 指定端口，0 表示随机可用端口
     port: 0
