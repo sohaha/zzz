@@ -106,6 +106,7 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 			//start up the workers
 			for i := 0; i < s.Concurrency; i++ {
 				go func() {
+					// todo 需要优化 这里一次性太多请求了
 					for req := range requestQueue {
 						response, stat := runRequest(req, client)
 						if !s.Quiet {

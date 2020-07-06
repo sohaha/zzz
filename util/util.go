@@ -3,6 +3,7 @@ package util
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -24,7 +25,7 @@ var (
 	once           sync.Once
 	installPath    string
 	homePath       string
-	Version        = "1.0.19"
+	Version        = "1.0.20"
 	BuildTime      = ""
 	BuildGoVersion = ""
 )
@@ -89,4 +90,37 @@ func CheckIfError(err error) {
 
 func GetHome() string {
 	return homePath + "/"
+}
+
+func FileWalkFunc(path string, fn func(path string, info os.FileInfo) error) error {
+	path = zfile.RealPath(path)
+	f, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if !f.IsDir() {
+		return fn(path, f)
+	}
+	filepathNames, err := filepath.Glob(filepath.Join(path, "*"))
+	// 默认屏蔽 .git .idea .vscode
+	if err != nil {
+		return err
+	}
+	for i := range filepathNames {
+		path := filepathNames[i]
+		f, err := os.Stat(path)
+		if err != nil {
+			return err
+		}
+		if f.IsDir() {
+			err = FileWalkFunc(path, fn)
+		} else {
+			err = fn(path, f)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -4,12 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"github.com/sohaha/zlsgo/zfile"
-	"github.com/sohaha/zlsgo/znet"
-	"github.com/sohaha/zlsgo/zstring"
-	"github.com/sohaha/zlsgo/ztype"
-	"github.com/sohaha/zzz/util"
-	"gopkg.in/olahol/melody.v1"
 	"io"
 	"io/ioutil"
 	"log"
@@ -20,6 +14,13 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/znet"
+	"github.com/sohaha/zlsgo/zstring"
+	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zzz/util"
+	"gopkg.in/olahol/melody.v1"
 )
 
 var (
@@ -41,6 +42,11 @@ func initHTTP() {
 	httpOpenBrowser = v.GetBool("http.openBrowser")
 	v.SetDefault("http.closeLocal", false)
 	httpCloseLocal = v.GetBool("http.closeLocal")
+	if httpType == "vue-run" {
+		types := v.GetStringSlice("monitor.types")
+		types = append(types, []string{".vue", ".css", ".html", ".js", ".es6"}...)
+		v.Set("monitor.types", types)
+	}
 }
 
 func httpRun() {
@@ -79,7 +85,7 @@ func httpRun() {
 	host := ":" + ztype.ToString(port)
 	service.SetAddr(host)
 	domain := "http://127.0.0.1" + host
-	util.Log.Printf("WebServe: %v", domain)
+	// util.Log.Printf("WebServe: %v", domain)
 	if httpOpenBrowser {
 		_ = openBrowser(domain)
 	}
@@ -163,6 +169,8 @@ func injectingCode(file string) (data string) {
 	} else if httpType == "vue-spa" {
 		// 插入spa热更新
 		html.WriteString(vueSpaJs)
+	} else if httpType == "vue-run" {
+		html.WriteString(vueHotReload)
 	}
 	html.WriteString("</script>")
 	data = html.String()
