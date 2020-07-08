@@ -117,6 +117,7 @@ func httpEntrance(c *znet.Context) {
 	method := c.Request.Method
 	urlPath := c.Request.URL.Path
 
+	c.SetHeader("cache-control", "no-store")
 	if urlPath == "/" || urlPath == "" {
 		urlPath = "/index.html"
 	}
