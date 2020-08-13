@@ -14,10 +14,13 @@ cd /tmp/zzz
 
 isChinaProxy="https://github.73zls.com/"
 isChina=$(curl --silent "cip.cc" | grep "中国")
-if [[ "" == isChina || "--no-china" == $1 || "1" == $NoChina ]]; then
+if [[ -z $isChina || "--no-china" == $1 || "1" == $NoChina ]]; then
   isChinaProxy=""
 fi
 
+echo $isChinaProxy
+
+exit
 echo "Get Version..."
 LAST_VERSION=$(curl --silent "${isChinaProxy}https://api.github.com/repos/sohaha/zzz/releases/latest" | grep  "tag_name" | cut -d '"' -f 4  | cut -d 'v' -f 2)
 
