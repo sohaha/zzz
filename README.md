@@ -38,7 +38,7 @@ zzz help
 **Windows**
 
 手动下载 [zzz_Windows_x86_64.tar.gz
-](https://github.com/sohaha/zzz/releases) （ [国内点这里下载](https://github.73zls.com/https://github.com/sohaha/zzz/releases/download/v1.0.9/zzz_1.0.9_Windows_x86_64.tar.gz) ）
+](https://github.com/sohaha/zzz/releases) （ [国内点这里下载](https://github.73zls.com/https://github.com/sohaha/zzz/releases/download/v1.0.21/zzz_1.0.21_Windows_x86_64.tar.gz) ）
 
 然后打开 cmd 执行 `zzz.exe more install` 或者 设置自行环境变量。
 
