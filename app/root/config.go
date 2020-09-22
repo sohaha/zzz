@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sohaha/zlsgo/zenv"
+	"github.com/sohaha/zlsgo/zutil"
 )
 
 var ExampleConfig = `# zzz 主配置
@@ -127,7 +127,7 @@ func GetExampleConfig(version string) string {
 
 func GetExampleWatchConfig(version string) string {
 	name := "tmpApp"
-	if zenv.IsWin() {
+	if zutil.IsWin() {
 		name = "tmpApp.exe"
 	}
 	return fmt.Sprintf(ExampleWatchConfig, version, name, name)

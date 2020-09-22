@@ -1,8 +1,8 @@
 package more
 
 import (
-	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/sohaha/zzz/util"
 	"io"
 	"os"
@@ -36,7 +36,7 @@ func (m *Methods) Install(vars []string) {
 }
 
 func copyMain(src, dest string) (data string, err error) {
-	if zenv.IsWin() {
+	if zutil.IsWin() {
 		data, err = util.ExecCommand("cmd", "/C", "copy", src, dest)
 	} else {
 		data, err = util.ExecCommand("cp", src, dest)

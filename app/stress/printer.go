@@ -32,10 +32,10 @@ func CreateTextStressSummary(reqStatSummary RequestStatSummary) string {
 	summary += fmt.Sprintf("Total time:           %d ms\n", reqStatSummary.endTime.Sub(reqStatSummary.startTime).Nanoseconds()/1000000)
 
 	summary += "\nData Transferred\n"
-	summary += fmt.Sprintf("Mean query:      %s\n", zfile.FileSizeFormat(uint64(reqStatSummary.avgDataTransferred)))
-	summary += fmt.Sprintf("Largest query:   %s\n", zfile.FileSizeFormat(uint64(reqStatSummary.maxDataTransferred)))
-	summary += fmt.Sprintf("Smallest query:  %s\n", zfile.FileSizeFormat(uint64(reqStatSummary.minDataTransferred)))
-	summary += fmt.Sprintf("Total:           %s\n", zfile.FileSizeFormat(uint64(reqStatSummary.totalDataTransferred)))
+	summary += fmt.Sprintf("Mean query:      %s\n", zfile.SizeFormat(uint64(reqStatSummary.avgDataTransferred)))
+	summary += fmt.Sprintf("Largest query:   %s\n", zfile.SizeFormat(uint64(reqStatSummary.maxDataTransferred)))
+	summary += fmt.Sprintf("Smallest query:  %s\n", zfile.SizeFormat(uint64(reqStatSummary.minDataTransferred)))
+	summary += fmt.Sprintf("Total:           %s\n", zfile.SizeFormat(uint64(reqStatSummary.totalDataTransferred)))
 
 	summary = summary + "\nResponse Codes\n"
 	//sort the status codes
@@ -88,7 +88,7 @@ func (p *printer) printStat(stat RequestStat) {
 	fmt.Fprintf(p.output, "%s %d\t%s \t%d ms\t-> %s %s\n",
 		stat.Proto,
 		stat.StatusCode,
-		zfile.FileSizeFormat(uint64(stat.DataTransferred)),
+		zfile.SizeFormat(uint64(stat.DataTransferred)),
 		stat.Duration.Nanoseconds()/1000000,
 		stat.Method,
 		stat.URL)

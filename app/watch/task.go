@@ -3,10 +3,10 @@ package watch
 import (
 	"bufio"
 	"fmt"
-	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zlsgo/zutil"
 	"github.com/sohaha/zzz/util"
 	"io"
 	"os"
@@ -233,7 +233,7 @@ func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd
 
 func cloes(cmd *exec.Cmd) {
 	if cmd != nil && cmd.Process != nil {
-		if !zenv.IsWin() {
+		if !zutil.IsWin() {
 			p, e := os.FindProcess(-cmd.Process.Pid)
 			if e == nil {
 				_ = p.Signal(syscall.SIGINT)
