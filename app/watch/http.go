@@ -19,8 +19,9 @@ import (
 	"github.com/sohaha/zlsgo/znet"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
-	"github.com/sohaha/zzz/util"
 	"gopkg.in/olahol/melody.v1"
+
+	"github.com/sohaha/zzz/util"
 )
 
 var (
@@ -63,6 +64,7 @@ func httpRun() {
 
 	ws = melody.New()
 	service := znet.New()
+	// service.SetMode(znet.DebugMode)
 	service.Log.ResetFlags(0)
 	service.Log.SetPrefix("")
 	service.NotFoundHandler(func(c *znet.Context) {
@@ -76,6 +78,8 @@ func httpRun() {
 			httpEntrance(c)
 		}
 	})
+
+	service.POST("/___VueRunMinifyApi___/", util.MinifyHandle)
 
 	ws.HandleMessage(func(s *melody.Session, data []byte) {
 		// msg := string(data[:])
@@ -138,6 +142,8 @@ func httpEntrance(c *znet.Context) {
 	}
 	if err = proxy(pullPath, c.Writer, c.Request); err != nil {
 		c.String(404, "file not found")
+	} else {
+		c.Abort(200)
 	}
 }
 
@@ -172,6 +178,7 @@ func injectingCode(file string) (data string) {
 		html.WriteString(vueSpaJs)
 	} else if httpType == "vue-run" {
 		html.WriteString(vueHotReload)
+		// html.WriteString(vueRunExport)
 	}
 	html.WriteString("</script>")
 	data = html.String()
@@ -179,7 +186,7 @@ func injectingCode(file string) (data string) {
 }
 
 func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
-	host, scheme := urlParse()
+	host, scheme := urlParse(httpProxy)
 	if host == "" {
 		err = errors.New("404")
 	} else {
@@ -196,7 +203,7 @@ func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
 	return
 }
 
-func urlParse() (string, string) {
+func urlParse(httpProxy string) (string, string) {
 	var host, scheme string
 	p, err := url.Parse(httpProxy)
 	if err != nil {
