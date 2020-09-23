@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zshell"
 	"github.com/sohaha/zlsgo/zutil"
 
@@ -92,7 +91,7 @@ func CommadString(os []OSData, isVendor, isCGO bool, packageName, outDir string)
 		commad = []string{cmd}
 		if outDir != "" {
 			name := packageName
-			commad = []string{cmd + " -o=" + outDir + zutil.IfVal(zenv.IsWin(), name+".exe", name).(string)}
+			commad = []string{cmd + " -o=" + outDir + zutil.IfVal(zutil.IsWin(), name+".exe", name).(string)}
 		}
 	}
 	return

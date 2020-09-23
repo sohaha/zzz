@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zshell"
 	"github.com/sohaha/zlsgo/zstring"
+	"github.com/sohaha/zlsgo/zutil"
+
 	"github.com/spf13/cobra"
 
 	zbuild "github.com/sohaha/zstatic/build"
@@ -63,7 +64,7 @@ var buildCmd = &cobra.Command{
 			}
 			defer func() {
 				for _, filename := range targetFiles {
-					if zenv.Getenv("NODELETETMP") == "" {
+					if zutil.Getenv("NODELETETMP") == "" {
 						_ = os.Remove(filename)
 					}
 				}

@@ -8,10 +8,10 @@ import (
 	"sync"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/sohaha/zlsgo/zenv"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/zstring"
+	"github.com/sohaha/zlsgo/zutil"
 )
 
 const (
@@ -25,7 +25,7 @@ var (
 	once           sync.Once
 	installPath    string
 	homePath       string
-	Version        = "1.0.21"
+	Version        = "1.0.22"
 	BuildTime      = ""
 	BuildGoVersion = ""
 )
@@ -37,10 +37,10 @@ func init() {
 		homePath, _ = homedir.Dir()
 		var defInstallPath string
 		var installName string
-		envPath := zenv.Getenv("PATH")
+		envPath := zutil.Getenv("PATH")
 		envPath = strings.Split(envPath, ":")[0]
-		if zenv.IsWin() {
-			defInstallPath = zenv.Getenv("SystemRoot", "C:\\windows") + "\\system32"
+		if zutil.IsWin() {
+			defInstallPath = zutil.Getenv("SystemRoot", "C:\\windows") + "\\system32"
 			installName = "\\zzz.exe"
 		} else {
 			defInstallPath = "/usr/local/bin"
@@ -56,7 +56,7 @@ func init() {
 func IsInstall() (exist bool) {
 	path := GetInstallPath()
 	exist = zfile.FileExist(path)
-	if !exist && !zenv.IsWin() {
+	if !exist && !zutil.IsWin() {
 		exist = zfile.FileExist("/usr/bin/zzz")
 	}
 	return
