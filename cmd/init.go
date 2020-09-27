@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/manifoldco/promptui"
 	"github.com/sohaha/zlsgo/zfile"
@@ -37,8 +39,9 @@ var (
 				}
 				var branches []string
 				for k, v := range depots {
-					res, err := zhttp.Get(v)
-					if err == nil {
+					ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+					res, err := zhttp.Get(v, ctx)
+					handle := func(res *zhttp.Res) {
 						body := res.Bytes()
 						zjson.ParseBytes(body).ForEach(func(key, value zjson.Res) bool {
 							name := value.Get("name").String()
@@ -48,6 +51,14 @@ var (
 							branches = append(branches, k+":"+name)
 							return true
 						})
+					}
+					if err == nil {
+						handle(res)
+					} else {
+						res, err = zhttp.Get("https://github.73zls.com/" + v)
+						if err == nil {
+							handle(res)
+						}
 					}
 				}
 				prompt := promptui.Select{
