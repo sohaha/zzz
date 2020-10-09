@@ -3,11 +3,6 @@ package watch
 import (
 	"bufio"
 	"fmt"
-	"github.com/sohaha/zlsgo/zlog"
-	"github.com/sohaha/zlsgo/zstring"
-	"github.com/sohaha/zlsgo/ztype"
-	"github.com/sohaha/zlsgo/zutil"
-	"github.com/sohaha/zzz/util"
 	"io"
 	"os"
 	"os/exec"
@@ -15,6 +10,13 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/sohaha/zlsgo/zlog"
+	"github.com/sohaha/zlsgo/zstring"
+	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zlsgo/zutil"
+
+	"github.com/sohaha/zzz/util"
 )
 
 type cmdType struct {
@@ -67,7 +69,9 @@ func (t *taskType) preRun(cf *changedFile) {
 		if cmd, ok := t.cmdExt[fileExt]; ok {
 			cloes(cmd.cmd)
 		}
-		go t.run(cf, execCommand, true)
+		if !isIgnoreType(fileExt) {
+			go t.run(cf, execCommand, true)
+		}
 		go t.run(cf, extCommand, true, fileExt)
 	} else {
 		go t.run(cf, execCommand, true)
@@ -108,7 +112,12 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 		return nil
 	}
 	for i := 0; i < l; i++ {
-		carr := cmdParse2Array(commands[i], cf)
+		c := util.OSCommand(commands[i])
+		if c == "" {
+			// util.Log.Println("Ignore command:",commands[i])
+			continue
+		}
+		carr := cmdParse2Array(c, cf)
 		if outpuContent {
 			util.Log.Printf("Command: %v\n", carr)
 		} else {

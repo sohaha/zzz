@@ -3,11 +3,11 @@ package util
 import (
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/mitchellh/go-homedir"
+
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/zstring"
@@ -25,7 +25,7 @@ var (
 	once           sync.Once
 	installPath    string
 	homePath       string
-	Version        = "1.0.23"
+	Version        = "1.0.24"
 	BuildTime      = ""
 	BuildGoVersion = ""
 )
@@ -92,35 +92,44 @@ func GetHome() string {
 	return homePath + "/"
 }
 
-func FileWalkFunc(path string, fn func(path string, info os.FileInfo) error) error {
-	path = zfile.RealPath(path)
-	f, err := os.Stat(path)
-	if err != nil {
-		return err
+func judge(osName string) (ok bool) {
+	switch osName {
+	case "win", "windows", "w":
+		ok = zutil.IsWin()
+	case "mac", "macOS", "macos", "m":
+		ok = zutil.IsMac()
+	case "linux", "l":
+		ok = zutil.IsLinux()
 	}
-	if !f.IsDir() {
-		return fn(path, f)
-	}
-	filepathNames, err := filepath.Glob(filepath.Join(path, "*"))
-	// 默认屏蔽 .git .idea .vscode
-	if err != nil {
-		return err
-	}
-	for i := range filepathNames {
-		path := filepathNames[i]
-		f, err := os.Stat(path)
-		if err != nil {
-			return err
-		}
-		if f.IsDir() {
-			err = FileWalkFunc(path, fn)
-		} else {
-			err = fn(path, f)
-		}
-		if err != nil {
-			return err
-		}
-	}
+	return
+}
 
-	return nil
+func OSCommand(command string) string {
+	str := strings.Split(command, "@")
+	if len(str) < 2 {
+		return command
+	}
+	ok := false
+	switch str[0] {
+	case "win", "windows", "w", "mac", "macOS", "macos", "m", "linux", "l":
+		ok = judge(str[0])
+	default:
+		if strings.Contains(str[0], "|") && (strings.Contains(str[0], "w") || strings.Contains(str[0], "m") || strings.Contains(str[0], "l")) {
+			for _, v := range strings.Split(str[0], "|") {
+				ok = judge(v)
+				if ok {
+					break
+				}
+			}
+			if !ok {
+				return ""
+			}
+		} else {
+			return command
+		}
+	}
+	if ok {
+		return strings.Join(str[1:], "@")
+	}
+	return ""
 }

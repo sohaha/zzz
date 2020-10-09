@@ -54,71 +54,72 @@ Targets:
 
 var ExampleWatchConfig = `# zzz watch 配置 https://github.com/sohaha/zzz
 core:
-    # 配置版本号，勿手动修改
-    version: %v
+  # 配置版本号，勿手动修改
+  version: %v
 
 # 监控配置
 monitor:
-    # 使用轮询，开启可以监听挂载目录
-    poll: false
+  # 使用轮询，开启可以监听挂载目录
+  poll: false
 
-    # 要监听的目录，支持通配符*，如“.,*”表示监听当前目录及其所有子目录
-    includeDirs:
-        - .,*
+  # 要监听的目录，支持通配符*，如“.,*”表示监听当前目录及其所有子目录
+  includeDirs:
+    - .,*
 
-    # 忽略监听的目录
-    exceptDirs:
-        - .idea/
-        - .git/
-        - .vscode/
-        - node_modules/
-        - vendor/
+  # 忽略监听的目录
+  exceptDirs:
+    - .idea/
+    - .git/
+    - .vscode/
+    - node_modules/
+    - vendor/
 
-    # 监听文件的格式，支持通配符*，如“.*”表示监听全部格式文件
-    types:
-        - .go
-        - .php
+  # 监听文件的格式，支持通配符*，如“.*”表示监听全部格式文件
+  types:
+    - .go
+    - .php
 
 # 命令
 command:
-    # 开启监听的同时会后台执行的命令，可以放置一些初始化命令
-    startupExec:
-        - go version
+  # 开启监听的同时会后台执行的命令，可以放置一些初始化命令
+  startupExec:
+    - go version
 
-    # 监听的文件有更改会执行的命令，不支持复杂的命令，如需要请写成脚本调用
-    # 支持变量占位符,{{file}} {{ext}} {{changed}}
-    exec:
-        - go build -o %s
-        - ./%s
+  # 监听的文件有更改会执行的命令，不支持复杂的命令，如需要请写成脚本调用
+  # 支持变量占位符,{{file}} {{ext}} {{changed}}
+  # 支持不同平台执行不同命令，如 Windows 下才执行 dir：win@dir，或者 Linux 下：linux@ls -a
+  exec:
+    - go build -o %s
+    - ./%s
 
-    # 开启监听后自动执行一次上面 exec 配置的全部命令
-    startup: true
+  # 开启监听后自动执行一次上面 exec 配置的全部命令
+  startup: true
 
-    # 自定义不同类型文件执行命令
-    # 上面的 exec 是属于全部文件通用的，如果想不同文件更新执行不同指令可以用 exec+文件后缀（首字母大写） 来设置，如：
-    #execGo:
-    #    - echo "is go"
-    #execPhp:
-    #    - echo "is php"
+  # 自定义不同类型文件执行命令
+  # 上面的 exec 是属于全部文件通用的，如果想不同文件更新执行不同指令可以用 exec+文件后缀（首字母大写） 来设置，如：
+  #execGo:
+  #    - echo "is go"
+  #execPhp:
+  #    - echo "is php"
 
 # 本地静态服务器
 http:
-    # 类型: vue-run, vue-spa, web, 留空表示不启动
-    type: none
-    # 指定端口，0 表示随机可用端口
-    port: 0
-    # web 服务器目录
-    root: ./
-    # 将非本地文件的请求代理到服务器，主要用于本地跨域问题，留空表示不使用，格式如下：
-    # proxy: https://blog.73zls.com
-    proxy:
-    # 自动打开浏览器
-    openBrowser: true
+  # 类型: vue-run, vue-spa, web, 留空表示不启动
+  type: none
+  # 指定端口，0 表示随机可用端口
+  port: 0
+  # web 服务器目录
+  root: ./
+  # 将非本地文件的请求代理到服务器，主要用于本地跨域问题，留空表示不使用，格式如下：
+  # proxy: https://blog.73zls.com
+  proxy:
+  # 自动打开浏览器
+  openBrowser: true
 
 # 其他
 other:
-    # 延迟执行指令通知时间（毫秒），不限制为 0
-    delayMillSecond: 100
+  # 延迟执行指令通知时间（毫秒），不限制为 0
+  delayMillSecond: 100
 `
 
 func GetExampleConfig(version string) string {

@@ -98,7 +98,11 @@ var buildCmd = &cobra.Command{
 		}
 		targets := make([]build.OSData, 0)
 		for _, v := range build.ParserTarget(cross) {
-			for k, v := range build.TargetsCommad(v) {
+			targetsCommad := build.TargetsCommad(v)
+			if targetsCommad == nil {
+				return
+			}
+			for k, v := range targetsCommad {
 				for _, a := range v {
 					targets = append(targets, build.OSData{
 						Goos:   k,
