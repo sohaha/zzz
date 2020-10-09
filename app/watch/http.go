@@ -33,6 +33,7 @@ var (
 	httpOpenBrowser bool
 	httpCloseLocal  bool
 	ws              *melody.Melody
+	ignoreFormat    []string
 )
 
 func initHTTP() {
@@ -45,7 +46,8 @@ func initHTTP() {
 	httpCloseLocal = v.GetBool("http.closeLocal")
 	if httpType == "vue-run" {
 		types := v.GetStringSlice("monitor.types")
-		types = append(types, []string{".vue", ".css", ".html", ".js", ".es6"}...)
+		ignoreFormat = []string{".vue", ".css", ".html", ".js", ".es6"}
+		types = append(types, ignoreFormat...)
 		v.Set("monitor.types", types)
 	}
 }
@@ -79,7 +81,7 @@ func httpRun() {
 		}
 	})
 
-	service.POST("/___VueRunMinifyApi___/", util.MinifyHandle)
+	service.POST("/___VueRunMinifyApi___", util.MinifyHandle)
 
 	ws.HandleMessage(func(s *melody.Session, data []byte) {
 		// msg := string(data[:])

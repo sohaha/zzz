@@ -151,3 +151,15 @@ func openBrowser(url string) error {
 	}
 	return err
 }
+
+func isIgnoreType(fileExt string) (yes bool) {
+	if len(ignoreFormat) == 0 {
+		return
+	}
+	for _, v := range ignoreFormat {
+		if "."+strings.ToLower(fileExt) == v {
+			return true
+		}
+	}
+	return
+}

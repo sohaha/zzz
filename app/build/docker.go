@@ -113,7 +113,7 @@ func TargetsCommad(target string) map[string][]string {
 		commad["windows"] = ParserArch(goarch, []string{"386", "amd64"})
 	case "l", "linux":
 		commad["linux"] = ParserArch(goarch, []string{"386", "amd64"})
-	case "d", "darwin", "mac":
+	case "d", "darwin", "mac", "m":
 		commad["darwin"] = ParserArch(goarch, []string{"amd64"})
 	case "android", "a":
 		commad["android"] = ParserArch(goarch, []string{"arm64"})
@@ -122,7 +122,8 @@ func TargetsCommad(target string) map[string][]string {
 			break
 		}
 		if goarch == "*" || goarch == "" {
-			util.Log.Fatalf("There is no GOARCH preset for %s, please complete it, for example: linux/amd64,windows/386\n", goos)
+			util.Log.Errorf("There is no GOARCH preset for %s, please complete it, for example: linux/amd64,windows/386\n", goos)
+			return nil
 		}
 		commad[goos] = ParserArch(goarch, []string{})
 	}

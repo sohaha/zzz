@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/manifoldco/promptui"
+	"github.com/spf13/cobra"
+
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zhttp"
 	"github.com/sohaha/zlsgo/zjson"
-	"github.com/spf13/cobra"
 
 	initApp "github.com/sohaha/zzz/app/init"
 	"github.com/sohaha/zzz/util"
@@ -48,6 +49,9 @@ var (
 							if name == "dev" {
 								return true
 							}
+							if name == "" {
+								return false
+							}
 							branches = append(branches, k+":"+name)
 							return true
 						})
@@ -55,11 +59,16 @@ var (
 					if err == nil {
 						handle(res)
 					} else {
+						util.Log.Warn("Timeout, retry")
 						res, err = zhttp.Get("https://github.73zls.com/" + v)
 						if err == nil {
 							handle(res)
 						}
 					}
+				}
+				if len(branches) == 0 {
+					util.Log.Error("Failed to get the template list, please check your network")
+					return
 				}
 				prompt := promptui.Select{
 					Label: "Select Template",
@@ -85,6 +94,12 @@ var (
 				dir = "."
 				if len(temples) >= 2 {
 					dir = temples[1]
+					// for _, v := range []string{"main", "master"} {
+					// 	if dir == v {
+					// 		dir = name
+					// 		break
+					// 	}
+					// }
 				}
 				dir = zfile.RealPath(dir)
 			}
