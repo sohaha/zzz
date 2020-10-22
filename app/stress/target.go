@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-//Reasonable default values for a target
+// Reasonable default values for a target
 const (
 	DefaultURL         = "http://localhost"
 	DefaultTimeout     = "10s"
@@ -16,21 +16,21 @@ const (
 )
 
 type (
-	//Target is location of where send the HTTP request and how to send it.
+	// Target is location of where send the HTTP request and how to send it.
 	Target struct {
 		URL string
-		//Whether or not to interpret the URL as a regular expression string
-		//and generate actual target URLs from that
+		// Whether or not to interpret the URL as a regular expression string
+		// and generate actual target URLs from that
 		RegexURL bool
-		//whether or not to resolve hostname to IP address before making request,
-		//eliminating that aspect of timing
+		// whether or not to resolve hostname to IP address before making request,
+		// eliminating that aspect of timing
 		DNSPrefetch bool
 		Timeout     string
-		//A valid HTTP method: GET, HEAD, POST, etc.
+		// A valid HTTP method: GET, HEAD, POST, etc.
 		Method string
-		//String that is the content of the HTTP body. Empty string is no body.
+		// String that is the content of the HTTP body. Empty string is no body.
 		Body string
-		//A location on disk to read the HTTP body from. Empty string means it will not be read.
+		// A location on disk to read the HTTP body from. Empty string means it will not be read.
 		BodyFilename    string
 		Headers         string
 		Cookies         string

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -60,8 +61,8 @@ func NewStressConfig() (s *StressConfig) {
 	return
 }
 
-//RunStress starts the stress tests with the provided StressConfig.
-//Throughout the test, data is sent to w, useful for live updates.
+// RunStress starts the stress tests with the provided StressConfig.
+// Throughout the test, data is sent to w, useful for live updates.
 func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 	if w == nil {
 		return nil, errors.New("nil writer")
@@ -73,11 +74,11 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 	}
 	targetCount := len(s.Targets)
 
-	//setup printer
+	// setup printer
 	p := printer{output: w}
 
-	//setup the queue of requests, one queue per target
-	requestQueues := make([](chan http.Request), targetCount)
+	// setup the queue of requests, one queue per target
+	requestQueues := make([]chan http.Request, targetCount)
 	for idx, target := range s.Targets {
 		requestQueue, err := createRequestQueue(s.Count, target)
 		if err != nil {
@@ -87,26 +88,26 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 	}
 
 	if targetCount == 1 {
-		fmt.Fprintf(w, "Stress testing %d target:\n", targetCount)
+		_, _ = fmt.Fprintf(w, "Stress testing %d target:\n", targetCount)
 	} else {
-		fmt.Fprintf(w, "Stress testing %d targets:\n", targetCount)
+		_, _ = fmt.Fprintf(w, "Stress testing %d targets:\n", targetCount)
 	}
 
-	//when a target is finished, send all stats into this
+	// when a target is finished, send all stats into this
 	targetStats := make(chan []RequestStat)
 	for idx, target := range s.Targets {
 		go func(target Target, requestQueue chan http.Request, targetStats chan []RequestStat) {
 			p.writeString(fmt.Sprintf("- Running %d tests at %s, %d at a time\n", s.Count, target.URL, s.Concurrency))
 
-			workerDoneChan := make(chan workerDone)   //workers use this to indicate they are done
-			requestStatChan := make(chan RequestStat) //workers communicate each requests' info
+			workerDoneChan := make(chan workerDone)   // workers use this to indicate they are done
+			requestStatChan := make(chan RequestStat) // workers communicate each requests' info
 
-			client := createClient(target)
-
-			//start up the workers
+			// start up the workers
 			for i := 0; i < s.Concurrency; i++ {
 				go func() {
-					// todo 需要优化 这里一次性太多请求了
+					client := createClient(target)
+					defer client.CloseIdleConnections()
+					// todo We need to optimize. There are too many requests at one time
 					for req := range requestQueue {
 						response, stat := runRequest(req, client)
 						if !s.Quiet {
@@ -114,6 +115,12 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 							if s.Verbose {
 								p.printVerbose(&req, response)
 							}
+						}
+						if stat.Error == nil {
+							if !s.Verbose {
+								_, _ = io.Copy(ioutil.Discard, response.Body)
+							}
+							err = response.Body.Close()
 						}
 						requestStatChan <- stat
 					}
@@ -123,7 +130,7 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 			requestStats := make([]RequestStat, s.Count)
 			requestsCompleteCount := 0
 			workersDoneCount := 0
-			//wait for all workers to finish
+			// wait for all workers to finish
 			for {
 				select {
 				case <-workerDoneChan:
@@ -133,7 +140,7 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 					requestsCompleteCount++
 				}
 				if workersDoneCount == s.Concurrency {
-					//all workers are finished
+					// all workers are finished
 					break
 				}
 			}
@@ -146,7 +153,7 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 		targetRequestStats[targetDoneCount] = reqStats
 		targetDoneCount++
 		if targetDoneCount == targetCount {
-			//all targets are finished
+			// all targets are finished
 			break
 		}
 	}
@@ -179,7 +186,7 @@ func validateStressConfig(s StressConfig) error {
 // createRequestQueue creates a channel of http.Requests of size count
 func createRequestQueue(count int, target Target) (chan http.Request, error) {
 	requestQueue := make(chan http.Request)
-	//attempt to build one request - if passes, the rest should too
+	// attempt to build one request - if passes, the rest should too
 	_, err := buildRequest(target)
 	if err != nil {
 		return nil, errors.New("failed to create request with target configuration: " + err.Error())
@@ -188,7 +195,7 @@ func createRequestQueue(count int, target Target) (chan http.Request, error) {
 		for i := 0; i < count; i++ {
 			req, err := buildRequest(target)
 			if err != nil {
-				//this shouldn't happen, but probably should handle for it
+				// this shouldn't happen, but probably should handle for it
 				continue
 			}
 			requestQueue <- req

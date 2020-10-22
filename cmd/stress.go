@@ -11,9 +11,10 @@ import (
 	"runtime"
 
 	"github.com/dustin/go-humanize"
-	"github.com/sohaha/zzz/app/stress"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	v "github.com/spf13/viper"
+
+	"github.com/sohaha/zzz/app/stress"
 )
 
 var stressUse = "stress"
@@ -27,11 +28,12 @@ var stressCmd = &cobra.Command{
 	// 	Example: fmt.Sprintf(`  %s %s www.baidu.com
 	//   %[1]s %[2]s -c 10 -t 10 -u https://www.baidu.com`, use, stressUse),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		viper := v.New()
 		viper.SetConfigName("zzz-stress")
 		viper.AddConfigPath(".")
 		err := viper.ReadInConfig()
 		if err != nil {
-			if _, ok := err.(viper.ConfigParseError); ok {
+			if _, ok := err.(v.ConfigParseError); ok {
 				fmt.Println("Failed to parse config file " + viper.ConfigFileUsed())
 				fmt.Println(err)
 				os.Exit(-1)
@@ -118,7 +120,7 @@ var stressCmd = &cobra.Command{
 					stressCfg.Targets[i].Body, _ = cmd.Flags().GetString("body")
 				}
 				if _, set := targetMapVals["BodyFilename"]; !set {
-					stressCfg.Targets[i].BodyFilename, _ = cmd.Flags().GetString("bodyFile")
+					stressCfg.Targets[i].BodyFilename, _ = cmd.Flags().GetString("body-file")
 				}
 				if _, set := targetMapVals["Headers"]; !set {
 					stressCfg.Targets[i].Headers, _ = cmd.Flags().GetString("headers")
@@ -127,10 +129,10 @@ var stressCmd = &cobra.Command{
 					stressCfg.Targets[i].Cookies, _ = cmd.Flags().GetString("cookies")
 				}
 				if _, set := targetMapVals["UserAgent"]; !set {
-					stressCfg.Targets[i].UserAgent, _ = cmd.Flags().GetString("userAgent")
+					stressCfg.Targets[i].UserAgent, _ = cmd.Flags().GetString("user-agent")
 				}
 				if _, set := targetMapVals["BasicAuth"]; !set {
-					stressCfg.Targets[i].BasicAuth, _ = cmd.Flags().GetString("basicAuth")
+					stressCfg.Targets[i].BasicAuth, _ = cmd.Flags().GetString("basic-auth")
 				}
 				if _, set := targetMapVals["Compress"]; !set {
 					stressCfg.Targets[i].Compress, _ = cmd.Flags().GetBool("compress")
@@ -168,7 +170,7 @@ var stressCmd = &cobra.Command{
 		}
 
 		// combine individual targets to a total one
-		globalStats := []stress.RequestStat{}
+		globalStats := make([]stress.RequestStat, 0)
 		for i := range stressCfg.Targets {
 			for j := range targetRequestStats[i] {
 				globalStats = append(globalStats, targetRequestStats[i][j])
