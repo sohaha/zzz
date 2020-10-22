@@ -95,7 +95,7 @@ func (p *printer) printStat(stat RequestStat) {
 	color.Unset()
 }
 
-//print tons of info about the request, response and response body
+// print tons of info about the request, response and response body
 func (p *printer) printVerbose(req *http.Request, response *http.Response) {
 	if req == nil {
 		return
@@ -104,22 +104,22 @@ func (p *printer) printVerbose(req *http.Request, response *http.Response) {
 		return
 	}
 	var requestInfo string
-	//request details
+	// request details
 	requestInfo = requestInfo + fmt.Sprintf("Request:\n%+v\n\n", &req)
 
-	//reponse metadata
+	// reponse metadata
 	requestInfo = requestInfo + fmt.Sprintf("Response:\n%+v\n\n", response)
 
-	//reponse body
+	// reponse body
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		requestInfo = requestInfo + fmt.Sprintf("Failed to read response body: %s\n", err.Error())
 	} else {
 		requestInfo = requestInfo + fmt.Sprintf("Body:\n%s\n\n", body)
-		response.Body.Close()
+		_ = response.Body.Close()
 	}
 	p.writeLock.Lock()
-	fmt.Fprintln(p.output, requestInfo)
+	_, _ = fmt.Fprintln(p.output, requestInfo)
 	p.writeLock.Unlock()
 }
 

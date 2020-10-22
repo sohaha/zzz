@@ -100,7 +100,7 @@ func buildRequest(t Target) (http.Request, error) {
 	if err != nil {
 		return http.Request{}, errors.New("failed to create request: " + err.Error())
 	}
-	//add headers
+	// add headers
 	if t.Headers != "" {
 		headerMap, err := parseKeyValString(t.Headers, ",", ":")
 		if err != nil {
@@ -113,7 +113,7 @@ func buildRequest(t Target) (http.Request, error) {
 
 	req.Header.Set("User-Agent", t.UserAgent)
 
-	//add cookies
+	// add cookies
 	if t.Cookies != "" {
 		cookieMap, err := parseKeyValString(t.Cookies, ";", "=")
 		if err != nil {
@@ -143,7 +143,7 @@ func createClient(target Target) *http.Client {
 	tr.DisableCompression = !target.Compress
 	tr.DisableKeepAlives = !target.KeepAlive
 	if target.NoHTTP2 {
-		tr.TLSNextProto = make(map[string](func(string, *tls.Conn) http.RoundTripper))
+		tr.TLSNextProto = make(map[string]func(string, *tls.Conn) http.RoundTripper)
 	} else {
 		_ = http2.ConfigureTransport(tr)
 	}
