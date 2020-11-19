@@ -15,6 +15,7 @@ import (
 	v "github.com/spf13/viper"
 
 	"github.com/sohaha/zzz/app/stress"
+	"github.com/sohaha/zzz/util"
 )
 
 var stressUse = "stress"
@@ -152,6 +153,7 @@ var stressCmd = &cobra.Command{
 			}
 		}
 
+		util.SetLimit(999999)
 		targetRequestStats, err := stress.RunStress(stressCfg, os.Stdout)
 		if err != nil {
 			return err
