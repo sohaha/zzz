@@ -46,6 +46,7 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 			run(cmd)
 		},
 	}
+	util.SetLimit(999999)
 	watchCmd.AddCommand(app)
 	return
 }
