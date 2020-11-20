@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/spf13/cobra"
+
 	"github.com/sohaha/zzz/app/watch"
 	"github.com/sohaha/zzz/util"
-	"github.com/spf13/cobra"
 )
 
 var (

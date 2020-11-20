@@ -196,6 +196,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 			}
 			if err = cmd.Wait(); err != nil {
 				errMsg := err.Error()
+				
 				if !strings.Contains(errMsg, "exit status 1") && !strings.Contains(errMsg, "signal: killed") {
 					util.Log.Println("command End:", err)
 				}
