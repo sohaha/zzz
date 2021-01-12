@@ -79,13 +79,11 @@ func (t *taskType) preRun(cf *changedFile) {
 }
 
 func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ext ...string) *taskType {
-	// var outpuContent bool
-	// if len(output) > 0 {
-	// outpuContent = output[0]
-	// }
-	var logPrefix string
-	var fileExt string
-	var hasExtCmd bool
+	var (
+		logPrefix string
+		fileExt   string
+		hasExtCmd bool
+	)
 	if len(ext) > 0 {
 		fileExt = ext[0]
 		if extCmd, ok := t.cmdExt[fileExt]; ok {
@@ -196,7 +194,6 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 			}
 			if err = cmd.Wait(); err != nil {
 				errMsg := err.Error()
-				
 				if !strings.Contains(errMsg, "exit status 1") && !strings.Contains(errMsg, "signal: killed") {
 					util.Log.Println("command End:", err)
 				}
@@ -252,8 +249,8 @@ func cloes(cmd *exec.Cmd) {
 			cmd := exec.Command("TASKKILL", "/T", "/F", "/PID", ztype.ToString(cmd.Process.Pid))
 			_, _ = cmd.CombinedOutput()
 		}
+		time.Sleep(time.Microsecond * 200)
 		_ = cmd.Process.Kill()
-
 	}
 }
 

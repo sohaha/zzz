@@ -1,7 +1,6 @@
 package watch
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -38,7 +37,7 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 					cfgPath = oldCfg
 				}
 			}
-			fmt.Println(cfgPath)
+			// fmt.Println(cfgPath)
 			if cfgPath != "" {
 				v.SetConfigFile(cfgPath)
 			}
