@@ -27,6 +27,7 @@ var (
 	isPack      bool
 	skipStatic  bool
 	isCGO       bool
+	buildDebug  bool
 	cross       string
 	goVersion   string
 	buildUse    = "build"
@@ -44,6 +45,7 @@ var buildCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		dirPath := zfile.RealPath(".", true)
 		name := build.Basename(dirPath)
+		existZlsGO := strings.Contains(build.ReadMod(dirPath), "/zlsgo")
 		if !skipStatic {
 			mewnFiles, err := zbuild.GetMewnFiles([]string{}, buildIgnore)
 			if err != nil {
@@ -71,20 +73,22 @@ var buildCmd = &cobra.Command{
 			}()
 		}
 		buildArgs := args
-		buildArgs = append(buildArgs, ` -ldflags`)
 		ldflags := zstring.Buffer()
-		ldflags.WriteString(` "`)
+		ldflags.WriteString(`"`)
 		ldflags.WriteString(`-X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_GOVERSION=` + build.GetGoVersion() + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_TIME=` + build.GetBuildTime() + `'`)
-		ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildTime=` + build.GetBuildTime() + `'`)
-		ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGoVersion=` + build.GetGoVersion() + `'`)
-		ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGitCommitID=` + build.GetBuildGitID() + `'`)
+		if existZlsGO {
+			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildTime=` + build.GetBuildTime() + `'`)
+			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGoVersion=` + build.GetGoVersion() + `'`)
+			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGitCommitID=` + build.GetBuildGitID() + `'`)
+		}
 		if isPack {
+			buildArgs = append(buildArgs, `-trimpath`)
 			ldflags.WriteString(` -w -s `)
 		}
 		ldflags.WriteString(`"`)
-
+		buildArgs = append(buildArgs, `-ldflags`)
 		buildArgs = append(buildArgs, ldflags.String())
 		if zfile.DirExist(dirPath + "vendor") {
 			isVendor = true
@@ -175,6 +179,10 @@ func localCommad(v string, buildArgs []string) {
 		v = strings.Trim(v, "\"")
 		cmds = append(cmds, v)
 	}
+	if buildDebug {
+		util.Log.Println(strings.Join(cmd, " "))
+		return
+	}
 	_, _, _, err := zshell.ExecCommand(context.Background(), cmds, nil, os.Stdout, os.Stderr)
 	if err != nil {
 		util.Log.Fatalf("%v\n", err)
@@ -190,11 +198,12 @@ func isDocker() bool {
 
 func init() {
 	rootCmd.AddCommand(buildCmd)
-	buildCmd.Flags().BoolVarP(&skipStatic, "skip-static", "", false, "skip static analysis, do not use package static file function")
+	buildCmd.Flags().BoolVarP(&skipStatic, "skip-static", "S", false, "Skip static analysis, do not use package static file function")
 	buildCmd.Flags().BoolVarP(&isPack, "pack", "P", false, "Same as build, will compile with '-w -s' flags")
 	buildCmd.Flags().StringVarP(&cross, "os", "O", "", "Cross-compile, compile to the specified system application, use more ',' separate")
 	buildCmd.Flags().StringVarP(&outDir, "out", "", "", "Output directory")
-	buildCmd.Flags().BoolVarP(&isCGO, "cgo", "", false, "Turn on CGO_ENABLED, need to install docker")
-	buildCmd.Flags().StringVarP(&goVersion, "go", "G", "", "specify go version, need to install docker")
+	buildCmd.Flags().BoolVarP(&isCGO, "cgo", "C", false, "Turn on CGO_ENABLED, need to install docker")
+	buildCmd.Flags().StringVarP(&goVersion, "go", "G", "", "Specify go version, need to install docker")
 	buildCmd.Flags().BoolVarP(&buildIgnore, "ignoreE", "I", false, "Ignore files that don't exist")
+	buildCmd.Flags().BoolVar(&buildDebug, "debug", false, "Print execution command")
 }

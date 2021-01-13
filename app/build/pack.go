@@ -12,11 +12,19 @@ import (
 	zstatic "github.com/sohaha/zstatic/build"
 )
 
-func Basename(pwd string) string {
-	name := filepath.Base(pwd)
+func ReadMod(pwd string) string {
 	if zfile.FileExist(pwd + "go.mod") {
 		content, _ := ioutil.ReadFile(pwd + "go.mod")
-		str, err := zstring.RegexExtract(`module (.*)`, zstring.Bytes2String(content))
+		return zstring.Bytes2String(content)
+	}
+	return ""
+}
+
+func Basename(pwd string) string {
+	name := filepath.Base(pwd)
+	content := ReadMod(pwd)
+	if content != "" {
+		str, err := zstring.RegexExtract(`module (.*)`, content)
 		if err == nil && len(str) > 0 {
 			p := strings.Split(str[1], "/")
 			name = p[len(p)-1]
