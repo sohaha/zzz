@@ -75,6 +75,12 @@ func (t *taskType) preRun(cf *changedFile) {
 		go t.run(cf, extCommand, true, fileExt)
 	} else {
 		go t.run(cf, execCommand, true)
+		if cf.Path == "" {
+			for _, fileExt := range execFileExt {
+				extCommand := v.GetStringSlice("command.exec" + fileExt)
+				go t.run(cf, extCommand, true, fileExt)
+			}
+		}
 	}
 }
 
@@ -117,9 +123,9 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 		}
 		carr := cmdParse2Array(c, cf)
 		if outpuContent {
-			util.Log.Printf("Command: %v\n", carr)
+			util.Log.Printf("Command: %v", carr)
 		} else {
-			util.Log.Printf("Background command: %v\n", carr)
+			util.Log.Printf("Background command: %v", carr)
 			continue
 		}
 		cmd := command(carr)
@@ -226,7 +232,7 @@ func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd
 	var r []*exec.Cmd
 	for i := 0; i < l; i++ {
 		carr := cmdParse2Array(commands[i], cf)
-		util.Log.Printf("Background command: %v\n", carr)
+		util.Log.Printf("Background command: %v", carr)
 		cmd := command(carr)
 		err := cmd.Start()
 		if err != nil {
@@ -249,7 +255,7 @@ func cloes(cmd *exec.Cmd) {
 			cmd := exec.Command("TASKKILL", "/T", "/F", "/PID", ztype.ToString(cmd.Process.Pid))
 			_, _ = cmd.CombinedOutput()
 		}
-		time.Sleep(time.Microsecond * 200)
+		time.Sleep(time.Second / 6)
 		_ = cmd.Process.Kill()
 	}
 }

@@ -82,25 +82,26 @@ monitor:
 # 命令
 command:
   # 开启监听的同时会后台执行的命令，可以放置一些初始化命令
-  startupExec:
-    - go version
+  # startupExec:
+  #  - go version
 
   # 监听的文件有更改会执行的命令，不支持复杂的命令，如需要请写成脚本调用
   # 支持变量占位符,{{file}} {{ext}} {{changed}}
   # 支持不同平台执行不同命令，如 Windows 下才执行 dir：win@dir，或者 Linux 下：linux@ls -a
-  exec:
-    - go build -o %s
-    - ./%s
-
-  # 开启监听后自动执行一次上面 exec 配置的全部命令
-  startup: true
+  # exec:
+  #  - echo "Ok"
 
   # 自定义不同类型文件执行命令
   # 上面的 exec 是属于全部文件通用的，如果想不同文件更新执行不同指令可以用 exec+文件后缀（首字母大写） 来设置，如：
-  #execGo:
-  #    - echo "is go"
-  #execPhp:
-  #    - echo "is php"
+  execGo:
+    - go build -o %s
+    - ./%s
+
+  # execPhp:
+  #  - echo "is php"
+
+  # 开启监听后自动执行一次上面 exec 配置的全部命令
+  startup: true
 
 # 本地静态服务器
 http:

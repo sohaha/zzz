@@ -1,9 +1,11 @@
 package watch
 
 import (
+	"github.com/sohaha/zlsgo/zstring"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/mitchellh/go-homedir"
@@ -142,6 +144,14 @@ func start() {
 		done <- true
 	}()
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM)
+
+	keyword := "command.exec"
+	for _, s := range v.AllKeys() {
+		if s != keyword && strings.HasPrefix(s, keyword) {
+			fileExt := strings.TrimPrefix(s, keyword)
+			execFileExt = append(execFileExt, zstring.Ucfirst(fileExt))
+		}
+	}
 
 	if startup {
 		task.preRun(new(changedFile))
