@@ -25,6 +25,7 @@ var (
 	lastPid            int
 	task               *taskType
 	execCommand        []string
+	execFileExt        []string
 	startupExecCommand []string
 	startup            bool
 	pushTimer          sync.Map
