@@ -20,6 +20,6 @@ func hideFile(path string) error {
 	}
 }
 
-func SetLimit(l int)  {
+func SetLimit(l int) {
 
 }
