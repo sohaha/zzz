@@ -26,6 +26,7 @@ var (
 	buildIgnore bool
 	isPack      bool
 	skipStatic  bool
+	buildStatic bool
 	isCGO       bool
 	buildDebug  bool
 	cross       string
@@ -66,11 +67,14 @@ var buildCmd = &cobra.Command{
 			}
 			defer func() {
 				for _, filename := range targetFiles {
-					if zutil.Getenv("NODELETETMP") == "" {
+					if zutil.Getenv("NODELETETMP") == "" && !buildStatic {
 						_ = os.Remove(filename)
 					}
 				}
 			}()
+		}
+		if buildStatic {
+			return
 		}
 		buildArgs := args
 		ldflags := zstring.Buffer()
@@ -173,7 +177,7 @@ func localCommad(v string, buildArgs []string) {
 	zshell.Env = osEnv
 	cmd := strings.Split(v, " ")
 	cmd = append(cmd, buildArgs...)
-	cmds := []string{}
+	cmds := make([]string, 0)
 	for _, v := range cmd {
 		v = strings.Trim(v, " ")
 		v = strings.Trim(v, "\"")
@@ -206,4 +210,5 @@ func init() {
 	buildCmd.Flags().StringVarP(&goVersion, "go", "G", "", "Specify go version, need to install docker")
 	buildCmd.Flags().BoolVarP(&buildIgnore, "ignoreE", "I", false, "Ignore files that don't exist")
 	buildCmd.Flags().BoolVar(&buildDebug, "debug", false, "Print execution command")
+	buildCmd.Flags().BoolVar(&buildStatic, "static", false, "compile only static resource files")
 }
