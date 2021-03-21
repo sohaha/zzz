@@ -2,6 +2,8 @@ package watch
 
 import (
 	"errors"
+	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zlog"
 	"io/ioutil"
 	"net"
 	"os/exec"
@@ -37,14 +39,18 @@ func isIgnoreDirectory(folder string) bool {
 }
 
 func listFile(folder string, fun func(string)) {
+	folder = zfile.RealPath(folder)
 	if isIgnoreDirectory(folder) {
+		zlog.Error("Ignore", folder)
 		return
 	}
-
 	files, _ := ioutil.ReadDir(folder)
 	for _, file := range files {
 		if file.IsDir() {
-			d := folder + "/" + file.Name()
+			d := zfile.RealPath(folder + "/" + file.Name())
+			if isIgnoreDirectory(d) {
+				continue
+			}
 			fun(d)
 			listFile(d, fun)
 		}

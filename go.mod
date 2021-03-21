@@ -10,7 +10,7 @@ require (
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sohaha/gconf v0.0.10
-	github.com/sohaha/zlsgo v1.1.3
+	github.com/sohaha/zlsgo v1.1.8
 	github.com/sohaha/zstatic v0.0.2
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
