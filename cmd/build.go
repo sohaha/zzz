@@ -59,7 +59,7 @@ var buildCmd = &cobra.Command{
 				for _, referencedAsset := range referencedAssets {
 					packfileData, err := build.GeneratePackFileString(referencedAsset, buildIgnore)
 					util.CheckIfError(err)
-					targetFile := filepath.Join(referencedAsset.BaseDir, referencedAsset.PackageName+"____tmp.go")
+					targetFile := filepath.Join(referencedAsset.BaseDir, referencedAsset.PackageName+"_static_resources.go")
 					targetFiles = append(targetFiles, targetFile)
 					err = ioutil.WriteFile(targetFile, []byte(packfileData), 0644)
 					util.CheckIfError(err)

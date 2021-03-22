@@ -43,11 +43,13 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 			if cfgPath != "" {
 				v.SetConfigFile(cfgPath)
 			}
+
+			util.SetLimit(999999)
+
 			// cfgPath = zfile.RealPath(cfgPath)
 			run(cmd)
 		},
 	}
-	util.SetLimit(999999)
 	watchCmd.AddCommand(app)
 	return
 }
@@ -89,6 +91,12 @@ func start() {
 		cmds []*exec.Cmd
 	)
 	poll := v.GetBool("monitor.poll")
+	types = v.GetStringSlice("monitor.types")
+	includeDirs = v.GetStringSlice("monitor.includeDirs")
+	exceptDirs = v.GetStringSlice("monitor.ExceptDirs")
+	for i := range exceptDirs {
+		exceptDirs[i] = zfile.RealPath(exceptDirs[i], false)
+	}
 	// watcher, err = fsnotify.NewWatcher()
 	if poll {
 		watcher = NewPollingWatcher()

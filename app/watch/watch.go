@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"github.com/sohaha/zlsgo/zfile"
 	"path/filepath"
 	"strings"
 
@@ -26,20 +27,18 @@ func addWatcher() {
 }
 
 func addNewWatcher(dir string) {
-	exceptDirs := v.GetStringSlice("monitor.ExceptDirs")
 	fullDir := filepath.ToSlash(dir)
 	for i := 0; i < len(exceptDirs); i++ {
 		if dir == exceptDirs[i] {
 			return
 		}
 	}
-
 	if !inStringArray(fullDir, watchDirs) {
 		watchDirs = append(watchDirs, fullDir)
-		isExceptDirs := arrExceptDirs()
-		if isExceptDirs {
-			return
-		}
+		//isExceptDirs := arrExceptDirs()
+		//if isExceptDirs {
+		//	return
+		//}
 		zlog.Println("Watcher: ", fullDir)
 		err := watcher.Add(fullDir)
 		if err != nil {
@@ -49,20 +48,16 @@ func addNewWatcher(dir string) {
 }
 
 func removeWatcher(dir string) {
-	fullDir := filepath.ToSlash(dir)
-	err := watcher.Remove(fullDir)
-	if err == nil && inStringArray(fullDir, watchDirs) {
+	if inStringArray(dir, watchDirs) {
 		if len(watchDirs) > 0 {
 			for i, v := range watchDirs {
-				if v == fullDir {
+				if v == dir {
 					watchDirs = append(watchDirs[:i], watchDirs[i+1:]...)
 					break
 				}
 			}
 		}
-
 	}
-	zlog.Println("RemoveWatcher: ", fullDir)
 }
 
 func otherWatcher(name string, event fsnotify.Op) {
@@ -70,72 +65,55 @@ func otherWatcher(name string, event fsnotify.Op) {
 }
 
 func arrIncludeDirs() {
-	includeDirs := v.GetStringSlice("monitor.includeDirs")
 	for i := 0; i < len(includeDirs); i++ {
-		darr := dirParse2Array(includeDirs[i])
-
-		isD := strings.Index(darr[0], ".") == 0
-
-		if len(darr) < 1 || len(darr) > 2 {
+		arr := dirParse2Array(includeDirs[i])
+		isD := strings.Index(arr[0], ".") == 0
+		if len(arr) < 1 || len(arr) > 2 {
 			zlog.Fatal("Error listening for file path: ", includeDirs[i])
 		}
-		if strings.HasPrefix(darr[0], "/") {
+		if strings.HasPrefix(arr[0], "/") {
 			zlog.Fatal("watchDirs must be relative paths: ", includeDirs[i])
 		}
-		isAll := len(darr) == 2 && darr[1] == "*"
+		isAll := len(arr) == 2 && arr[1] == "*"
 		addFiles := func(dir string) {
+			dir = zfile.RealPath(dir)
 			if isAll {
 				watchDirs = append(watchDirs, dir)
 				listFile(dir, func(d string) {
-					path, _ := filepath.Abs(d)
-					watchDirs = arrayUniqueAdd(watchDirs, path)
+					//path, _ := filepath.Abs(d)
+					watchDirs = arrayUniqueAdd(watchDirs, d)
 				})
-			} else {
-				path, _ := filepath.Abs(dir)
-				watchDirs = arrayUniqueAdd(watchDirs, path)
+			} else if !isIgnoreDirectory(dir) {
+				//path, _ := filepath.Abs(dir)
+				watchDirs = arrayUniqueAdd(watchDirs, dir)
 			}
 		}
 
-		if darr[0] == "." {
+		if arr[0] == "." {
 			addFiles(projectFolder)
 		} else if isD {
-			path, _ := filepath.Abs(darr[0])
-			addFiles(path)
+			addFiles(arr[0])
 		} else {
-			md := darr[0]
-			if !filepath.IsAbs(md) {
-				md = projectFolder + "/" + darr[0]
-			}
-			if len(darr) == 2 && darr[1] == "*" {
-				path, _ := filepath.Abs(md)
-				watchDirs = arrayUniqueAdd(watchDirs, path)
+			md := arr[0]
+			md = zfile.RealPath(md)
+			if len(arr) == 2 && arr[1] == "*" {
+				watchDirs = arrayUniqueAdd(watchDirs, md)
 				listFile(md, func(d string) {
 					path, _ := filepath.Abs(d)
 					watchDirs = arrayUniqueAdd(watchDirs, path)
 				})
 			} else {
-				path, _ := filepath.Abs(md)
-				watchDirs = arrayUniqueAdd(watchDirs, path)
+				watchDirs = arrayUniqueAdd(watchDirs, md)
 			}
 		}
 	}
+
 }
 
 func arrExceptDirs() (update bool) {
-	exceptDirs := v.GetStringSlice("monitor.ExceptDirs")
 	for i := 0; i < len(exceptDirs); i++ {
 		p := exceptDirs[i]
-		if !filepath.IsAbs(p) {
-			p = projectFolder + "/" + exceptDirs[i]
-		}
-		path, _ := filepath.Abs(p)
-		update = true
-		watchDirs = arrayRemoveElement(watchDirs, path)
-		listFile(p, func(d string) {
-			path, _ := filepath.Abs(d)
-			watchDirs = arrayRemoveElement(watchDirs, path)
-		})
+		watchDirs = arrayRemoveElement(watchDirs, p)
 	}
-
 	return update
 }
