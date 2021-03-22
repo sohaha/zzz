@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"github.com/sohaha/zlsgo/zfile"
 	"os"
 	"path/filepath"
 	"sync"
@@ -19,6 +20,9 @@ var (
 	projectFolder      = "."
 	watcher            FileWatcher
 	watchDirs          = make([]string, 0)
+	exceptDirs         = make([]string, 0)
+	types              = make([]string, 0)
+	includeDirs        = make([]string, 0)
 	globalErr          error
 	done               = make(chan bool, 1)
 	signalChan         = make(chan os.Signal, 1)
@@ -47,6 +51,7 @@ func init() {
 	if projectFolder, globalErr = os.Getwd(); globalErr != nil {
 		util.Log.Fatal(globalErr)
 	}
+	projectFolder = zfile.RealPath(projectFolder)
 	projectFolder = filepath.ToSlash(projectFolder)
 	projectFolder, _ = filepath.Abs(projectFolder)
 }

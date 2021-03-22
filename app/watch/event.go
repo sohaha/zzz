@@ -13,26 +13,31 @@ import (
 
 func eventDispatcher(event fsnotify.Event) {
 	ext := path.Ext(event.Name)
-	types := v.GetStringSlice("monitor.types")
-	if len(types) > 0 && types[0] != ".*" && !inStringArray(ext, types) {
-		if zfile.DirExist(event.Name) {
-			if event.Op == fsnotify.Create {
-				addNewWatcher(event.Name)
-			} else if event.Op == fsnotify.Remove {
-				removeWatcher(event.Name)
-			} else {
-				otherWatcher(event.Name, event.Op)
-			}
+	event.Name = zfile.RealPath(event.Name)
+	isDir := zfile.DirExist(event.Name)
+	switch event.Op {
+	case fsnotify.Create:
+		if isDir {
+			addNewWatcher(event.Name)
 		}
+	case fsnotify.Remove:
+		removeWatcher(event.Name)
 		return
+	case fsnotify.Rename:
+	case fsnotify.Write:
+		if len(types) > 0 && types[0] != ".*" && !inStringArray(ext, types) {
+			return
+		}
+		fileChange(event)
+	default:
+		otherWatcher(event.Name, event.Op)
 	}
-	fileChange(event)
 }
 
 func fileChange(event fsnotify.Event) {
 	switch event.Op {
 	case fsnotify.Write, fsnotify.Remove, fsnotify.Rename:
-		if strings.HasSuffix(event.Name, "____tmp.go") {
+		if strings.HasSuffix(event.Name, "_static_resources.go") {
 			// ignore zzz build temporary files
 			return
 		}
@@ -63,6 +68,6 @@ func fileChange(event fsnotify.Event) {
 			push()
 		}))
 
-		zlog.Printf("Change: %v (%v)\n", relativeFilePath, opType)
+		zlog.Printf("Change: %v (%v)", relativeFilePath, opType)
 	}
 }

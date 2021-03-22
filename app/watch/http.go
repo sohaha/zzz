@@ -71,6 +71,7 @@ func httpRun() {
 	service.Log.SetPrefix("")
 	service.NotFoundHandler(func(c *znet.Context) {
 		httpEntrance(c)
+		_ = c.PrevContent()
 	})
 
 	service.GET("/", func(c *znet.Context) {
