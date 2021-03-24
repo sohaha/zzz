@@ -33,21 +33,38 @@ func Basename(pwd string) string {
 	return name
 }
 
-func getAllFilesInDirectory(dir string) ([]string, error) {
-	var result []string
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, e error) error {
+func clearRoot(rootDir string, path string) string {
+	return strings.Replace(path, rootDir, "", 1)
+}
+
+func getAllFilesInDirectory(dir string) (result []string, err error) {
+	rootDir := zfile.RealPath(".", true)
+	if strings.Contains(dir, "*") {
+		var files []string
+		files, err = filepath.Glob(dir)
+		for _, path := range files {
+			path = zfile.RealPath(path)
+			info, err := os.Stat(path)
+			if err != nil {
+				return []string{}, err
+			}
+			if info.Mode().IsRegular() {
+				result = append(result, clearRoot(rootDir, path))
+			}
+		}
+		return
+	}
+	err = filepath.Walk(dir, func(path string, info os.FileInfo, e error) error {
 		if e != nil {
 			return e
 		}
-		path = filepath.ToSlash(path)
-		// check if it is a regular file (not dir)
+		path = zfile.RealPath(path)
 		if info.Mode().IsRegular() {
-			result = append(result, path)
+			result = append(result, clearRoot(rootDir, path))
 		}
 		return nil
 	})
-
-	return result, err
+	return
 }
 
 // GeneratePackFileString creates the contents of a pack file
@@ -60,7 +77,8 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 		for _, group := range assetBundle.Groups {
 			// Read all assets from the directory
 			files, err := getAllFilesInDirectory(group.FullPath)
-			groupPrefix := filepath.ToSlash(group.FullPath)
+			rootDir := zfile.RealPath(".", true)
+			groupPrefix := clearRoot(rootDir, zfile.RealPath(group.FullPath)) + "/"
 			if err != nil {
 				return "", err
 			}
@@ -70,7 +88,7 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 				if err != nil && !ignoreErrors {
 					return "", err
 				}
-				localPath := strings.TrimPrefix(file, groupPrefix+"/")
+				localPath := clearRoot(groupPrefix, file)
 				result += fmt.Sprintf("  zstatic.AddByteAsset(\"%s\", \"%s\",%#v)\n", group.LocalPath, localPath, packedData)
 				// result += fmt.Sprintf("  zstatic.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
 				filesProcessed[file] = true
