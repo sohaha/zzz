@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/sohaha/zlsgo/ztype"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -22,18 +23,19 @@ import (
 )
 
 var (
-	isVendor    bool
-	buildIgnore bool
-	isPack      bool
-	skipStatic  bool
-	buildStatic bool
-	isCGO       bool
-	buildDebug  bool
-	cross       string
-	goVersion   string
-	buildUse    = "build"
-	outDir      string
-	GOPROXY     = os.Getenv("GOPROXY")
+	isVendor      bool
+	buildIgnore   bool
+	isPack        bool
+	skipStatic    bool
+	buildStatic   bool
+	buildTrimpath bool
+	isCGO         bool
+	buildDebug    bool
+	cross         string
+	goVersion     string
+	buildUse      = "build"
+	outDir        string
+	GOPROXY       = os.Getenv("GOPROXY")
 )
 
 var buildCmd = &cobra.Command{
@@ -44,6 +46,8 @@ var buildCmd = &cobra.Command{
   %[1]s %[2]s --pack -- -o output
   %[1]s %[2]s --os win,mac,linux --go 1.11`, use, buildUse),
 	Run: func(cmd *cobra.Command, args []string) {
+		version := build.GetGoVersion()
+		versionNum := ztype.ToFloat64(strings.Split(strings.Replace(version, "go", "", 1), " ")[0])
 		dirPath := zfile.RealPath(".", true)
 		name := build.Basename(dirPath)
 		existZlsGO := strings.Contains(build.ReadMod(dirPath), "/zlsgo")
@@ -80,20 +84,27 @@ var buildCmd = &cobra.Command{
 		ldflags := zstring.Buffer()
 		ldflags.WriteString(`"`)
 		ldflags.WriteString(`-X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
-		ldflags.WriteString(` -X 'main.BUILD_GOVERSION=` + build.GetGoVersion() + `'`)
+		ldflags.WriteString(` -X 'main.BUILD_GOVERSION=` + version + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_TIME=` + build.GetBuildTime() + `'`)
+
 		if existZlsGO {
 			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildTime=` + build.GetBuildTime() + `'`)
-			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGoVersion=` + build.GetGoVersion() + `'`)
+			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGoVersion=` + version + `'`)
 			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGitCommitID=` + build.GetBuildGitID() + `'`)
 		}
-		if isPack {
+
+		if buildTrimpath && versionNum > 1.13 && (goVersion == "" || ztype.ToFloat64(goVersion) > 1.13) {
 			buildArgs = append(buildArgs, `-trimpath`)
+		}
+
+		if isPack {
 			ldflags.WriteString(` -w -s `)
 		}
+
 		ldflags.WriteString(`"`)
 		buildArgs = append(buildArgs, `-ldflags`)
 		buildArgs = append(buildArgs, ldflags.String())
+
 		if zfile.DirExist(dirPath + "vendor") {
 			isVendor = true
 		}
@@ -101,6 +112,7 @@ var buildCmd = &cobra.Command{
 		if GOPROXY != "" {
 			GOPROXY = "GOPROXY=" + GOPROXY
 		}
+
 		if outDir != "" && !strings.HasSuffix(outDir, "/") {
 			outDir = outDir + "/"
 		}
@@ -141,7 +153,7 @@ var buildCmd = &cobra.Command{
 				util.Log.Fatalf("Failed to pull docker image from the registry: %v", err)
 			}
 		}
-		buildGoversionOld := ` -X 'main.BUILD_GOVERSION=` + build.GetGoVersion() + `'`
+		buildGoversionOld := ` -X 'main.BUILD_GOVERSION=` + version + `'`
 		buildGoversionNew := ` -X 'main.BUILD_GOVERSION=` + build.DockerDist + goVersion + `'`
 		if goVersion == "1.11" {
 			GOPROXY = "GO111MODULE=on " + strings.Split(GOPROXY, ",")[0]
@@ -211,4 +223,5 @@ func init() {
 	buildCmd.Flags().BoolVarP(&buildIgnore, "ignoreE", "I", false, "Ignore files that don't exist")
 	buildCmd.Flags().BoolVar(&buildDebug, "debug", false, "Print execution command")
 	buildCmd.Flags().BoolVar(&buildStatic, "static", false, "compile only static resource files")
+	buildCmd.Flags().BoolVarP(&buildTrimpath, "trimpath", "T", false, "removes all file system paths from the compiled executable")
 }
