@@ -86,7 +86,7 @@ func httpRun() {
 
 	ws.HandleMessage(func(s *melody.Session, data []byte) {
 		// msg := string(data[:])
-		// zlog.Println(msg)
+		// util.Log.Println(msg)
 		_ = ws.Broadcast(data)
 	})
 	host := ":" + ztype.ToString(port)

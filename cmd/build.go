@@ -3,11 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/sohaha/zlsgo/ztype"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sohaha/zlsgo/ztype"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zshell"
@@ -33,6 +34,7 @@ var (
 	buildDebug    bool
 	cross         string
 	goVersion     string
+	skipDirs      string
 	buildUse      = "build"
 	outDir        string
 	GOPROXY       = os.Getenv("GOPROXY")
@@ -48,11 +50,15 @@ var buildCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		version := build.GetGoVersion()
 		versionNum := ztype.ToFloat64(strings.Split(strings.Replace(version, "go", "", 1), " ")[0])
+		if zutil.Getenv("ENABLECGO") == "" {
+			zshell.Env = []string{"ENABLECGO=0"}
+		}
 		dirPath := zfile.RealPath(".", true)
 		name := build.Basename(dirPath)
 		existZlsGO := strings.Contains(build.ReadMod(dirPath), "/zlsgo")
-		if !skipStatic {
-			mewnFiles, err := zbuild.GetMewnFiles([]string{}, buildIgnore)
+		sd := zutil.IfVal(skipDirs == "", []string{}, strings.Split(skipDirs, ",")).([]string)
+		if !skipStatic && !buildDebug {
+			mewnFiles, err := zbuild.GetBinFiles([]string{}, buildIgnore, sd)
 			if err != nil {
 				util.Log.Fatal(err)
 			}
@@ -86,7 +92,6 @@ var buildCmd = &cobra.Command{
 		ldflags.WriteString(`-X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_GOVERSION=` + version + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_TIME=` + build.GetBuildTime() + `'`)
-
 		if existZlsGO {
 			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildTime=` + build.GetBuildTime() + `'`)
 			ldflags.WriteString(` -X 'github.com/sohaha/zlsgo/zcli.BuildGoVersion=` + version + `'`)
@@ -224,4 +229,5 @@ func init() {
 	buildCmd.Flags().BoolVar(&buildDebug, "debug", false, "Print execution command")
 	buildCmd.Flags().BoolVar(&buildStatic, "static", false, "compile only static resource files")
 	buildCmd.Flags().BoolVarP(&buildTrimpath, "trimpath", "T", false, "removes all file system paths from the compiled executable")
+	buildCmd.Flags().StringVar(&skipDirs, "skip-dirs", "", "directory to skip static analysis")
 }
