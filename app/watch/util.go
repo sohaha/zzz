@@ -2,8 +2,6 @@ package watch
 
 import (
 	"errors"
-	"github.com/sohaha/zlsgo/zfile"
-	"github.com/sohaha/zlsgo/zlog"
 	"io/ioutil"
 	"net"
 	"os/exec"
@@ -12,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zzz/util"
 
 	"github.com/sohaha/zlsgo/ztype"
 )
@@ -41,7 +42,7 @@ func isIgnoreDirectory(folder string) bool {
 func listFile(folder string, fun func(string)) {
 	folder = zfile.RealPath(folder)
 	if isIgnoreDirectory(folder) {
-		zlog.Error("Ignore", folder)
+		util.Log.Error("Ignore", folder)
 		return
 	}
 	files, _ := ioutil.ReadDir(folder)
@@ -58,27 +59,19 @@ func listFile(folder string, fun func(string)) {
 }
 
 func arrayUniqueAdd(a []string, add string) []string {
-	if inStringArray(add, a) {
+	if inStringArray(add, a) || isExcept(exceptDirs, add) {
 		return a
 	}
 	return append(a, add)
 }
 
-func arrayRemoveElement(a []string, r string) []string {
-	i := -1
-	for k, v := range a {
-		if v == r {
-			i = k
-			break
+func isExcept(e []string, path string) bool {
+	for _, v := range e {
+		if strings.HasPrefix(path, v) {
+			return true
 		}
 	}
-	if i == -1 {
-		return a
-	}
-	if len(a) == 1 && i == 0 {
-		return []string{}
-	}
-	return append(a[:i], a[i+1:]...)
+	return false
 }
 
 func inStringArray(value string, arr []string) bool {

@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"github.com/sohaha/zzz/util"
 	"path"
 	"path/filepath"
 	"strings"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sohaha/zlsgo/zfile"
-	"github.com/sohaha/zlsgo/zlog"
 )
 
 func eventDispatcher(event fsnotify.Event) {
@@ -68,6 +68,6 @@ func fileChange(event fsnotify.Event) {
 			push()
 		}))
 
-		zlog.Printf("Change: %v (%v)", relativeFilePath, opType)
+		util.Log.Printf("Change: %v (%v)", relativeFilePath, opType)
 	}
 }

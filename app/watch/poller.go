@@ -145,7 +145,7 @@ func (w *filePoller) watch(f *os.File, lastFi os.FileInfo, chClose chan struct{}
 		select {
 		case <-timer.C:
 		case <-chClose:
-			// zlog.Debugf("watch for %s closed", f.Name())
+			// util.Log.Debugf("watch for %s closed", f.Name())
 			return
 		}
 
