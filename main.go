@@ -8,5 +8,5 @@ func main() {
 	var c = make(chan struct{}, 0)
 	go cmd.GetNewVersion(c)
 	cmd.Execute()
-	<-c
+	// <-c
 }

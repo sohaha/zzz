@@ -1,12 +1,13 @@
 package watch
 
 import (
-	"github.com/sohaha/zlsgo/zstring"
 	"os"
 	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/sohaha/zlsgo/zstring"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/sohaha/zlsgo/zfile"
@@ -86,6 +87,7 @@ func run(cmd *cobra.Command) {
 func start() {
 	initHTTP()
 	initTask()
+	zfile.ProjectPath, _ = os.Getwd()
 	var (
 		err  error
 		cmds []*exec.Cmd

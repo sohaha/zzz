@@ -3,6 +3,7 @@ package watch
 import (
 	"bufio"
 	"fmt"
+	"github.com/sohaha/zlsgo/zlog"
 	"io"
 	"os"
 	"os/exec"
@@ -11,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zlsgo/zutil"
@@ -112,7 +112,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 	}()
 	l := len(commands)
 	if l <= 0 {
-		// zlog.Println("no command")
+		// util.Log.Println("no command")
 		return nil
 	}
 	for i := 0; i < l; i++ {
@@ -143,7 +143,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 			logPrefixBuffer.WriteString("[")
 			logPrefixBuffer.WriteString(fileExt)
 			logPrefixBuffer.WriteString("] ")
-			logPrefix = zlog.ColorTextWrap(zlog.ColorCyan, logPrefixBuffer.String())
+			logPrefix = util.Log.ColorTextWrap(zlog.ColorCyan, logPrefixBuffer.String())
 		}
 		stdout, err := cmd.StdoutPipe()
 		stderr, stderrErr := cmd.StderrPipe()
