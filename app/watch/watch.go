@@ -1,29 +1,29 @@
 package watch
 
 import (
-	"github.com/sohaha/zlsgo/zfile"
 	"path/filepath"
 	"strings"
 
+	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zzz/util"
+
 	"github.com/fsnotify/fsnotify"
-	"github.com/sohaha/zlsgo/zlog"
 )
 
 func addWatcher() {
 	arrIncludeDirs()
-	_ = arrExceptDirs()
 	for _, dir := range watchDirs {
 		_dir := dir
 		if _dir == "." {
 			_dir = projectFolder
 		}
-		zlog.Println("Watcher: ", _dir)
+		util.Log.Println("Watcher: ", _dir)
 		err := watcher.Add(dir)
 		if err != nil {
-			zlog.Fatal(err)
+			util.Log.Fatal(err)
 		}
 	}
-	zlog.Println("Watching...")
+	util.Log.Println("Watching...")
 }
 
 func addNewWatcher(dir string) {
@@ -35,14 +35,14 @@ func addNewWatcher(dir string) {
 	}
 	if !inStringArray(fullDir, watchDirs) {
 		watchDirs = append(watchDirs, fullDir)
-		//isExceptDirs := arrExceptDirs()
-		//if isExceptDirs {
+		// isExceptDirs := arrExceptDirs()
+		// if isExceptDirs {
 		//	return
-		//}
-		zlog.Println("Watcher: ", fullDir)
+		// }
+		util.Log.Println("Watcher: ", fullDir)
 		err := watcher.Add(fullDir)
 		if err != nil {
-			zlog.Fatal(err)
+			util.Log.Fatal(err)
 		}
 	}
 }
@@ -61,7 +61,7 @@ func removeWatcher(dir string) {
 }
 
 func otherWatcher(name string, event fsnotify.Op) {
-	// zlog.Debug("otherWatcher", name, event)
+	// util.Log.Debug("otherWatcher", name, event)
 }
 
 func arrIncludeDirs() {
@@ -69,10 +69,10 @@ func arrIncludeDirs() {
 		arr := dirParse2Array(includeDirs[i])
 		isD := strings.Index(arr[0], ".") == 0
 		if len(arr) < 1 || len(arr) > 2 {
-			zlog.Fatal("Error listening for file path: ", includeDirs[i])
+			util.Log.Fatal("Error listening for file path: ", includeDirs[i])
 		}
 		if strings.HasPrefix(arr[0], "/") {
-			zlog.Fatal("watchDirs must be relative paths: ", includeDirs[i])
+			util.Log.Fatal("watchDirs must be relative paths: ", includeDirs[i])
 		}
 		isAll := len(arr) == 2 && arr[1] == "*"
 		addFiles := func(dir string) {
@@ -80,11 +80,11 @@ func arrIncludeDirs() {
 			if isAll {
 				watchDirs = append(watchDirs, dir)
 				listFile(dir, func(d string) {
-					//path, _ := filepath.Abs(d)
+					// path, _ := filepath.Abs(d)
 					watchDirs = arrayUniqueAdd(watchDirs, d)
 				})
 			} else if !isIgnoreDirectory(dir) {
-				//path, _ := filepath.Abs(dir)
+				// path, _ := filepath.Abs(dir)
 				watchDirs = arrayUniqueAdd(watchDirs, dir)
 			}
 		}
@@ -108,12 +108,4 @@ func arrIncludeDirs() {
 		}
 	}
 
-}
-
-func arrExceptDirs() (update bool) {
-	for i := 0; i < len(exceptDirs); i++ {
-		p := exceptDirs[i]
-		watchDirs = arrayRemoveElement(watchDirs, p)
-	}
-	return update
 }
