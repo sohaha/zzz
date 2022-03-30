@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/spf13/cobra"
@@ -34,10 +33,7 @@ var watchCmd = &cobra.Command{
 				return
 			}
 		}
-		go func() {
-			time.Sleep(1 * time.Second)
-			util.Log.Warn(fmt.Sprintf("The configuration file exists and starts directly. If you need to view the help information, please use `%s %s --help`", use, watchUse))
-		}()
+		util.Log.Warn(fmt.Sprintf("The configuration file exists and starts directly. If you need to view the help information, please use `%s %s --help`", use, watchUse))
 		startCmd.Run(cmd, args)
 	},
 }
