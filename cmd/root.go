@@ -107,6 +107,7 @@ func init() {
 	re := regexp.MustCompile(`(?m)^Flags:\s*$`)
 	usageTemplate = re.ReplaceAllLiteralString(usageTemplate, `{{StyleHeading "Flags:"}}`)
 	rootCmd.SetUsageTemplate(usageTemplate)
+	zfile.ProjectPath, _ = os.Getwd()
 }
 
 func initConfig() {
