@@ -48,8 +48,13 @@ var buildCmd = &cobra.Command{
   %[1]s %[2]s --pack -- -o output
   %[1]s %[2]s --os win,mac,linux --go 1.11`, use, buildUse),
 	Run: func(cmd *cobra.Command, args []string) {
-		version := build.GetGoVersion()
-		versionNum := ztype.ToFloat64(strings.Split(strings.Replace(version, "go", "", 1), " ")[0])
+		version, versionNum := build.GetGoVersion(), float64(0)
+		v := strings.Split(strings.Split(strings.Replace(version, "go", "", 1), " ")[0], ".")
+		if len(v) > 1 {
+			versionNum = ztype.ToFloat64(strings.Join(v[:2], "."))
+		} else {
+			versionNum = ztype.ToFloat64(strings.Join(v, "."))
+		}
 		if zutil.Getenv("ENABLECGO") == "" {
 			zshell.Env = []string{"ENABLECGO=0"}
 		}
