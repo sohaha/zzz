@@ -9,7 +9,7 @@
 如果本地有 Go 环境推荐使用该方式
 
 ```bash
-go get -u github.com/sohaha/zzz
+go install github.com/sohaha/zzz@latest
 ```
 
 **Linux or MacOS**
@@ -19,6 +19,7 @@ go get -u github.com/sohaha/zzz
 ```bash
 curl -L https://raw.githubusercontent.com/sohaha/zzz/master/install.sh | sudo bash
 ```
+
 
 手动安装
 
