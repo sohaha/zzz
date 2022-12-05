@@ -149,12 +149,12 @@ func updateDetectionTime(now int64) {
 func GetNewVersion(c chan struct{}) {
 	now := time.Now().Unix()
 	lastNow := viper.GetInt64("core.detection_time")
-	if lastNow != 0 && ((now - lastNow) < 600) {
+	if lastNow != 0 && ((now - lastNow) < 60*60*24) {
 		c <- struct{}{}
 		return
 	}
 	updateDetectionTime(now)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(zstring.RandInt(1, 4))*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(zstring.RandInt(1, 3))*time.Second)
 	defer cancel()
 	res, err := zhttp.Get("https://api.github.com/repos/sohaha/zzz/releases/latest", ctx)
 	if err != nil {

@@ -139,11 +139,11 @@ func ParseAssignment(astmt *ast.AssignStmt) *AssignStmt {
 	var lhs string
 	var result *AssignStmt
 
-	if len(astmt.Lhs) == 1 && reflect.TypeOf(astmt.Lhs[0]).String() == "*ast.Ident" {
+	if len(astmt.Lhs) >= 1 && reflect.TypeOf(astmt.Lhs[0]).String() == "*ast.Ident" {
 		lhs = astmt.Lhs[0].(*ast.Ident).String()
 	}
 
-	if len(astmt.Rhs) == 1 && reflect.TypeOf(astmt.Rhs[0]).String() == "*ast.CallExpr" {
+	if len(astmt.Rhs) >= 1 && reflect.TypeOf(astmt.Rhs[0]).String() == "*ast.CallExpr" {
 		t := astmt.Rhs[0].(*ast.CallExpr)
 		call := ParseCallExpr(t)
 		if call != nil {
@@ -168,7 +168,7 @@ func (c *CallStmt) String() string {
 func ParseCallExpr(callstmt *ast.CallExpr) *CallStmt {
 	var result *CallStmt
 
-	if len(callstmt.Args) != 1 {
+	if len(callstmt.Args) < 1 {
 		return nil
 	}
 
