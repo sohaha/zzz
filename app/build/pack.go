@@ -39,6 +39,9 @@ func clearRoot(rootDir string, path string) string {
 
 func getAllFilesInDirectory(dir string) (result []string, err error) {
 	rootDir := zfile.RealPath(".", true)
+	if !zfile.DirExist(dir) {
+		return
+	}
 	if strings.Contains(dir, "*") {
 		var files []string
 		files, err = filepath.Glob(dir)
@@ -71,9 +74,8 @@ func getAllFilesInDirectory(dir string) (result []string, err error) {
 func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (string, error) {
 	var filesProcessed = make(map[string]bool)
 	result := fmt.Sprintf("package %s\n\n", assetBundle.PackageName)
+	content := zstring.Buffer()
 	if len(assetBundle.Groups) > 0 || len(assetBundle.Assets) > 0 {
-		result += "import \"github.com/sohaha/zstatic\"\n\n"
-		result += "func init() {\n"
 		for _, group := range assetBundle.Groups {
 			// Read all assets from the directory
 			files, err := getAllFilesInDirectory(group.FullPath)
@@ -82,6 +84,11 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			if err != nil {
 				return "", err
 			}
+
+			if len(files) == 0 {
+				continue
+			}
+
 			for _, file := range files {
 				// Read in File
 				packedData, err := zstatic.CompressFile(file)
@@ -89,7 +96,7 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 					return "", err
 				}
 				localPath := clearRoot(groupPrefix, file)
-				result += fmt.Sprintf("  zstatic.AddByteAsset(\"%s\", \"%s\",%#v)\n", group.LocalPath, localPath, packedData)
+				content.WriteString(fmt.Sprintf("  zstatic.AddByteAsset(\"%s\", \"%s\",%#v)\n", group.LocalPath, localPath, packedData))
 				// result += fmt.Sprintf("  zstatic.AddAsset(\"%s\", \"%s\", \"%s\")\n", groupPrefix, localPath, packedData)
 				filesProcessed[file] = true
 				// fmt.Printf("Packed: %s\n", file)
@@ -111,10 +118,17 @@ func GeneratePackFileString(assetBundle *ReferencedAssets, ignoreErrors bool) (s
 			if err != nil && !ignoreErrors {
 				return "", err
 			}
-			result += fmt.Sprintf("  zstatic.AddByteAsset(\".\", \"%s\", %#v)\n", asset.Name, packedData)
+			content.WriteString(fmt.Sprintf("  zstatic.AddByteAsset(\".\", \"%s\", %#v)\n", asset.Name, packedData))
 			filesProcessed[fullPath] = true
 		}
-		result += "}\n"
+		if content.Len() > 0 {
+			result += "import \"github.com/sohaha/zstatic\"\n\n"
+			result += "func init() {\n"
+			result += content.String()
+			result += "}\n"
+		}
+
 	}
+
 	return result, nil
 }

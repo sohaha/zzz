@@ -44,7 +44,7 @@ var buildCmd = &cobra.Command{
 	Use:   buildUse,
 	Short: "Generates asset packs replace 'go build'",
 	Args:  cobra.ArbitraryArgs,
-	Example: fmt.Sprintf(`  %s %s 
+	Example: fmt.Sprintf(`  %s %s
   %[1]s %[2]s --pack -- -o output
   %[1]s %[2]s --os win,mac,linux --go 1.11`, use, buildUse),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -55,9 +55,10 @@ var buildCmd = &cobra.Command{
 		} else {
 			versionNum = ztype.ToFloat64(strings.Join(v, "."))
 		}
-		if zutil.Getenv("ENABLECGO") == "" {
-			zshell.Env = []string{"ENABLECGO=0"}
+		if zutil.Getenv("CGO_ENABLED") == "" {
+			zshell.Env = []string{"CGO_ENABLED=0"}
 		}
+
 		dirPath := zfile.RealPath(".", true)
 		name := build.Basename(dirPath)
 		existZlsGO := strings.Contains(build.ReadMod(dirPath), "/zlsgo")
@@ -196,7 +197,7 @@ func localCommad(v string, buildArgs []string) {
 		}
 		osEnv = append(osEnv, vv)
 	}
-	zshell.Env = osEnv
+	zshell.Env = append(zshell.Env, osEnv...)
 	cmd := strings.Split(v, " ")
 	cmd = append(cmd, buildArgs...)
 	cmds := make([]string, 0)
@@ -209,6 +210,7 @@ func localCommad(v string, buildArgs []string) {
 		util.Log.Println(strings.Join(cmd, " "))
 		return
 	}
+
 	_, _, _, err := zshell.ExecCommand(context.Background(), cmds, nil, os.Stdout, os.Stderr)
 	if err != nil {
 		util.Log.Fatalf("%v\n", err)
