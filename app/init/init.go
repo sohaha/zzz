@@ -17,8 +17,8 @@ import (
 
 type (
 	stInitConf struct {
-		Command []string
 		Dir     string
+		Command []string
 	}
 )
 

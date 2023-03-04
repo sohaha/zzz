@@ -1,11 +1,12 @@
 package watch
 
 import (
-	"github.com/sohaha/zzz/util"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/sohaha/zzz/util"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sohaha/zlsgo/zfile"
@@ -54,7 +55,9 @@ func fileChange(event fsnotify.Event) {
 			Ext:     ext,
 			Type:    opType,
 		}
+
 		push := func() {
+			util.Log.Printf("Change: %v (%v)", relativeFilePath, opType)
 			task.Put(data)
 			sendChang(data)
 		}
@@ -67,7 +70,5 @@ func fileChange(event fsnotify.Event) {
 			pushTimer.Delete(relativeFilePath)
 			push()
 		}))
-
-		util.Log.Printf("Change: %v (%v)", relativeFilePath, opType)
 	}
 }

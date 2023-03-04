@@ -26,10 +26,10 @@ type cmdType struct {
 }
 
 type taskType struct {
-	lastTaskID int64
-	delay      int
 	cmd        *exec.Cmd
 	cmdExt     map[string]*cmdType
+	lastTaskID int64
+	delay      int
 	putLock    sync.Mutex
 	runLock    sync.Mutex
 }

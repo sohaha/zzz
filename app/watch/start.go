@@ -40,14 +40,11 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 					cfgPath = oldCfg
 				}
 			}
-			// fmt.Println(cfgPath)
 			if cfgPath != "" {
 				v.SetConfigFile(cfgPath)
 			}
 
 			util.SetLimit(999999)
-
-			// cfgPath = zfile.RealPath(cfgPath)
 			run(cmd)
 		},
 	}

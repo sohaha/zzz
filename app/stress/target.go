@@ -18,24 +18,17 @@ const (
 type (
 	// Target is location of where send the HTTP request and how to send it.
 	Target struct {
-		URL string
-		// Whether or not to interpret the URL as a regular expression string
-		// and generate actual target URLs from that
-		RegexURL bool
-		// whether or not to resolve hostname to IP address before making request,
-		// eliminating that aspect of timing
-		DNSPrefetch bool
-		Timeout     string
-		// A valid HTTP method: GET, HEAD, POST, etc.
-		Method string
-		// String that is the content of the HTTP body. Empty string is no body.
-		Body string
-		// A location on disk to read the HTTP body from. Empty string means it will not be read.
+		Cookies         string
+		BasicAuth       string
+		UserAgent       string
+		Timeout         string
+		Method          string
+		Body            string
 		BodyFilename    string
 		Headers         string
-		Cookies         string
-		UserAgent       string
-		BasicAuth       string
+		URL             string
+		DNSPrefetch     bool
+		RegexURL        bool
 		Compress        bool
 		KeepAlive       bool
 		FollowRedirects bool

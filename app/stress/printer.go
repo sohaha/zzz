@@ -13,14 +13,11 @@ import (
 )
 
 type printer struct {
-	//writeLock prevents concurrent messages from being interlaced
+	output    io.Writer
 	writeLock sync.Mutex
-
-	//output is where the printer writes to
-	output io.Writer
 }
 
-//CreateTextStressSummary creates a human friendly summary of entire stress test
+// CreateTextStressSummary creates a human friendly summary of entire stress test
 func CreateTextStressSummary(reqStatSummary RequestStatSummary) string {
 	summary := "\n"
 
@@ -123,7 +120,7 @@ func (p *printer) printVerbose(req *http.Request, response *http.Response) {
 	p.writeLock.Unlock()
 }
 
-//writeString is a generic output string printer
+// writeString is a generic output string printer
 func (p *printer) writeString(s string) {
 	p.writeLock.Lock()
 	fmt.Fprint(p.output, s)
