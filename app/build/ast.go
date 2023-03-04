@@ -15,9 +15,9 @@ import (
 // ReferencedAsset holds the information for an asset referenced
 // by the user
 type ReferencedAsset struct {
+	Group     *Group
 	Name      string
 	AssetPath string
-	Group     *Group
 }
 
 // Group holds information relating to a group
@@ -126,8 +126,8 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 
 // AssignStmt holds data about an assignment
 type AssignStmt struct {
-	LHS string
 	RHS *CallStmt
+	LHS string
 }
 
 func (a *AssignStmt) String() string {

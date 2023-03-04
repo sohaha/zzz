@@ -41,9 +41,9 @@ var (
 type changedFile struct {
 	Name    string
 	Path    string
-	Changed int64
 	Ext     string
 	Type    string
+	Changed int64
 }
 
 func init() {
