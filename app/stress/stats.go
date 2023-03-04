@@ -5,37 +5,35 @@ import (
 	"time"
 )
 
-//RequestStat is the saved information about an individual completed HTTP request
+// RequestStat is the saved information about an individual completed HTTP request
 type RequestStat struct {
-	Proto     string
-	URL       string
-	Method    string
-	StartTime time.Time `json:"startTime"`
-	EndTime   time.Time `json:"endTime"`
-	//equivalent to the difference between StartTime and EndTime
-	Duration time.Duration `json:"duration"`
-	//HTTP Status Code, e.g. 200, 404, 503
-	StatusCode      int   `json:"statusCode"`
-	Error           error `json:"error"`
-	DataTransferred int   //bytes
+	StartTime       time.Time `json:"startTime"`
+	EndTime         time.Time `json:"endTime"`
+	Error           error     `json:"error"`
+	Proto           string
+	Method          string
+	URL             string
+	Duration        time.Duration `json:"duration"`
+	StatusCode      int           `json:"statusCode"`
+	DataTransferred int
 }
 
-//RequestStatSummary is an aggregate statistical summary of a set of RequestStats
+// RequestStatSummary is an aggregate statistical summary of a set of RequestStats
 type RequestStatSummary struct {
-	avgRPS               float64 //requests per nanoseconds
+	endTime              time.Time
+	startTime            time.Time
+	statusCodes          map[int]int
 	avgDuration          time.Duration
 	maxDuration          time.Duration
 	minDuration          time.Duration
-	statusCodes          map[int]int //counts of each code
-	startTime            time.Time   //start of first request
-	endTime              time.Time   //end of last request
-	avgDataTransferred   int         //bytes
-	maxDataTransferred   int         //bytes
-	minDataTransferred   int         //bytes
-	totalDataTransferred int         //bytes
+	avgRPS               float64
+	avgDataTransferred   int
+	maxDataTransferred   int
+	minDataTransferred   int
+	totalDataTransferred int
 }
 
-//CreateRequestsStats creates a statistical summary out of the individual RequestStats
+// CreateRequestsStats creates a statistical summary out of the individual RequestStats
 func CreateRequestsStats(requestStats []RequestStat) RequestStatSummary {
 	if len(requestStats) == 0 {
 		return RequestStatSummary{}

@@ -14,26 +14,20 @@ type workerDone struct{}
 type (
 	// StressConfig is the top level struct that contains the configuration for a stress test
 	StressConfig struct {
-		Verbose bool
-		Quiet   bool
-
-		// Count is how many total requests to make for each Target
-		Count int
-		// Concurrency is how many requests can be happening simultaneously for each Target
-		Concurrency int
-		Targets     []Target
-
-		// global target settings
-
-		DNSPrefetch     bool
-		Timeout         string
-		Method          string
+		Cookies         string
+		BasicAuth       string
 		Body            string
 		BodyFilename    string
 		Headers         string
-		Cookies         string
 		UserAgent       string
-		BasicAuth       string
+		Timeout         string
+		Method          string
+		Targets         []Target
+		Count           int
+		Concurrency     int
+		Verbose         bool
+		DNSPrefetch     bool
+		Quiet           bool
 		Compress        bool
 		KeepAlive       bool
 		FollowRedirects bool
