@@ -5,7 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sohaha/zlsgo/zshell"
+	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztime"
+	"github.com/sohaha/zlsgo/ztype"
+	"github.com/sohaha/zlsgo/zutil"
 )
 
 func GetGoVersion() string {
@@ -29,4 +33,15 @@ func GetBuildGitID() string {
 
 func GetBuildTime() string {
 	return ztime.FormatTime(time.Now())
+}
+
+func DisabledCGO() bool {
+	cgo := zutil.Getenv("CGO_ENABLED")
+
+	if cgo == "" {
+		_, s, _, _ := zshell.Run("go env CGO_ENABLED")
+		cgo = zstring.TrimSpace(s)
+	}
+
+	return !ztype.ToBool(cgo)
 }
