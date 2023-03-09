@@ -55,7 +55,8 @@ var buildCmd = &cobra.Command{
 		} else {
 			versionNum = ztype.ToFloat64(strings.Join(v, "."))
 		}
-		if zutil.Getenv("CGO_ENABLED") == "" {
+
+		if build.DisabledCGO() {
 			zshell.Env = []string{"CGO_ENABLED=0"}
 		}
 
