@@ -26,6 +26,11 @@ if [[ "" == $LAST_VERSION ]]; then
   exit 1
 fi
 
+
+if [[ "aarch64" == $arch ]]; then
+  arch="arm64"
+fi
+
 F="zzz_${LAST_VERSION/v/}_${os}_${arch}.tar.gz"
 
 echo "Download tar.gz ..."
