@@ -87,7 +87,7 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 					// util.Log.Dump(RHSPath)
 					if objName == "zstatic" {
 						switch thisAsset.RHS.Method {
-						case "NewFileserver", "NewFileserverAndGroup", "Group", "LoadTemplate":
+						case "NewFileserver", "NewFileserverAndGroup", "Group", "LoadTemplate", "NewFS":
 							fullPath, err := filepath.Abs(filepath.Join(rootDir, RHSPath))
 							if err != nil {
 								return false
