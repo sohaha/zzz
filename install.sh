@@ -38,7 +38,7 @@ wget "${isChinaProxy}https://github.com/sohaha/zzz/releases/download/v${LAST_VER
 
 if [ $? -eq 0 ];then
   echo "Untar..."
-  tar zxvf "$F"
+  tar zxf "$F"
   sudo cp -f zzz /usr/local/bin
   chmod +x /usr/local/bin/zzz
   echo "Install done"
