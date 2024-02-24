@@ -30,7 +30,7 @@ func MinifyHandle(c *znet.Context) {
 
 	i := 0
 	var codes []string
-	j.ForEach(func(key, value zjson.Res) bool {
+	j.ForEach(func(key, value *zjson.Res) bool {
 		code, err := m.String(strconv.Itoa(i), value.String())
 		i++
 		if err != nil {

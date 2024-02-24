@@ -57,7 +57,7 @@ func fileChange(event fsnotify.Event) {
 		}
 
 		push := func() {
-			util.Log.Printf("Change: %v (%v)", relativeFilePath, opType)
+			util.Log.Printf("Change: %v (%v)\n", relativeFilePath, opType)
 			task.Put(data)
 			sendChang(data)
 		}

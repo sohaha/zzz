@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zzz/util"
 
 	"github.com/sohaha/zlsgo/ztype"
@@ -68,6 +69,9 @@ func arrayUniqueAdd(a []string, add string) []string {
 func isExcept(e []string, path string) bool {
 	for _, v := range e {
 		if strings.HasPrefix(path, v) {
+			return true
+		}
+		if zstring.Match(path, v) {
 			return true
 		}
 	}
