@@ -3,7 +3,6 @@ package watch
 import (
 	"bufio"
 	"fmt"
-	"github.com/sohaha/zlsgo/zlog"
 	"io"
 	"os"
 	"os/exec"
@@ -11,6 +10,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/sohaha/zlsgo/zlog"
 
 	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
@@ -123,12 +124,13 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 		}
 		carr := cmdParse2Array(c, cf)
 		if outpuContent {
-			util.Log.Printf("Command: %v", carr)
+			util.Log.Printf("Command: %v\n", carr)
 		} else {
-			util.Log.Printf("Background command: %v", carr)
+			util.Log.Printf("Background command: %v\n", carr)
 			continue
 		}
-		cmd := command(carr)
+
+		cmd := command(fixCmd(carr))
 		if fileExt == "" {
 			t.cmd = cmd
 			logPrefix = strings.Repeat(" ", 2)
@@ -231,9 +233,9 @@ func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd
 	}
 	var r []*exec.Cmd
 	for i := 0; i < l; i++ {
-		carr := cmdParse2Array(commands[i], cf)
-		util.Log.Printf("Background command: %v", carr)
-		cmd := command(carr)
+		carr := []string{strings.Join(cmdParse2Array(commands[i], cf), " ")}
+		util.Log.Printf("Background command: %v\n", carr)
+		cmd := command(fixCmd(carr))
 		err := cmd.Start()
 		if err != nil {
 			util.Log.Error(err)
@@ -266,4 +268,14 @@ func command(carr []string) *exec.Cmd {
 	cmd.Dir = projectFolder
 	cmd.Env = os.Environ()
 	return cmd
+}
+
+func fixCmd(carr []string) []string {
+	carr = []string{strings.Join(carr, " ")}
+	if zutil.IsWin() {
+		carr = append([]string{"cmd", "/C"}, carr...)
+	} else {
+		carr = append([]string{"sh", "-c"}, carr...)
+	}
+	return carr
 }

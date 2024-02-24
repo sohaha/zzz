@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zzz/util"
 
 	"github.com/fsnotify/fsnotify"
@@ -29,7 +30,7 @@ func addWatcher() {
 func addNewWatcher(dir string) {
 	fullDir := filepath.ToSlash(dir)
 	for i := 0; i < len(exceptDirs); i++ {
-		if dir == exceptDirs[i] {
+		if dir == exceptDirs[i] || zstring.Match(dir, exceptDirs[i]) {
 			return
 		}
 	}

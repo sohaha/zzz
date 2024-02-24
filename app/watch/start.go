@@ -92,9 +92,10 @@ func start() {
 	poll := v.GetBool("monitor.poll")
 	types = v.GetStringSlice("monitor.types")
 	includeDirs = v.GetStringSlice("monitor.includeDirs")
-	exceptDirs = v.GetStringSlice("monitor.ExceptDirs")
+	exceptDirs = v.GetStringSlice("monitor.exceptDirs")
 	for i := range exceptDirs {
-		exceptDirs[i] = zfile.RealPath(exceptDirs[i], false)
+		arr := dirParse2Array(exceptDirs[i])
+		exceptDirs[i] = zfile.RealPath(strings.Join(arr, "/"), false)
 	}
 	// watcher, err = fsnotify.NewWatcher()
 	if poll {
@@ -131,7 +132,7 @@ func start() {
 	}
 	go func() {
 		<-signalChan
-		if cmds != nil {
+		if len(cmds) > 0 {
 			for _, v := range cmds {
 				cloes(v)
 			}
@@ -150,6 +151,7 @@ func start() {
 		}
 		done <- true
 	}()
+
 	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM)
 
 	keyword := "command.exec"
