@@ -44,7 +44,7 @@ var (
 					res, err := zhttp.Get(v, ctx)
 					handle := func(res *zhttp.Res) {
 						body := res.Bytes()
-						zjson.ParseBytes(body).ForEach(func(key, value zjson.Res) bool {
+						zjson.ParseBytes(body).ForEach(func(key, value *zjson.Res) bool {
 							name := value.Get("name").String()
 							if name == "dev" {
 								return true

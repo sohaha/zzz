@@ -69,10 +69,13 @@ monitor:
   # 忽略监听的目录
   exceptDirs:
     - .idea/
-    - .git/
     - .vscode/
-    - node_modules/
     - vendor/
+    - tmp/
+    - .,*/.git/
+    - .,*/node_modules/
+    - .,*/__pycache__/
+    - .,*/target/
 
   # 监听文件的格式，支持通配符*，如“.*”表示监听全部格式文件
   types:
@@ -88,14 +91,14 @@ command:
   # 监听的文件有更改会执行的命令，不支持复杂的命令，如需要请写成脚本调用
   # 支持变量占位符,{{file}} {{ext}} {{changed}}
   # 支持不同平台执行不同命令，如 Windows 下才执行 dir：win@dir，或者 Linux 下：linux@ls -a
-  # exec:
-  #  - echo "Ok"
+  exec:
+    - go build -o %s
+    - ./%s
 
   # 自定义不同类型文件执行命令
   # 上面的 exec 是属于全部文件通用的，如果想不同文件更新执行不同指令可以用 exec+文件后缀（首字母大写） 来设置，如：
-  execGo:
-    - go build -o %s
-    - ./%s
+  # execGo:
+  #  - echo "os Go"
 
   # execPhp:
   #  - echo "is php"
