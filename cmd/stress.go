@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	v "github.com/spf13/viper"
 
+	"github.com/sohaha/zlsgo/ztype"
 	"github.com/sohaha/zzz/app/stress"
 	"github.com/sohaha/zzz/util"
 )
@@ -101,7 +102,7 @@ var stressCmd = &cobra.Command{
 		} else {
 			for i, target := range viper.Get("targets").([]interface{}) {
 				targetMapVals := make(map[string]interface{})
-				for key, value := range target.(map[interface{}]interface{}) {
+				for key, value := range ztype.ToMap(target) {
 					strKey := fmt.Sprintf("%v", key)
 					targetMapVals[strKey] = value
 				}
