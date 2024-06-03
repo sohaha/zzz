@@ -34,7 +34,7 @@ fi
 F="zzz_${LAST_VERSION/v/}_${os}_${arch}.tar.gz"
 
 echo "Download tar.gz ..."
-curl -O "${isChinaProxy}https://github.com/sohaha/zzz/releases/download/v${LAST_VERSION}/$F"
+curl -O -L "${isChinaProxy}https://github.com/sohaha/zzz/releases/download/v${LAST_VERSION}/$F"
 
 if [ $? -eq 0 ];then
   echo "Untar..."
