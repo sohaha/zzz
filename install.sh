@@ -39,10 +39,19 @@ curl -O -L "${isChinaProxy}https://github.com/sohaha/zzz/releases/download/v${LA
 if [ $? -eq 0 ];then
   echo "Untar..."
   tar zxf "$F"
-  sudo cp -f zzz /usr/local/bin
-  chmod +x /usr/local/bin/zzz
-  echo "Install done"
-  /usr/local/bin/zzz --help
+
+  P="/usr/local/bin"
+
+  sudo cp -f zzz $P
+  if [ $? -eq 0 ];then
+    echo "Install done"
+  else
+    P=$(echo $PATH | cut -d ':' -f 1)
+    sudo cp -f zzz $P
+  fi
+
+  chmod +x "${P}/zzz"
+  "${P}/zzz" --help
   rm -rf /tmp/zzz
 else
   echo "Install fail..."
