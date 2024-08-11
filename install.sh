@@ -36,18 +36,26 @@ F="zzz_${LAST_VERSION/v/}_${os}_${arch}.tar.gz"
 echo "Download tar.gz ..."
 curl -O -L "${isChinaProxy}https://github.com/sohaha/zzz/releases/download/v${LAST_VERSION}/$F"
 
+function cpzzz() {
+    if command -v sudo &> /dev/null; then
+    sudo cp -f zzz $P
+    else
+    cp -f zzz $P
+    fi
+}
+
 if [ $? -eq 0 ];then
   echo "Untar..."
   tar zxf "$F"
 
   P="/usr/local/bin"
 
-  sudo cp -f zzz $P
+  cpzzz
   if [ $? -eq 0 ];then
     echo "Install done"
   else
     P=$(echo $PATH | cut -d ':' -f 1)
-    sudo cp -f zzz $P
+    cpzzz
   fi
 
   chmod +x "${P}/zzz"
