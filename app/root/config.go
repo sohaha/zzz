@@ -93,7 +93,7 @@ command:
   # 支持不同平台执行不同命令，如 Windows 下才执行 dir：win@dir，或者 Linux 下：linux@ls -a
   exec:
     - go build -o %s
-    - ./%s
+    - %s
 
   # 自定义不同类型文件执行命令
   # 上面的 exec 是属于全部文件通用的，如果想不同文件更新执行不同指令可以用 exec+文件后缀（首字母大写） 来设置，如：
@@ -131,9 +131,9 @@ func GetExampleConfig(version string) string {
 }
 
 func GetExampleWatchConfig(version string) string {
-	name := "tmpApp"
+	name := "./tmpApp"
 	if zutil.IsWin() {
-		name = "tmpApp.exe"
+		name = `.\tmpApp.exe`
 	}
 	return fmt.Sprintf(ExampleWatchConfig, version, name, name)
 }
