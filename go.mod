@@ -21,6 +21,6 @@ require (
 	github.com/tdewolff/minify/v2 v2.20.20
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
-	golang.org/x/net v0.24.0
+	golang.org/x/net v0.36.0
 	gopkg.in/olahol/melody.v1 v1.0.0-20170518105555-d52139073376
 )
