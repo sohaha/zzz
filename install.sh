@@ -54,8 +54,32 @@ if [ $? -eq 0 ];then
   if [ $? -eq 0 ];then
     echo "Install done"
   else
-    P=$(echo $PATH | cut -d ':' -f 1)
-    cpzzz
+    echo "Trying to install in PATH directories..."
+    success=0
+    IFS=':' read -ra PATH_DIRS <<< "$PATH"
+    for dir in "${PATH_DIRS[@]}"; do
+      if [ ! -d "$dir" ]; then
+        continue
+      fi
+      if [ ! -w "$dir" ]; then
+        continue
+      fi
+      P="$dir"
+      cpzzz
+      if [ $? -eq 0 ]; then
+        success=1
+        echo "Successfully installed in $dir"
+        break
+      else
+        echo "Failed to install in $dir"
+      fi
+    done
+    
+    if [ $success -eq 0 ]; then
+      echo "Failed to install in any PATH directory. Please check permissions or try with sudo."
+      echo "You can also try to install manually by copying the binary to a directory in your PATH."
+      exit 1
+    fi
   fi
 
   chmod +x "${P}/zzz"
