@@ -4,6 +4,7 @@
 
 os=$(uname -s)
 arch=$(uname -m)
+current=$PWD
 
 if [ -e /tmp/zzz ]; then
   rm -rf /tmp/zzz
@@ -41,6 +42,8 @@ function cpzzz() {
     sudo cp -f zzz $P
     else
     cp -f zzz $P
+
+    chmod +x "${P}/zzz" &> /dev/null
     fi
 }
 
@@ -78,11 +81,12 @@ if [ $? -eq 0 ];then
     if [ $success -eq 0 ]; then
       echo "Failed to install in any PATH directory. Please check permissions or try with sudo."
       echo "You can also try to install manually by copying the binary to a directory in your PATH."
+      P=$current
+      cpzzz
       exit 1
     fi
   fi
 
-  chmod +x "${P}/zzz"
   "${P}/zzz" --help
   rm -rf /tmp/zzz
 else
