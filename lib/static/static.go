@@ -12,9 +12,11 @@ import (
 )
 
 // mainAssetDirectory stores all the assets
-var mainAssetDirectory = build.NewAssetDirectory()
-var rootFileGroup *build.FileGroup
-var err error
+var (
+	mainAssetDirectory = build.NewAssetDirectory()
+	rootFileGroup      *build.FileGroup
+	err                error
+)
 
 func init() {
 	rootFileGroup, err = mainAssetDirectory.NewFileGroup(".")
@@ -110,11 +112,10 @@ func NewFileserver(dir string, fn ...func(ctype string, content []byte, err erro
 			c.String(404, err.Error())
 			return
 		}
-		c.SetContent(&znet.PrevData{
-			Code:    http.StatusOK,
-			Type:    ctype,
-			Content: content,
-		})
 
+		prev := c.PrevContent()
+		prev.Code.Store(http.StatusOK)
+		prev.Type = ctype
+		prev.Content = content
 	}
 }
