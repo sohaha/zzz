@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"os/exec"
 	"strings"
 	"time"
@@ -44,4 +45,15 @@ func DisabledCGO() bool {
 	}
 
 	return !ztype.ToBool(cgo)
+}
+
+func CheckGarble() error {
+	envs := zshell.Env
+	defer func() {
+		zshell.Env = envs
+	}()
+	if code, _, _, err := zshell.Run("garble version"); err != nil || code != 0 {
+		return errors.New("please install garble")
+	}
+	return nil
 }
