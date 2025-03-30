@@ -104,11 +104,12 @@ func judge(osName string) (ok bool) {
 	return
 }
 
-func OSCommand(command string) string {
+func OSCommand(command string) (ncommand string) {
 	str := strings.Split(command, "@")
 	if len(str) < 2 {
 		return command
 	}
+
 	ok := false
 	switch str[0] {
 	case "win", "windows", "w", "mac", "macOS", "macos", "m", "linux", "l":
@@ -128,8 +129,12 @@ func OSCommand(command string) string {
 			return command
 		}
 	}
+
 	if ok {
-		return strings.Join(str[1:], "@")
+		command = strings.Join(str[1:], "@")
+	} else {
+		command = ""
 	}
-	return ""
+
+	return command
 }

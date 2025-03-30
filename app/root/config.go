@@ -133,7 +133,7 @@ func GetExampleConfig(version string) string {
 func GetExampleWatchConfig(version string) string {
 	name := "./tmpApp"
 	if zutil.IsWin() {
-		name = `.\tmpApp.exe`
+		name = `./tmpApp.exe`
 	}
 	return fmt.Sprintf(ExampleWatchConfig, version, name, name)
 }
