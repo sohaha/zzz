@@ -64,18 +64,19 @@ monitor:
 
   # 要监听的目录，支持通配符*，如“.,*”表示监听当前目录及其所有子目录
   includeDirs:
-    - .,*
+    - '.,*'
 
   # 忽略监听的目录
   exceptDirs:
-    - .idea/
-    - .vscode/
-    - vendor/
-    - tmp/
-    - .,*/.git/
-    - .,*/node_modules/
-    - .,*/__pycache__/
-    - .,*/target/
+    - '*/.idea/*'
+    - '*/.vscode/*'
+    - '*/vendor/*'
+    - '*/tmp/*'
+    - '*/.git/*'
+    - '*/.venv/*'
+    - '*/node_modules/*'
+    - '*/__pycache__/*'
+    - '*/target/*'
 
   # 监听文件的格式，支持通配符*，如“.*”表示监听全部格式文件
   types:
@@ -133,7 +134,7 @@ func GetExampleConfig(version string) string {
 func GetExampleWatchConfig(version string) string {
 	name := "./tmpApp"
 	if zutil.IsWin() {
-		name = `./tmpApp.exe`
+		name += ".exe"
 	}
 	return fmt.Sprintf(ExampleWatchConfig, version, name, name)
 }

@@ -82,11 +82,11 @@ func arrIncludeDirs() {
 				watchDirs = append(watchDirs, dir)
 				listFile(dir, func(d string) {
 					// path, _ := filepath.Abs(d)
-					watchDirs = arrayUniqueAdd(watchDirs, d)
+					watchDirs = arrayUniqueAdd(watchDirs, zfile.RealPath(d, true))
 				})
 			} else if !isIgnoreDirectory(dir) {
 				// path, _ := filepath.Abs(dir)
-				watchDirs = arrayUniqueAdd(watchDirs, dir)
+				watchDirs = arrayUniqueAdd(watchDirs, zfile.RealPath(dir, true))
 			}
 		}
 
@@ -108,5 +108,4 @@ func arrIncludeDirs() {
 			}
 		}
 	}
-
 }
