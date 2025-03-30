@@ -68,7 +68,8 @@ func arrayUniqueAdd(a []string, add string) []string {
 
 func isExcept(e []string, path string) bool {
 	for _, v := range e {
-		if strings.HasPrefix(path, v) {
+		fix := strings.Replace(strings.Replace(v, "*", "", -1), "//", "/", -1)
+		if strings.HasPrefix(path, fix) {
 			return true
 		}
 		if zstring.Match(path, v) {

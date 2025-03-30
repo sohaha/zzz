@@ -1,10 +1,11 @@
 package watch
 
 import (
-	"github.com/sohaha/zlsgo/zfile"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/sohaha/zlsgo/zfile"
 
 	"github.com/sohaha/zzz/util"
 
@@ -34,7 +35,7 @@ var (
 	startup            bool
 	pushTimer          sync.Map
 	v                  *viper.Viper
-	ignoreDirectory    = [...]string{".git", ".vscode", ".svn", ".idea"}
+	ignoreDirectory    = [...]string{".git", ".vscode", ".svn", ".idea", ".github"}
 	// waitGroup     sync.WaitGroup
 )
 
