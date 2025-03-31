@@ -24,21 +24,23 @@ import (
 )
 
 var (
-	isVendor      bool
-	buildIgnore   bool
-	isPack        bool
-	skipStatic    bool
-	buildStatic   bool
-	buildTrimpath bool
-	isCGO         bool
-	buildDebug    bool
-	cross         string
-	goVersion     string
-	skipDirs      string
-	buildUse      = "build"
-	obfuscate     int
-	outDir        string
-	GOPROXY       = os.Getenv("GOPROXY")
+	isVendor       bool
+	buildIgnore    bool
+	isPack         bool
+	skipStatic     bool
+	buildStatic    bool
+	buildTrimpath  bool
+	isCGO          bool
+	buildDebug     bool
+	cross          string
+	goVersion      string
+	skipDirs       string
+	buildUse       = "build"
+	obfuscate      int
+	outDir         string
+	GOPROXY        = os.Getenv("GOPROXY")
+	cShared        bool
+	hideWinConsole bool
 )
 
 var buildCmd = &cobra.Command{
@@ -113,6 +115,10 @@ var buildCmd = &cobra.Command{
 			)
 		}
 
+		if hideWinConsole {
+			ldflags.WriteString(` -H windowsgui`)
+		}
+
 		if buildTrimpath && versionNum > 1.13 &&
 			(goVersion == "" || ztype.ToFloat64(goVersion) > 1.13) {
 			buildArgs = append(buildArgs, `-trimpath`)
@@ -158,18 +164,18 @@ var buildCmd = &cobra.Command{
 				util.Log.Fatal(err)
 			}
 		}
-		buildCommads, envs := build.CommadString(targets, isVendor, isCGO, obfuscate, name, outDir)
+		buildCommads, envs, goos := build.CommadString(targets, isVendor, isCGO, cShared, obfuscate, name, outDir)
 
 		if goVersion == "" {
 			goVersion = "latest"
 		}
 		for i, v := range buildCommads {
-			localCommad(strings.Join(v, " "), buildArgs, envs[i])
+			localCommad(strings.Join(v, " "), buildArgs, envs[i], goos[i])
 		}
 	},
 }
 
-func localCommad(v string, buildArgs []string, env []string) {
+func localCommad(v string, buildArgs []string, env []string, goos string) {
 	v = strings.Trim(v, " ")
 	osEnv := os.Environ()
 	envs := strings.Split(v, " ")
@@ -189,7 +195,13 @@ func localCommad(v string, buildArgs []string, env []string) {
 	zshell.Env = append(zshell.Env, osEnv...)
 	zshell.Env = append(zshell.Env, env...)
 	cmd := strings.Split(v, " ")
-	cmd = append(cmd, buildArgs...)
+	if goos != "windows" {
+		for _, v := range buildArgs {
+			cmd = append(cmd, strings.Replace(v, "-H windowsgui", "", 1))
+		}
+	} else {
+		cmd = append(cmd, buildArgs...)
+	}
 
 	cmds := make([]string, 0)
 	for _, v := range cmd {
@@ -198,6 +210,7 @@ func localCommad(v string, buildArgs []string, env []string) {
 		cmds = append(cmds, v)
 	}
 	if buildDebug {
+		util.Log.Println(strings.Join(env, " "))
 		util.Log.Println(strings.Join(cmd, " "))
 		return
 	}
@@ -207,6 +220,12 @@ func localCommad(v string, buildArgs []string, env []string) {
 	zshell.Env = e
 	if err != nil {
 		util.Log.Fatalf("%v\n", err)
+		return
+	}
+
+	name, err := zstring.RegexExtract(`-o=([\w\\\/\-\_\.]*) `, v+" ")
+	if err == nil && len(name) > 1 {
+		util.Log.Successf("build success: %s\n", name[1])
 	}
 }
 
@@ -227,4 +246,6 @@ func init() {
 		BoolVarP(&buildTrimpath, "trimpath", "T", false, "Removes all file system paths from the compiled executable")
 	buildCmd.Flags().StringVar(&skipDirs, "skip-dirs", "", "Directory to skip static analysis")
 	buildCmd.Flags().IntVarP(&obfuscate, "garble", "G", 0, "Obfuscate code, 1: fast mode, 2: strong mode, need to install garble")
+	buildCmd.Flags().BoolVar(&cShared, "c-shared", false, "Build a shared library")
+	buildCmd.Flags().BoolVar(&hideWinConsole, "hide-win-console", false, "Hide win console, only for windows")
 }
