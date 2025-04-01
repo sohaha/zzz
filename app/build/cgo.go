@@ -1,7 +1,6 @@
 package build
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zshell"
@@ -30,14 +29,22 @@ func CheckZig() error {
 
 func CommadString(
 	os []OSData,
-	isVendor, isCGO bool, obfuscate int,
+	isVendor, isCGO, cShared bool, obfuscate int,
 	packageName, outDir string,
-) (commads [][]string, envs [][]string) {
+) (commads [][]string, envs [][]string, goos []string) {
 	vendor := ""
 	envs = make([][]string, 0)
+	goos = make([]string, 0)
 
 	if isVendor {
 		vendor = "-mod=vendor"
+	}
+
+	enableSanitize := zutil.Getenv("ZIGCC_ENABLE_SANITIZE", "0") == "1"
+	appendSysroot := zutil.Getenv("ZIGCC_APPEND_SYSROOT", "0") == "1"
+	zigccFlags := strings.TrimSpace(zutil.Getenv("ZIGCC_FLAGS", ""))
+	if !enableSanitize && zigccFlags == "" && !cShared {
+		zigccFlags = " -fno-sanitize=undefined -static"
 	}
 
 	for _, v := range os {
@@ -51,14 +58,14 @@ func CommadString(
 			case "windows":
 				if v.Goarch == "386" {
 					target = "x86_64-windows"
-				} else if v.Goarch == "amd64" {
-					target = "x86_64-windows"
+				} else if v.Goarch == "arm64" {
+					target = "aarch64-windows"
 				} else {
 					target = "x86_64-windows"
 				}
 			case "darwin":
 				sysroot := ""
-				if zutil.Getenv("ZIGCC_APPEND_SYSROOT") == "1" {
+				if appendSysroot {
 					if _, rootPath, _, err := zshell.Run("xcrun --show-sdk-path"); err == nil &&
 						rootPath != "" {
 						sysroot = " --sysroot=" + rootPath + " -F" + rootPath + "/System/Library/Frameworks -I/usr/include -L/usr/lib"
@@ -82,42 +89,28 @@ func CommadString(
 			}
 
 			if target != "" {
-				env = append(env, `CGO_CFLAGS=-target `+target+` -fno-sanitize=undefined -static`)
-				env = append(env, `CGO_LDFLAGS=-target `+target+` -fno-sanitize=undefined -static`)
-				env = append(env, `CGO_CXXFLAGS=-target `+target+` -fno-sanitize=undefined -static`)
+				v := `-target ` + target + ` ` + zigccFlags
+				env = append(env, `CGO_CFLAGS=`+v)
+				env = append(env, `CGO_LDFLAGS=`+v)
+				env = append(env, `CGO_CXXFLAGS=`+v)
 				env = append(env, `CXX=zig c++`)
 				env = append(env, `CC=zig cc`)
 			}
 		}
-		name := packageName + "_" + v.Goos + "_" + v.Goarch
-		commad := append(
-			[]string{"go", "build"},
-			fmt.Sprintf(
-				"-o=%s%s%s",
-				outDir,
-				zutil.IfVal(v.Goos == "windows", name+".exe", name).(string),
-				vendor,
-			),
-		)
+		commad := baseCommand(outDir, packageName+"_"+v.Goos+"_"+v.Goarch, vendor, cShared, v.Goos)
 		commads = append(commads, commad)
 		envs = append(envs, env)
+		goos = append(goos, v.Goos)
 	}
 
 	if len(commads) == 0 {
-		commad := []string{"go", "build", vendor}
-		if outDir != "" {
-			name := packageName
-			commad = append(
-				commad,
-				"-o="+outDir+zutil.IfVal(zutil.IsWin(), name+".exe", name).(string),
-			)
-		}
-		commads = [][]string{commad}
+		commads = [][]string{baseCommand(outDir, packageName, vendor, cShared, zutil.GetOs())}
 		env := []string{}
 		if isCGO {
 			env = append(env, "CGO_ENABLED=1")
 		}
 		envs = append(envs, env)
+		goos = append(goos, zutil.GetOs())
 	}
 
 	if obfuscate > 0 {
@@ -127,13 +120,45 @@ func CommadString(
 		}
 		commad := []string{"garble", "-tiny"}
 		if obfuscate > 1 {
-			commad = append(commad, " -literals")
+			commad = append(commad, "-literals")
 		}
 		for i := range commads {
 			commads[i] = append(commad, commads[i][1:]...)
 		}
 	}
 	return
+}
+
+func baseCommand(outDir, name, vendor string, cShared bool, goos string) []string {
+	commad := []string{"go", "build"}
+	if vendor != "" {
+		commad = append(commad, vendor)
+	}
+	commad = append(
+		commad,
+		"-o="+filename(outDir, name, cShared, goos),
+	)
+	if cShared {
+		commad = append(commad, "-buildmode=c-shared")
+	}
+	return commad
+}
+
+func filename(outDir, name string, cShared bool, goos string) string {
+	if cShared {
+		switch goos {
+		case "windows":
+			return outDir + name + ".dll"
+		case "linux":
+			return outDir + name + ".so"
+		case "darwin":
+			return outDir + name + ".dylib"
+		default:
+			return outDir + name
+		}
+	}
+
+	return outDir + zutil.IfVal(goos == "windows", name+".exe", name).(string)
 }
 
 func TargetsCommad(target string) map[string][]string {
@@ -153,6 +178,9 @@ func TargetsCommad(target string) map[string][]string {
 	case "l", "linux":
 		commad["linux"] = ParserArch(goarch, []string{"386", "amd64"})
 	case "d", "darwin", "mac", "m":
+		if goarch == "64" {
+			goarch = "arm64"
+		}
 		commad["darwin"] = ParserArch(goarch, []string{"arm64"})
 	case "android", "a":
 		commad["android"] = ParserArch(goarch, []string{"arm64"})
