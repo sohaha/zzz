@@ -49,3 +49,12 @@ zzz help
 # 查看所有命令
 zzz help
 ```
+
+## Thanks
+[YXVM](https://yxvm.com/aff.php?aff=765)赞助了本项目
+
+[NodeSupport](https://github.com/NodeSeekDev/NodeSupport)赞助了本项目
+
+<div align="center">
+  <p>⭐ 如果你喜欢这个项目，请给它一个星标! ⭐</p>
+</div>
