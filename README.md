@@ -4,14 +4,6 @@
 
 ## 安装
 
-**Go 安装**
-
-如果本地有 Go 环境推荐使用该方式
-
-```bash
-go install github.com/sohaha/zzz@latest
-```
-
 **Linux or MacOS**
 
 一键安装
@@ -42,6 +34,21 @@ zzz help
 ](https://github.com/sohaha/zzz/releases) （ [国内点这里下载](https://github.73zls.com/sohaha/zzz/releases) ）
 
 然后打开 cmd 执行 `zzz.exe more install` 或者 设置自行环境变量。
+
+
+**Go 安装**
+
+如果本地有 Go 环境可使用该方式
+
+```bash
+go install github.com/sohaha/zzz@latest
+```
+
+**NPM 安装**
+
+```bash
+npm i -g @sohaha/zzz
+```
 
 ## 使用
 
