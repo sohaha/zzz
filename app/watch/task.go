@@ -223,7 +223,6 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 	}
 
 	return t
-
 }
 
 func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd {
@@ -232,15 +231,43 @@ func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd
 		return nil
 	}
 	var r []*exec.Cmd
+
 	for i := 0; i < l; i++ {
 		carr := []string{strings.Join(cmdParse2Array(commands[i], cf), " ")}
 		util.Log.Printf("Background command: %v\n", carr)
 		cmd := command(fixCmd(carr))
-		err := cmd.Start()
+
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			util.Log.Error(err)
+			continue
+		}
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			util.Log.Error(err)
+			continue
+		}
+
+		err = cmd.Start()
 		if err != nil {
 			util.Log.Error(err)
 		} else {
 			r = append(r, cmd)
+			go func(stdout, stderr io.ReadCloser) {
+				go func() {
+					scanner := bufio.NewScanner(stdout)
+					for scanner.Scan() {
+						util.Log.Printf("[BG OUT] %s\n", scanner.Text())
+					}
+				}()
+
+				go func() {
+					scanner := bufio.NewScanner(stderr)
+					for scanner.Scan() {
+						util.Log.Printf("[BG ERR] %s\n", scanner.Text())
+					}
+				}()
+			}(stdout, stderr)
 		}
 	}
 	return r
