@@ -1,0 +1,35 @@
+{
+  "name": "@sohaha/zzz",
+  "version": "1.0.42",
+  "description": "日常开发辅助工具 _- Daily development aids_",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sohaha/zzz.git"
+  },
+  "author": "seekwe@gmail.com",
+  "bugs": {
+    "url": "https://github.com/sohaha/zzz/issues"
+  },
+  "homepage": "https://github.com/sohaha/zzz#readme",
+  "scripts": {
+    "postinstall": "go-npm install",
+    "preuninstall": "go-npm uninstall"
+  },
+  "goBinary": {
+    "name": "zzz",
+    "path": "./bin",
+    "url": "https://github.com/sohaha/zzz/releases/download/v{{version}}/zzz_{{version}}_{{platform}}_{{arch}}{{archive_ext}}"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [],
+  "keywords": [
+    "task",
+    "build-tool",
+    "task-runner"
+  ],
+  "dependencies": {
+    "@go-task/go-npm": "^0.2.0"
+  }
+}

@@ -122,7 +122,6 @@ func start() {
 				}
 				util.Log.Println("error:", err)
 			}
-
 		}
 	}()
 	addWatcher()
