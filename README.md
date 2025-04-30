@@ -17,7 +17,7 @@ go install github.com/sohaha/zzz@latest
 一键安装
 
 ```bash
-curl -L https://github.73zls.com/install/zzz.sh | bash
+curl -L https://install.73zls.com/install/zzz.sh | bash
 ```
 
 
