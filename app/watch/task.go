@@ -257,14 +257,14 @@ func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd
 				go func() {
 					scanner := bufio.NewScanner(stdout)
 					for scanner.Scan() {
-						util.Log.Printf("[BG OUT] %s\n", scanner.Text())
+						util.Log.Printf("[BG] %s\n", scanner.Text())
 					}
 				}()
 
 				go func() {
 					scanner := bufio.NewScanner(stderr)
 					for scanner.Scan() {
-						util.Log.Printf("[BG ERR] %s\n", scanner.Text())
+						util.Log.Printf("[BG] %s\n", scanner.Text())
 					}
 				}()
 			}(stdout, stderr)
