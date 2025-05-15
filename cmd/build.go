@@ -37,6 +37,7 @@ var (
 	skipDirs       string
 	buildUse       = "build"
 	obfuscate      int
+	upx            string
 	outDir         string
 	GOPROXY        = os.Getenv("GOPROXY")
 	cShared        bool
@@ -169,13 +170,35 @@ var buildCmd = &cobra.Command{
 		if goVersion == "" {
 			goVersion = "latest"
 		}
+
+		if upx != "" {
+			if err := build.CheckUPX(); err != nil {
+				util.Log.Warn(err)
+				upx = ""
+			}
+		}
+
+		names := make([]string, 0, len(buildCommads))
 		for i, v := range buildCommads {
-			localCommad(strings.Join(v, " "), buildArgs, envs[i], goos[i])
+			name := localCommad(strings.Join(v, " "), buildArgs, envs[i], goos[i])
+			if name != "" {
+				util.Log.Successf("build success: %s\n", name)
+				names = append(names, name)
+			}
+		}
+
+		if upx != "" {
+			for _, name := range names {
+				util.Log.Info("compressing " + name)
+				if err := build.RunUPX(name, upx); err == nil {
+					build.StripUPXHeaders(zfile.RealPath(name))
+				}
+			}
 		}
 	},
 }
 
-func localCommad(v string, buildArgs []string, env []string, goos string) {
+func localCommad(v string, buildArgs []string, env []string, goos string) string {
 	v = strings.Trim(v, " ")
 	osEnv := os.Environ()
 	envs := strings.Split(v, " ")
@@ -212,7 +235,7 @@ func localCommad(v string, buildArgs []string, env []string, goos string) {
 	if buildDebug {
 		util.Log.Println(strings.Join(env, " "))
 		util.Log.Println(strings.Join(cmd, " "))
-		return
+		return ""
 	}
 
 	e := zshell.Env
@@ -220,13 +243,14 @@ func localCommad(v string, buildArgs []string, env []string, goos string) {
 	zshell.Env = e
 	if err != nil {
 		util.Log.Fatalf("%v\n", err)
-		return
+		return ""
 	}
 
-	name, err := zstring.RegexExtract(`-o=([\w\\\/\-\_\.]*) `, v+" ")
-	if err == nil && len(name) > 1 {
-		util.Log.Successf("build success: %s\n", name[1])
+	name, err := zstring.RegexExtractAll(`-o(=| )([\w\\\/\-\_\.]*) `, strings.Join(cmds, " ")+" ")
+	if err == nil && len(name) > 0 {
+		return name[len(name)-1][2]
 	}
+	return ""
 }
 
 func init() {
@@ -248,4 +272,5 @@ func init() {
 	buildCmd.Flags().IntVarP(&obfuscate, "garble", "G", 0, "Obfuscate code, 1: fast mode, 2: strong mode, need to install garble")
 	buildCmd.Flags().BoolVar(&cShared, "c-shared", false, "Build a shared library")
 	buildCmd.Flags().BoolVar(&hideWinConsole, "hide-win-console", false, "Hide win console, only for windows")
+	buildCmd.Flags().StringVar(&upx, "upx", "", "Use UPX to compress the executable, need to install upx")
 }
