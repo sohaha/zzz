@@ -27,8 +27,8 @@ var (
 	isVendor       bool
 	buildIgnore    bool
 	isPack         bool
-	skipStatic     bool
-	buildStatic    bool
+	skipEmbed      bool
+	buildEmbed     bool
 	buildTrimpath  bool
 	isCGO          bool
 	buildDebug     bool
@@ -42,6 +42,8 @@ var (
 	GOPROXY        = os.Getenv("GOPROXY")
 	cShared        bool
 	hideWinConsole bool
+	NoStatic       bool
+	Ldflags        string
 )
 
 var buildCmd = &cobra.Command{
@@ -68,7 +70,7 @@ var buildCmd = &cobra.Command{
 		name := build.Basename(dirPath)
 		existZlsGO := strings.Contains(build.ReadMod(dirPath), "/zlsgo")
 		sd := zutil.IfVal(skipDirs == "", []string{}, strings.Split(skipDirs, ",")).([]string)
-		if !skipStatic && !buildDebug {
+		if !skipEmbed && !buildDebug {
 			mewnFiles, err := zbuild.GetBinFiles([]string{}, buildIgnore, sd)
 			if err != nil {
 				util.Log.Fatal(err)
@@ -91,19 +93,27 @@ var buildCmd = &cobra.Command{
 			}
 			defer func() {
 				for _, filename := range targetFiles {
-					if zutil.Getenv("NODELETETMP") == "" && !buildStatic {
+					if zutil.Getenv("NODELETETMP") == "" && !buildEmbed {
 						_ = os.Remove(filename)
 					}
 				}
 			}()
 		}
-		if buildStatic {
+		if buildEmbed {
 			return
 		}
 		buildArgs := args
 		ldflags := zstring.Buffer()
 		ldflags.WriteString(`"`)
-		ldflags.WriteString(`-X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
+
+		if !NoStatic {
+			if isCGO {
+				ldflags.WriteString(` -linkmode external `)
+			}
+			ldflags.WriteString(` -extldflags '-static'`)
+		}
+
+		ldflags.WriteString(` -X 'main.BUILD_COMMIT=` + build.GetBuildGitID() + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_GOVERSION=` + version + `'`)
 		ldflags.WriteString(` -X 'main.BUILD_TIME=` + build.GetBuildTime() + `'`)
 		if existZlsGO {
@@ -131,7 +141,11 @@ var buildCmd = &cobra.Command{
 
 		ldflags.WriteString(`"`)
 		buildArgs = append(buildArgs, `-ldflags`)
-		buildArgs = append(buildArgs, ldflags.String())
+		if Ldflags != "" {
+			buildArgs = append(buildArgs, Ldflags)
+		} else {
+			buildArgs = append(buildArgs, ldflags.String())
+		}
 
 		if zfile.DirExist(dirPath + "vendor") {
 			isVendor = true
@@ -165,7 +179,7 @@ var buildCmd = &cobra.Command{
 				util.Log.Fatal(err)
 			}
 		}
-		buildCommads, envs, goos := build.CommadString(targets, isVendor, isCGO, cShared, obfuscate, name, outDir)
+		buildCommads, envs, goos := build.CommadString(targets, isVendor, isCGO, cShared, obfuscate, NoStatic, Ldflags, name, outDir)
 
 		if goVersion == "" {
 			goVersion = "latest"
@@ -256,7 +270,7 @@ func localCommad(v string, buildArgs []string, env []string, goos string) string
 func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().
-		BoolVarP(&skipStatic, "skip-static", "S", false, "Skip static analysis, do not use package static file function")
+		BoolVarP(&skipEmbed, "skip-embed", "S", false, "Skip static analysis, do not use package static file function")
 	buildCmd.Flags().
 		BoolVarP(&isPack, "pack", "P", false, "Same as build, will compile with '-w -s' flags")
 	buildCmd.Flags().
@@ -265,7 +279,7 @@ func init() {
 	buildCmd.Flags().BoolVarP(&isCGO, "cgo", "C", false, "Turn on CGO_ENABLED, need to install zig")
 	buildCmd.Flags().BoolVarP(&buildIgnore, "ignoreE", "I", false, "Ignore files that don't exist")
 	buildCmd.Flags().BoolVar(&buildDebug, "debug", false, "Print execution command")
-	buildCmd.Flags().BoolVar(&buildStatic, "static", false, "Compile only static resource files")
+	buildCmd.Flags().BoolVar(&buildEmbed, "embed", false, "Compile only static resource files")
 	buildCmd.Flags().
 		BoolVarP(&buildTrimpath, "trimpath", "T", false, "Removes all file system paths from the compiled executable")
 	buildCmd.Flags().StringVar(&skipDirs, "skip-dirs", "", "Directory to skip static analysis")
@@ -273,4 +287,6 @@ func init() {
 	buildCmd.Flags().BoolVar(&cShared, "c-shared", false, "Build a shared library")
 	buildCmd.Flags().BoolVar(&hideWinConsole, "hide-win-console", false, "Hide win console, only for windows")
 	buildCmd.Flags().StringVar(&upx, "upx", "", "Use UPX to compress the executable, need to install upx")
+	buildCmd.Flags().BoolVar(&NoStatic, "no-static", false, "do not static link")
+	buildCmd.Flags().StringVar(&Ldflags, "ldflags", "", "Use ldflags")
 }
