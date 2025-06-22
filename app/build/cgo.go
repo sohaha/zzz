@@ -1,6 +1,7 @@
 package build
 
 import (
+	"runtime"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zshell"
@@ -30,6 +31,7 @@ func CheckZig() error {
 func CommadString(
 	os []OSData,
 	isVendor, isCGO, cShared bool, obfuscate int,
+	NoStatic bool, ldflags string,
 	packageName, outDir string,
 ) (commads [][]string, envs [][]string, goos []string) {
 	vendor := ""
@@ -47,6 +49,35 @@ func CommadString(
 		zigccFlags = " -fno-sanitize=undefined -static"
 	}
 
+	if len(os) == 0 {
+		osname := ""
+		switch zutil.GetOs() {
+		case "windows":
+			osname = "windows"
+		case "linux":
+			osname = "linux"
+		case "darwin":
+			osname = "darwin"
+		}
+		arch := ""
+		switch runtime.GOARCH {
+		case "amd64":
+			arch = "amd64"
+		case "arm64":
+			arch = "arm64"
+		case "386":
+			arch = "386"
+		}
+		if osname != "" && arch != "" {
+			os = []OSData{
+				{
+					Goos:   osname,
+					Goarch: arch,
+				},
+			}
+		}
+	}
+
 	for _, v := range os {
 		env := []string{"GOARCH=" + v.Goarch, "GOOS=" + v.Goos}
 		if isCGO {
@@ -56,11 +87,12 @@ func CommadString(
 			target := ""
 			switch v.Goos {
 			case "windows":
-				if v.Goarch == "386" {
+				switch v.Goarch {
+				case "386":
 					target = "x86_64-windows"
-				} else if v.Goarch == "arm64" {
+				case "arm64":
 					target = "aarch64-windows"
-				} else {
+				default:
 					target = "x86_64-windows"
 				}
 			case "darwin":
@@ -71,19 +103,21 @@ func CommadString(
 						sysroot = " --sysroot=" + rootPath + " -F" + rootPath + "/System/Library/Frameworks -I/usr/include -L/usr/lib"
 					}
 				}
-				if v.Goarch == "386" {
+				switch v.Goarch {
+				case "386":
 					target = "x86-macos" + sysroot
-				} else if v.Goarch == "amd64" {
+				case "amd64":
 					target = "x86_64-macos" + sysroot
-				} else {
+				default:
 					target = "aarch64-macos" + sysroot
 				}
 			case "linux":
-				if v.Goarch == "386" {
+				switch v.Goarch {
+				case "386":
 					target = "x86-linux-musl"
-				} else if v.Goarch == "arm64" {
+				case "arm64":
 					target = "aarch64-linux-musl"
-				} else {
+				default:
 					target = "x86_64-linux-musl"
 				}
 			}

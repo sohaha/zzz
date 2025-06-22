@@ -46,7 +46,7 @@ var (
 						body := res.Bytes()
 						zjson.ParseBytes(body).ForEach(func(key, value *zjson.Res) bool {
 							name := value.Get("name").String()
-							if name == "dev" && strings.HasSuffix(name，"old"){
+							if name == "dev" && strings.HasSuffix(name, "-old") {
 								return true
 							}
 							if name == "" {
