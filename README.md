@@ -58,6 +58,9 @@ zzz help
 ```
 
 ## Thanks
+
+CDN acceleration and security protection for this project are sponsored by Tencent EdgeOne.
+
 [YXVM](https://yxvm.com/aff.php?aff=765)赞助了本项目
 
 [NodeSupport](https://github.com/NodeSeekDev/NodeSupport)赞助了本项目
