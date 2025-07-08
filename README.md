@@ -9,7 +9,7 @@
 一键安装
 
 ```bash
-curl -L https://install.73zls.com/install/zzz.sh | bash
+curl -L https://raw.githubusercontent.com/sohaha/zzz/master/install.sh | bash
 ```
 
 
