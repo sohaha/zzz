@@ -9,7 +9,7 @@
 一键安装
 
 ```bash
-curl -L https://install.73zls.com/install/zzz.sh | bash
+curl -L https://raw.githubusercontent.com/sohaha/zzz/master/install.sh | bash
 ```
 
 
@@ -58,6 +58,7 @@ zzz help
 ```
 
 ## Thanks
+
 [YXVM](https://yxvm.com/aff.php?aff=765)赞助了本项目
 
 [NodeSupport](https://github.com/NodeSeekDev/NodeSupport)赞助了本项目
