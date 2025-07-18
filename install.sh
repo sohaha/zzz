@@ -28,8 +28,18 @@ MAX_RETRY=3
 retry_count=0
 LAST_VERSION=""
 
+auth_header=""
+if [[ -n "$GITHUB_TOKEN" ]]; then
+  echo "使用 GitHub Token 进行 API 请求"
+  auth_header="-H \"Authorization: token $GITHUB_TOKEN\""
+fi
+
 while [[ -z $LAST_VERSION && $retry_count -lt $MAX_RETRY ]]; do
-  LAST_VERSION=$(curl --silent --connect-timeout 10 --max-time 30 "${isChinaProxy}https://api.github.com/repos/sohaha/zzz/releases/latest" | grep "tag_name" | cut -d '"' -f 4 | cut -d 'v' -f 2 || echo "")
+  if [[ -n "$GITHUB_TOKEN" ]]; then
+    LAST_VERSION=$(curl --silent --connect-timeout 10 --max-time 30 -H "Authorization: token $GITHUB_TOKEN" "${isChinaProxy}https://api.github.com/repos/sohaha/zzz/releases/latest" | grep "tag_name" | cut -d '"' -f 4 | cut -d 'v' -f 2 || echo "")
+  else
+    LAST_VERSION=$(curl --silent --connect-timeout 10 --max-time 30 "${isChinaProxy}https://api.github.com/repos/sohaha/zzz/releases/latest" | grep "tag_name" | cut -d '"' -f 4 | cut -d 'v' -f 2 || echo "")
+  fi
   
   if [[ -z $LAST_VERSION ]]; then
     retry_count=$((retry_count + 1))
