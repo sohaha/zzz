@@ -33,7 +33,6 @@ var (
 	httpOpenBrowser bool
 	httpCloseLocal  bool
 	ws              *melody.Melody
-	ignoreFormat    []string
 )
 
 func initHTTP() {

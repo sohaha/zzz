@@ -36,7 +36,7 @@ var (
 	pushTimer          sync.Map
 	v                  *viper.Viper
 	ignoreDirectory    = [...]string{".git", ".vscode", ".svn", ".idea", ".github"}
-	// waitGroup     sync.WaitGroup
+	ignoreFormat       []string
 )
 
 type changedFile struct {
