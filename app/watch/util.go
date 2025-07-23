@@ -6,6 +6,7 @@ import (
 	"net"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -43,16 +44,34 @@ func isIgnoreDirectory(folder string) bool {
 func listFile(folder string, fun func(string)) {
 	folder = zfile.RealPath(folder)
 	if isIgnoreDirectory(folder) {
-		util.Log.Error("Ignore", folder)
+		util.Log.Debugf("Ignore directory: %s", folder)
 		return
 	}
-	files, _ := ioutil.ReadDir(folder)
+
+	if isExcept(exceptDirs, folder) {
+		util.Log.Debugf("Excluding directory: %s", folder)
+		return
+	}
+
+	files, err := ioutil.ReadDir(folder)
+	if err != nil {
+		util.Log.Errorf("Failed to read directory %s: %v", folder, err)
+		return
+	}
+
 	for _, file := range files {
 		if file.IsDir() {
 			d := zfile.RealPath(folder + "/" + file.Name())
+
 			if isIgnoreDirectory(d) {
+				util.Log.Debugf("Ignoring directory: %s", d)
 				continue
 			}
+			if isExcept(exceptDirs, d) {
+				util.Log.Debugf("Excluding directory: %s", d)
+				continue
+			}
+
 			fun(d)
 			listFile(d, fun)
 		}
@@ -67,13 +86,54 @@ func arrayUniqueAdd(a []string, add string) []string {
 }
 
 func isExcept(e []string, path string) bool {
-	for _, v := range e {
-		fix := strings.Replace(strings.Replace(v, "*", "", -1), "//", "/", -1)
-		if strings.HasPrefix(path, fix) {
+	for _, pattern := range e {
+		normalizedPath := filepath.ToSlash(path)
+		normalizedPattern := filepath.ToSlash(pattern)
+
+		if normalizedPattern == ".,*" || normalizedPattern == "*" {
 			return true
 		}
-		if zstring.Match(path, v) {
+
+		if strings.HasPrefix(normalizedPattern, "*/") {
+			subPattern := strings.TrimPrefix(normalizedPattern, "*/")
+			pathParts := strings.Split(normalizedPath, "/")
+			for i, part := range pathParts {
+				if matched, _ := filepath.Match(subPattern, strings.Join(pathParts[i:], "/")); matched {
+					return true
+				}
+				if strings.Contains(subPattern, "/") {
+					remainingPath := strings.Join(pathParts[i:], "/")
+					if matched, _ := filepath.Match(subPattern, remainingPath); matched {
+						return true
+					}
+				} else {
+					if matched, _ := filepath.Match(subPattern, part); matched {
+						return true
+					}
+				}
+			}
+		}
+
+		cleanPattern := strings.Replace(strings.Replace(normalizedPattern, "*", "", -1), "//", "/", -1)
+		if strings.HasPrefix(normalizedPath, cleanPattern) {
 			return true
+		}
+
+		if zstring.Match(normalizedPath, normalizedPattern) {
+			return true
+		}
+		if matched, err := filepath.Match(normalizedPattern, normalizedPath); err == nil && matched {
+			return true
+		}
+
+		baseName := filepath.Base(normalizedPath)
+		if matched, err := filepath.Match(normalizedPattern, baseName); err == nil && matched {
+			return true
+		}
+		if strings.Contains(normalizedPattern, "**") {
+			if matchRecursivePattern(normalizedPath, normalizedPattern) {
+				return true
+			}
 		}
 	}
 	return false
@@ -154,6 +214,53 @@ func openBrowser(url string) error {
 		err = errors.New("unsupported platform")
 	}
 	return err
+}
+
+func matchRecursivePattern(path, pattern string) bool {
+	if pattern == "**" {
+		return true
+	}
+	if strings.HasPrefix(pattern, "**/") && strings.HasSuffix(pattern, "/**") {
+		middle := strings.TrimPrefix(strings.TrimSuffix(pattern, "/**"), "**/")
+		if strings.Contains(path, "/"+middle+"/") ||
+			strings.Contains(path, middle+"/") ||
+			strings.HasPrefix(path, middle+"/") {
+			return true
+		}
+	}
+
+	if strings.HasPrefix(pattern, "**/") && strings.Contains(pattern, "*") && !strings.HasSuffix(pattern, "/**") {
+		suffix := strings.TrimPrefix(pattern, "**/")
+		pathParts := strings.Split(path, "/")
+		for _, part := range pathParts {
+			if matched, _ := filepath.Match(suffix, part); matched {
+				return true
+			}
+		}
+		if matched, _ := filepath.Match(suffix, filepath.Base(path)); matched {
+			return true
+		}
+	}
+	if strings.HasPrefix(pattern, "**/") && !strings.Contains(pattern, "*") {
+		suffix := strings.TrimPrefix(pattern, "**/")
+		if strings.HasSuffix(path, suffix) || strings.Contains(path, "/"+suffix) {
+			return true
+		}
+	}
+
+	if strings.HasSuffix(pattern, "/**") && !strings.HasPrefix(pattern, "**/") {
+		prefix := strings.TrimSuffix(pattern, "/**")
+		if strings.HasPrefix(path, prefix+"/") || strings.Contains(path, "/"+prefix+"/") {
+			return true
+		}
+	}
+
+	regexPattern := strings.ReplaceAll(pattern, "**", ".*")
+	regexPattern = strings.ReplaceAll(regexPattern, "*", "[^/]*")
+	regexPattern = "^" + regexPattern + "$"
+
+	matched, err := regexp.MatchString(regexPattern, path)
+	return err == nil && matched
 }
 
 func isIgnoreType(fileExt string) (yes bool) {
