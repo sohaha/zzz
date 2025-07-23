@@ -141,11 +141,14 @@ func start() {
 		}
 		cloes(task.cmd)
 
+		if fileDebouncer != nil {
+			fileDebouncer.stop()
+		}
+
 		if lastPid > 0 {
 			p, e := os.FindProcess(-lastPid)
 			if e == nil {
 				_ = p.Signal(syscall.SIGINT)
-				// cloes(lastPid)
 			}
 		}
 		done <- true

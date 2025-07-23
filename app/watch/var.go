@@ -34,6 +34,8 @@ var (
 	startupExecCommand []string
 	startup            bool
 	pushTimer          sync.Map
+	fileDebouncer      *debouncer
+	pendingFiles       sync.Map
 	v                  *viper.Viper
 	ignoreDirectory    = [...]string{".git", ".vscode", ".svn", ".idea", ".github"}
 	ignoreFormat       []string
