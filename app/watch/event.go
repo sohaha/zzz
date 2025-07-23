@@ -39,7 +39,6 @@ func fileChange(event fsnotify.Event) {
 	switch event.Op {
 	case fsnotify.Write, fsnotify.Remove, fsnotify.Rename:
 		if strings.HasSuffix(event.Name, "_static_resources.go") {
-			// ignore zzz build temporary files
 			return
 		}
 		ext := path.Ext(event.Name)
@@ -56,19 +55,30 @@ func fileChange(event fsnotify.Event) {
 			Type:    opType,
 		}
 
-		push := func() {
-			util.Log.Printf("Change: %v (%v)\n", relativeFilePath, opType)
-			task.Put(data)
-			sendChang(data)
-		}
+		if fileDebouncer != nil {
+			pendingFiles.Store(relativeFilePath, data)
+			fileDebouncer.trigger(relativeFilePath)
+		} else {
+			push := func() {
+				util.Log.Printf("Change: %v (%v)\n", relativeFilePath, opType)
+				task.Put(data)
+				sendChang(data)
+			}
 
-		if lashTime, ok := pushTimer.Load(relativeFilePath); ok {
-			lashTime.(*time.Timer).Stop()
-			pushTimer.Delete(relativeFilePath)
+			if lashTime, ok := pushTimer.Load(relativeFilePath); ok {
+				lashTime.(*time.Timer).Stop()
+				pushTimer.Delete(relativeFilePath)
+			}
+			pushTimer.Store(relativeFilePath, time.AfterFunc(getDelay(), func() {
+				pushTimer.Delete(relativeFilePath)
+				push()
+			}))
 		}
-		pushTimer.Store(relativeFilePath, time.AfterFunc(getDelay(), func() {
-			pushTimer.Delete(relativeFilePath)
-			push()
-		}))
 	}
+}
+
+func handleFileChangeDebounced(cf *changedFile) {
+	util.Log.Printf("Change: %v (%v)\n", cf.Name, cf.Type)
+	task.Put(cf)
+	sendChang(cf)
 }
