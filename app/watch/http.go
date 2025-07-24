@@ -193,9 +193,9 @@ func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
 	}
 
 	targetURL := &url.URL{
-		Scheme: scheme,
-		Host:   host,
-		Path:   r.URL.Path,
+		Scheme:   scheme,
+		Host:     host,
+		Path:     r.URL.Path,
 		RawQuery: r.URL.RawQuery,
 	}
 
@@ -235,34 +235,34 @@ func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
 		}
 
 		htmlContent := string(body)
-		injectedHTML := injectJavaScriptToHTML(htmlContent)
-		
+		injectedHTML := injectJavaScriptToHTML(htmlContent, `var zWatchAll=true;`+getInjectJS())
+
 		w.Header().Del("Content-Length")
-		
+
 		w.WriteHeader(resp.StatusCode)
-		
+
 		_, err = w.Write([]byte(injectedHTML))
 		return err
 	} else {
 		w.WriteHeader(resp.StatusCode)
-		
+
 		_, err = io.Copy(w, resp.Body)
 		return err
 	}
 }
 
-func injectJavaScriptToHTML(htmlContent string) string {
+func injectJavaScriptToHTML(htmlContent, injectJS string) string {
 	lowerHTML := strings.ToLower(htmlContent)
-	
+
 	if bodyIndex := strings.LastIndex(lowerHTML, "</body>"); bodyIndex != -1 {
-		return htmlContent[:bodyIndex] + "<script>" + getInjectJS() + "</script>" + htmlContent[bodyIndex:]
+		return htmlContent[:bodyIndex] + "<script>" + injectJS + "</script>" + htmlContent[bodyIndex:]
 	}
-	
+
 	if htmlIndex := strings.LastIndex(lowerHTML, "</html>"); htmlIndex != -1 {
-		return htmlContent[:htmlIndex] + "<script>" + getInjectJS() + "</script>" + htmlContent[htmlIndex:]
+		return htmlContent[:htmlIndex] + "<script>" + injectJS + "</script>" + htmlContent[htmlIndex:]
 	}
-	
-	return htmlContent + "<script>" + getInjectJS() + "</script>"
+
+	return htmlContent + "<script>" + injectJS + "</script>"
 }
 
 func getInjectJS() string {
