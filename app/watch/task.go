@@ -43,6 +43,16 @@ func initTask() {
 	execCommand = v.GetStringSlice("command.exec")
 	startupExecCommand = v.GetStringSlice("command.startupExec")
 	startup = v.GetBool("command.startup")
+	
+	debounceDelay := getDelay()
+	fileDebouncer = newDebouncer(debounceDelay, func(filePath string) {
+		if cf, ok := pendingFiles.Load(filePath); ok {
+			pendingFiles.Delete(filePath)
+			if changedFile, ok := cf.(*changedFile); ok {
+				handleFileChangeDebounced(changedFile)
+			}
+		}
+	})
 }
 
 func (t *taskType) Put(cf *changedFile) {

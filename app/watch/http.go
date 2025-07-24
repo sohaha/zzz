@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"path"
@@ -159,7 +158,7 @@ func injectingCode(file string) (data string) {
 	inputReader := bufio.NewReader(inputFile)
 	isEnd := false
 	isHTML := false
-	var html = zstring.Buffer()
+	html := zstring.Buffer()
 	for !isEnd {
 		inputString, readerError := inputReader.ReadString('\n')
 		if !isHTML && strings.ContainsAny(inputString, "</html>") {
@@ -172,13 +171,12 @@ func injectingCode(file string) (data string) {
 	}
 	html.WriteString("<script>")
 
-	if httpType == "web" {
-		// 插入自动刷新
+	switch httpType {
+	case "web":
 		html.WriteString(webJs)
-	} else if httpType == "vue-spa" {
-		// 插入spa热更新
+	case "vue-spa":
 		html.WriteString(vueSpaJs)
-	} else if httpType == "vue-run" {
+	case "vue-run":
 		html.WriteString(vueHotReload)
 		// html.WriteString(vueRunExport)
 	}
@@ -191,18 +189,93 @@ func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
 	host, scheme := urlParse(httpProxy)
 	if host == "" {
 		err = errors.New("404")
-	} else {
-		var ReverseProxy = httputil.ReverseProxy{
-			ErrorLog: log.New(ioutil.Discard, "", 0),
-			Director: func(req *http.Request) {
-				req.URL.Scheme = scheme
-				req.URL.Host = host
-				req.Host = host
-			},
-		}
-		ReverseProxy.ServeHTTP(w, r)
+		return
 	}
-	return
+
+	targetURL := &url.URL{
+		Scheme: scheme,
+		Host:   host,
+		Path:   r.URL.Path,
+		RawQuery: r.URL.RawQuery,
+	}
+
+	proxyReq, err := http.NewRequest(r.Method, targetURL.String(), r.Body)
+	if err != nil {
+		return err
+	}
+
+	for name, values := range r.Header {
+		for _, value := range values {
+			proxyReq.Header.Add(name, value)
+		}
+	}
+
+	proxyReq.Host = host
+
+	client := &http.Client{}
+	resp, err := client.Do(proxyReq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	for name, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(name, value)
+		}
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	shouldInject := httpType == "web" && strings.Contains(strings.ToLower(contentType), "text/html")
+
+	if shouldInject {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		htmlContent := string(body)
+		injectedHTML := injectJavaScriptToHTML(htmlContent)
+		
+		w.Header().Del("Content-Length")
+		
+		w.WriteHeader(resp.StatusCode)
+		
+		_, err = w.Write([]byte(injectedHTML))
+		return err
+	} else {
+		w.WriteHeader(resp.StatusCode)
+		
+		_, err = io.Copy(w, resp.Body)
+		return err
+	}
+}
+
+func injectJavaScriptToHTML(htmlContent string) string {
+	lowerHTML := strings.ToLower(htmlContent)
+	
+	if bodyIndex := strings.LastIndex(lowerHTML, "</body>"); bodyIndex != -1 {
+		return htmlContent[:bodyIndex] + "<script>" + getInjectJS() + "</script>" + htmlContent[bodyIndex:]
+	}
+	
+	if htmlIndex := strings.LastIndex(lowerHTML, "</html>"); htmlIndex != -1 {
+		return htmlContent[:htmlIndex] + "<script>" + getInjectJS() + "</script>" + htmlContent[htmlIndex:]
+	}
+	
+	return htmlContent + "<script>" + getInjectJS() + "</script>"
+}
+
+func getInjectJS() string {
+	switch httpType {
+	case "web":
+		return webJs
+	case "vue-spa":
+		return vueSpaJs
+	case "vue-run":
+		return vueHotReload
+	default:
+		return webJs
+	}
 }
 
 func urlParse(httpProxy string) (string, string) {
