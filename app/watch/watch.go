@@ -43,12 +43,10 @@ func addNewWatcher(dir string) {
 
 	if !inStringArray(fullDir, watchDirs) {
 		watchDirs = append(watchDirs, fullDir)
-		util.Log.Printf("Adding new watcher: %s", fullDir)
+		util.Log.Println("Watcher: ", fullDir)
 		err := watcher.Add(fullDir)
 		if err != nil {
-			util.Log.Errorf("Failed to add new watcher for %s: %v", fullDir, err)
-		} else {
-			util.Log.Infof("Successfully added new watcher: %s", fullDir)
+			util.Log.Errorf("Failed to add new watcher for %s: %v\n", fullDir, err)
 		}
 	}
 }
