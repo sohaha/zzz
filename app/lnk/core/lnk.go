@@ -221,6 +221,12 @@ func (tc *TrackingCache) Get() []string {
 	return result
 }
 
+func (tc *TrackingCache) Clear() {
+	tc.files = nil
+	tc.lastMod = 0
+	tc.filePath = ""
+}
+
 type ResourceManager struct {
 	openFiles []*os.File
 	tempDirs  []string
@@ -438,7 +444,6 @@ func (l *Lnk) getRepoFilePath(originalPath string) string {
 	}
 
 	if isRel {
-
 		rel := strings.TrimPrefix(filepath.Clean(originalPath), "./")
 		if l.host != "" {
 			return filepath.Join(l.getHostDir(), rel)
@@ -446,14 +451,30 @@ func (l *Lnk) getRepoFilePath(originalPath string) string {
 		return filepath.Join(l.repoPath, rel)
 	}
 
-	fileName := filepath.Base(realPath)
-
-	if l.host != "" {
-		hostDir := l.getHostDir()
-		return filepath.Join(hostDir, fileName)
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fileName := filepath.Base(realPath)
+		if l.host != "" {
+			hostDir := l.getHostDir()
+			return filepath.Join(hostDir, fileName)
+		}
+		return filepath.Join(l.repoPath, fileName)
 	}
 
-	return filepath.Join(l.repoPath, fileName)
+	relPath, err := filepath.Rel(homeDir, realPath)
+	if err != nil || strings.HasPrefix(relPath, "..") {
+		fileName := filepath.Base(realPath)
+		if l.host != "" {
+			hostDir := l.getHostDir()
+			return filepath.Join(hostDir, fileName)
+		}
+		return filepath.Join(l.repoPath, fileName)
+	}
+
+	if l.host != "" {
+		return filepath.Join(l.getHostDir(), relPath)
+	}
+	return filepath.Join(l.repoPath, relPath)
 }
 
 func (l *Lnk) getOriginalFilePath(repoPath string) string {
@@ -1858,6 +1879,47 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 	if len(errors) > 0 {
 		return fmt.Errorf("恢复主机 %s 的符号链接时发生错误 (成功: %d, 失败: %d):\n%s",
 			hostName, restoredCount, len(errors), strings.Join(errors, "\n"))
+	}
+
+	return nil
+}
+
+// CleanupInvalidEntries 清理跟踪文件中的无效条目（仓库中不存在的文件）
+func (l *Lnk) CleanupInvalidEntries() error {
+	if !l.IsInitialized() {
+		return &RepoNotInitializedError{
+			RepoPath: l.repoPath,
+		}
+	}
+
+	files, err := l.readTrackingFile()
+	if err != nil {
+		return fmt.Errorf("读取跟踪文件失败: %w", err)
+	}
+
+	var validFiles []string
+	var removedCount int
+
+	for _, filePath := range files {
+		repoFilePath := l.getRepoFilePath(filePath)
+
+		if l.fs.FileExists(repoFilePath) {
+			validFiles = append(validFiles, filePath)
+		} else {
+			fmt.Printf("移除无效条目: %s (仓库文件不存在: %s)\n", filePath, repoFilePath)
+			removedCount++
+		}
+	}
+
+	if removedCount > 0 {
+		if err := l.writeTrackingFile(validFiles); err != nil {
+			return fmt.Errorf("更新跟踪文件失败: %w", err)
+		}
+		l.cache.Clear()
+
+		fmt.Printf("清理完成: 移除了 %d 个无效条目，保留了 %d 个有效条目\n", removedCount, len(validFiles))
+	} else {
+		fmt.Println("没有发现无效条目")
 	}
 
 	return nil
