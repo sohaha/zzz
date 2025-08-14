@@ -77,6 +77,7 @@ func init() {
 	lnkCmd.AddCommand(newPushCmd())
 	lnkCmd.AddCommand(newPullCmd())
 	lnkCmd.AddCommand(newBootstrapCmd())
+	lnkCmd.AddCommand(newCleanupCmd())
 }
 
 func newInitCmd() *cobra.Command {
@@ -563,6 +564,32 @@ func newBootstrapCmd() *cobra.Command {
 			}
 
 			util.Log.Successf("bootstrap 脚本执行完成\n")
+			return nil
+		},
+	}
+
+	return cmd
+}
+
+func newCleanupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "cleanup",
+		Short:        "清理跟踪文件中的无效条目",
+		Long:         `清理 .lnk 跟踪文件中仓库里不存在的文件条目`,
+		SilenceUsage: true,
+		Example: `  # 清理无效条目
+  zzz lnk cleanup`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			lnk := createLnkInstance("")
+
+			if !lnk.IsInitialized() {
+				return fmt.Errorf("lnk 仓库未初始化，请先运行 'zzz lnk init'")
+			}
+
+			if err := lnk.CleanupInvalidEntries(); err != nil {
+				return fmt.Errorf("清理失败: %w", err)
+			}
+
 			return nil
 		},
 	}

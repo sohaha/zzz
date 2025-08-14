@@ -218,36 +218,51 @@ func (g *Git) Push() error {
 }
 
 func (g *Git) Pull() error {
-	cmd := exec.Command("git", "pull")
-	cmd.Dir = g.repoPath
+    remote, err := g.getRemoteName()
+    if err != nil {
+        return err
+    }
 
-	output, err := cmd.CombinedOutput()
-	if err != nil {
+    branch, err := g.getCurrentBranch()
+    if err != nil {
+        return err
+    }
 
-		if strings.Contains(string(output), "CONFLICT") {
+    cmd := exec.Command("git", "pull", remote, branch)
+    cmd.Dir = g.repoPath
 
-			files := g.parseConflictFiles(string(output))
-			return &MergeConflictError{
-				Files: files,
-			}
-		}
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        if strings.Contains(string(output), "CONFLICT") {
+            files := g.parseConflictFiles(string(output))
+            return &MergeConflictError{
+                Files: files,
+            }
+        }
 
-		if strings.Contains(string(output), "Could not resolve host") ||
-			strings.Contains(string(output), "Connection refused") {
-			return &NetworkError{
-				Operation: "pull",
-				Err:       err,
-			}
-		}
+        if strings.Contains(string(output), "Could not resolve host") ||
+            strings.Contains(string(output), "Connection refused") {
+            return &NetworkError{
+                Operation: "pull",
+                Err:       err,
+            }
+        }
 
-		return &GitCommandError{
-			Command: "git pull",
-			Output:  string(output),
-			Err:     err,
-		}
-	}
+        if strings.Contains(string(output), "couldn't find remote ref") ||
+            strings.Contains(string(output), "Couldn't find remote ref") {
+            return &BranchNotFoundError{
+                BranchName: branch,
+            }
+        }
 
-	return nil
+        return &GitCommandError{
+            Command: fmt.Sprintf("git pull %s %s", remote, branch),
+            Output:  string(output),
+            Err:     err,
+        }
+    }
+
+    return nil
 }
 
 func (g *Git) GetStatus() (*StatusInfo, error) {
