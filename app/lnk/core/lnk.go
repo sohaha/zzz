@@ -1832,44 +1832,44 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 	var errors []string
 	restoredCount := 0
 
-	for _, filePath := range files {
+	for _, trackKey := range files {
 
-		repoFilePath := l.getRepoFilePath(filePath)
-
-		if !l.fs.FileExists(repoFilePath) {
-			errors = append(errors, fmt.Sprintf("仓库文件不存在: %s", repoFilePath))
-			continue
-		}
-
-		if l.fs.IsSymlink(filePath) {
-			target, err := l.fs.ReadSymlink(filePath)
-			if err == nil && target == repoFilePath {
-				continue
+		absPath := trackKey
+		if !filepath.IsAbs(trackKey) {
+			if homeDir, err := os.UserHomeDir(); err == nil {
+				absPath = filepath.Join(homeDir, strings.TrimPrefix(filepath.Clean(trackKey), "./"))
 			}
 		}
 
-		if l.fs.FileExists(filePath) && !l.fs.IsSymlink(filePath) {
-			backupPath, err := l.createBackup(filePath)
-			if err != nil {
-				errors = append(errors, fmt.Sprintf("创建备份失败 %s: %v", filePath, err))
-				continue
-			}
-			fmt.Printf("已备份现有文件: %s -> %s\n", filePath, backupPath)
-		} else if l.fs.FileExists(filePath) {
-			if err := l.fs.RemoveFile(filePath); err != nil {
-				errors = append(errors, fmt.Sprintf("删除错误符号链接失败 %s: %v", filePath, err))
-				continue
+		repoFilePath := l.getRepoFilePath(trackKey)
+
+		if l.fs.FileExists(absPath) {
+			if l.fs.IsSymlink(absPath) {
+				target, err := l.fs.ReadSymlink(absPath)
+				if err == nil && target == repoFilePath {
+					restoredCount++
+					continue
+				}
+				if err := l.fs.RemoveFile(absPath); err != nil {
+					errors = append(errors, fmt.Sprintf("删除无效符号链接失败 %s: %v", absPath, err))
+					continue
+				}
+			} else {
+				if _, err := l.createBackup(absPath); err != nil {
+					errors = append(errors, fmt.Sprintf("备份已存在文件失败 %s: %v", absPath, err))
+					continue
+				}
 			}
 		}
 
-		targetDir := filepath.Dir(filePath)
+		targetDir := filepath.Dir(absPath)
 		if err := l.fs.EnsureDir(targetDir); err != nil {
 			errors = append(errors, fmt.Sprintf("创建目标目录失败 %s: %v", targetDir, err))
 			continue
 		}
 
-		if err := l.fs.CreateSymlink(repoFilePath, filePath); err != nil {
-			errors = append(errors, fmt.Sprintf("创建符号链接失败 %s: %v", filePath, err))
+		if err := l.fs.CreateSymlink(repoFilePath, absPath); err != nil {
+			errors = append(errors, fmt.Sprintf("创建符号链接失败 %s: %v", absPath, err))
 			continue
 		}
 
