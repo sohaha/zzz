@@ -13,6 +13,31 @@ import (
 
 type FileSystem struct{}
 
+func (fs *FileSystem) CreateHardlink(target, linkPath string) error {
+
+    info, err := os.Stat(target)
+    if err != nil {
+        return &FileNotExistsError{Path: target}
+    }
+    if !info.Mode().IsRegular() {
+        return &FileOperationError{Operation: "link", Path: target, Err: fmt.Errorf("仅支持对常规文件创建硬链接")}
+    }
+
+    linkDir := filepath.Dir(linkPath)
+    if err := fs.EnsureDir(linkDir); err != nil {
+        return fmt.Errorf("创建链接目录失败: %w", err)
+    }
+
+    if err := os.Link(target, linkPath); err != nil {
+        return &FileOperationError{
+            Operation: "link",
+            Path:      linkPath,
+            Err:       err,
+        }
+    }
+    return nil
+}
+
 func New() *FileSystem {
 	return &FileSystem{}
 }
