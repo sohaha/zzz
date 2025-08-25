@@ -14,28 +14,27 @@ import (
 type FileSystem struct{}
 
 func (fs *FileSystem) CreateHardlink(target, linkPath string) error {
+	info, err := os.Stat(target)
+	if err != nil {
+		return &FileNotExistsError{Path: target}
+	}
+	if !info.Mode().IsRegular() {
+		return &FileOperationError{Operation: "link", Path: target, Err: fmt.Errorf("仅支持对常规文件创建硬链接")}
+	}
 
-    info, err := os.Stat(target)
-    if err != nil {
-        return &FileNotExistsError{Path: target}
-    }
-    if !info.Mode().IsRegular() {
-        return &FileOperationError{Operation: "link", Path: target, Err: fmt.Errorf("仅支持对常规文件创建硬链接")}
-    }
+	linkDir := filepath.Dir(linkPath)
+	if err := fs.EnsureDir(linkDir); err != nil {
+		return fmt.Errorf("创建链接目录失败: %w", err)
+	}
 
-    linkDir := filepath.Dir(linkPath)
-    if err := fs.EnsureDir(linkDir); err != nil {
-        return fmt.Errorf("创建链接目录失败: %w", err)
-    }
-
-    if err := os.Link(target, linkPath); err != nil {
-        return &FileOperationError{
-            Operation: "link",
-            Path:      linkPath,
-            Err:       err,
-        }
-    }
-    return nil
+	if err := os.Link(target, linkPath); err != nil {
+		return &FileOperationError{
+			Operation: "link",
+			Path:      linkPath,
+			Err:       err,
+		}
+	}
+	return nil
 }
 
 func New() *FileSystem {
@@ -43,7 +42,6 @@ func New() *FileSystem {
 }
 
 func (fs *FileSystem) ValidateFileForAdd(filePath string) error {
-
 	if filePath == "" {
 		return &FileNotExistsError{Path: filePath}
 	}
@@ -68,7 +66,6 @@ func (fs *FileSystem) ValidateFileForAdd(filePath string) error {
 }
 
 func (fs *FileSystem) ValidateSymlinkForRemove(filePath, repoPath string) error {
-
 	realPath := zfile.RealPath(filePath)
 	if realPath == "" {
 		return &FileNotExistsError{Path: filePath}
@@ -132,7 +129,6 @@ func (fs *FileSystem) ValidateSymlinkForRemove(filePath, repoPath string) error 
 }
 
 func (fs *FileSystem) Move(src, dst string, info os.FileInfo) error {
-
 	dstDir := filepath.Dir(dst)
 	if err := fs.EnsureDir(dstDir); err != nil {
 		return fmt.Errorf("创建目标目录失败: %w", err)
@@ -224,7 +220,6 @@ func (fs *FileSystem) copyFile(src, dst string, mode os.FileMode) error {
 }
 
 func (fs *FileSystem) copyDir(src, dst string) error {
-
 	sinfo, err := os.Stat(src)
 	if err != nil {
 		return err
@@ -274,7 +269,6 @@ func (fs *FileSystem) copyDir(src, dst string) error {
 }
 
 func (fs *FileSystem) CreateSymlink(target, linkPath string) error {
-
 	absTarget := target
 	if !filepath.IsAbs(absTarget) {
 		absTarget = filepath.Join(filepath.Dir(linkPath), absTarget)
@@ -302,7 +296,6 @@ func (fs *FileSystem) CreateSymlink(target, linkPath string) error {
 	relTarget, relErr := filepath.Rel(linkDirAbs, absTarget)
 	targetForLink := relTarget
 	if relErr != nil {
-
 		targetForLink = absTarget
 	}
 
@@ -401,4 +394,40 @@ func (fs *FileSystem) RemoveFile(filePath string) error {
 	}
 
 	return nil
+}
+
+func (fs *FileSystem) SameFile(pathA, pathB string) (bool, error) {
+	realA := zfile.RealPath(pathA)
+	realB := zfile.RealPath(pathB)
+	if realA == "" || realB == "" {
+		return false, fmt.Errorf("路径不存在")
+	}
+
+	infoA, err := os.Stat(realA)
+	if err != nil {
+		return false, err
+	}
+	infoB, err := os.Stat(realB)
+	if err != nil {
+		return false, err
+	}
+	return os.SameFile(infoA, infoB), nil
+}
+
+// IsHardlinkTo 判断给定文件是否为目标文件的硬链接（或同一底层文件）
+func (fs *FileSystem) IsHardlinkTo(path, target string) bool {
+	realPath := zfile.RealPath(path)
+	realTarget := zfile.RealPath(target)
+	if realPath == "" || realTarget == "" {
+		return false
+	}
+	infoPath, err1 := os.Stat(realPath)
+	if err1 != nil || !infoPath.Mode().IsRegular() {
+		return false
+	}
+	infoTarget, err2 := os.Stat(realTarget)
+	if err2 != nil || !infoTarget.Mode().IsRegular() {
+		return false
+	}
+	return os.SameFile(infoPath, infoTarget)
 }

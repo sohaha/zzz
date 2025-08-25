@@ -1927,6 +1927,13 @@ func (l *Lnk) RestoreSymlinks() error {
 			}
 		}
 
+		if ent.Type == LinkTypeHard && l.fs.FileExists(absPath) {
+			if l.fs.IsHardlinkTo(absPath, repoFilePath) {
+				restoredCount++
+				continue
+			}
+		}
+
 		if l.fs.FileExists(absPath) && !l.fs.IsSymlink(absPath) {
 			backupPath, err := l.createBackup(absPath)
 			if err != nil {
@@ -2005,6 +2012,14 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 		}
 
 		repoFilePath := l.getRepoFilePath(trackKey)
+
+		// 若目标是硬链接，并且现有文件已是指向仓库文件的硬链接，则跳过
+		if ent.Type == LinkTypeHard && l.fs.FileExists(absPath) {
+			if l.fs.IsHardlinkTo(absPath, repoFilePath) {
+				restoredCount++
+				continue
+			}
+		}
 
 		if l.fs.FileExists(absPath) {
 			if l.fs.IsSymlink(absPath) {
