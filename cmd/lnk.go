@@ -64,6 +64,18 @@ func createLnkInstance(host string) *core.Lnk {
 	return core.NewLnk(opts...)
 }
 
+func createLnkInstanceWith(host string, extra ...core.Option) *core.Lnk {
+	var opts []core.Option
+	if globalRepoPath != "" {
+		opts = append(opts, core.WithRepoPath(globalRepoPath))
+	}
+	if host != "" {
+		opts = append(opts, core.WithHost(host))
+	}
+	opts = append(opts, extra...)
+	return core.NewLnk(opts...)
+}
+
 func init() {
 	rootCmd.AddCommand(lnkCmd)
 
@@ -120,9 +132,9 @@ func newInitCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&remote, "remote", "r", "", "远程仓库 URL")
-	cmd.Flags().BoolVar(&force, "force", false, "强制覆盖现有仓库")
-	cmd.Flags().BoolVar(&noBootstrap, "no-bootstrap", false, "禁用自动 bootstrap 脚本执行")
-	cmd.Flags().StringVar(&host, "host", "", "指定主机名（默认使用系统主机名）")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "强制覆盖现有仓库")
+	cmd.Flags().BoolVarP(&noBootstrap, "no-bootstrap", "n", false, "禁用自动 bootstrap 脚本执行")
+	cmd.Flags().StringVarP(&host, "host", "H", "", "指定主机名（默认使用系统主机名）")
 
 	return cmd
 }
@@ -131,6 +143,8 @@ func newAddCmd() *cobra.Command {
 	var (
 		recursive bool
 		host      string
+		hard      bool
+		linkType  string
 	)
 
 	cmd := &cobra.Command{
@@ -147,11 +161,25 @@ func newAddCmd() *cobra.Command {
   # 递归添加目录中的所有文件
   zzz lnk add ~/.config --recursive
 
+  # 使用硬链接添加
+  zzz lnk add ~/.bashrc --hard
+
   # 为特定主机添加配置
   zzz lnk add ~/.bashrc --host workstation`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			lnk := createLnkInstance(host)
+			// 解析链接类型
+			var extra []core.Option
+			if hard {
+				extra = append(extra, core.WithLinkType(core.LinkTypeHard))
+			} else if linkType != "" {
+				if linkType != core.LinkTypeSoft && linkType != core.LinkTypeHard {
+					return fmt.Errorf("无效的链接类型: %s，可选: soft|hard", linkType)
+				}
+				extra = append(extra, core.WithLinkType(linkType))
+			}
+
+			lnk := createLnkInstanceWith(host, extra...)
 
 			if !lnk.IsInitialized() {
 				return fmt.Errorf("lnk 仓库未初始化，请先运行 'zzz lnk init'")
@@ -186,7 +214,9 @@ func newAddCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVarP(&recursive, "recursive", "r", false, "递归添加目录中的所有文件")
-	cmd.Flags().StringVar(&host, "host", "", "指定主机名（默认使用系统主机名）")
+	cmd.Flags().StringVarP(&host, "host", "H", "", "指定主机名（默认使用系统主机名）")
+	cmd.Flags().BoolVar(&hard, "hard", false, "使用硬链接添加文件")
+	cmd.Flags().StringVar(&linkType, "link-type", "", "指定链接类型: soft|hard（优先级低于 --hard）")
 
 	return cmd
 }
@@ -257,7 +287,7 @@ func newRmCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&host, "host", "", "指定主机名（默认使用系统主机名）")
+	cmd.Flags().StringVarP(&host, "host", "H", "", "指定主机名（默认使用系统主机名）")
 
 	return cmd
 }
@@ -360,7 +390,7 @@ func newListCmd() *cobra.Command {
 	}
 
 	cmd.Flags().BoolVarP(&all, "all", "a", false, "显示所有主机的配置文件")
-	cmd.Flags().StringVar(&host, "host", "", "显示特定主机的配置文件")
+	cmd.Flags().StringVarP(&host, "host", "H", "", "显示特定主机的配置文件")
 
 	return cmd
 }
@@ -480,7 +510,7 @@ func newPushCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&host, "host", "", "指定主机名（默认使用系统主机名）")
+	cmd.Flags().StringVarP(&host, "host", "H", "", "指定主机名（默认使用系统主机名）")
 
 	return cmd
 }
@@ -522,7 +552,7 @@ func newPullCmd() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&host, "host", "", "指定主机名（默认使用系统主机名）")
+	cmd.Flags().StringVarP(&host, "host", "H", "", "指定主机名（默认使用系统主机名）")
 
 	return cmd
 }

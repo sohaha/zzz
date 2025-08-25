@@ -18,6 +18,11 @@ const (
 	BootstrapScript = "bootstrap.sh"
 )
 
+const (
+	LinkTypeSoft = "soft"
+	LinkTypeHard = "hard"
+)
+
 type Lnk struct {
 	repoPath     string
 	host         string
@@ -26,6 +31,124 @@ type Lnk struct {
 	errorHandler *ErrorHandler
 	resources    *ResourceManager
 	cache        *TrackingCache
+	linkType     string
+}
+
+func (l *Lnk) readTrackingEntries() ([]TrackedEntry, error) {
+	trackingFile := l.getTrackingFilePath()
+	if !l.fs.FileExists(trackingFile) {
+		return []TrackedEntry{}, nil
+	}
+	content, err := os.ReadFile(trackingFile)
+	if err != nil {
+		return nil, fmt.Errorf("读取跟踪文件失败: %w", err)
+	}
+	lines := strings.Split(string(content), "\n")
+	return l.parseTrackingLines(lines), nil
+}
+
+func (l *Lnk) writeTrackingEntries(entries []TrackedEntry) error {
+	trackingFile := l.getTrackingFilePath()
+
+	if err := l.fs.EnsureDir(filepath.Dir(trackingFile)); err != nil {
+		return fmt.Errorf("创建跟踪文件目录失败: %w", err)
+	}
+
+	lines := l.serializeTrackingEntries(entries)
+	content := strings.Join(lines, "\n")
+	if content != "" {
+		content += "\n"
+	}
+
+	if err := os.WriteFile(trackingFile, []byte(content), 0o644); err != nil {
+		return fmt.Errorf("写入跟踪文件失败: %w", err)
+	}
+
+	var files []string
+	for _, e := range entries {
+		files = append(files, e.Path)
+	}
+	l.cache.Update(trackingFile, files)
+	return nil
+}
+
+func (l *Lnk) addToTrackingFileWithType(filePath, typ string) error {
+	entries, err := l.readTrackingEntries()
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if e.Path == filePath {
+			return nil
+		}
+	}
+	t := LinkTypeSoft
+	if typ == LinkTypeHard {
+		t = LinkTypeHard
+	}
+	entries = append(entries, TrackedEntry{Path: filePath, Type: t})
+	return l.writeTrackingEntries(entries)
+}
+
+type TrackedEntry struct {
+	Path string
+	Type string
+}
+
+func WithLinkType(t string) Option {
+	return func(l *Lnk) {
+		if t != LinkTypeHard {
+			l.linkType = LinkTypeSoft
+		} else {
+			l.linkType = LinkTypeHard
+		}
+	}
+}
+
+func (l *Lnk) SetLinkType(t string) {
+	if t != LinkTypeHard {
+		l.linkType = LinkTypeSoft
+	} else {
+		l.linkType = LinkTypeHard
+	}
+}
+
+func (l *Lnk) parseTrackingLines(lines []string) []TrackedEntry {
+	var entries []TrackedEntry
+	for _, raw := range lines {
+		line := strings.TrimSpace(raw)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "|", 2)
+		p := strings.TrimSpace(parts[0])
+		t := LinkTypeSoft
+		if len(parts) == 2 {
+			tt := strings.TrimSpace(parts[1])
+			if tt == LinkTypeHard {
+				t = LinkTypeHard
+			} else {
+				t = LinkTypeSoft
+			}
+		}
+		entries = append(entries, TrackedEntry{Path: p, Type: t})
+	}
+	return entries
+}
+
+func (l *Lnk) serializeTrackingEntries(entries []TrackedEntry) []string {
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		if e.Path == "" {
+			continue
+		}
+		lt := e.Type
+		if lt != LinkTypeHard {
+			lt = LinkTypeSoft
+		}
+		out = append(out, fmt.Sprintf("%s|%s", e.Path, lt))
+	}
+	return out
 }
 
 func (l *Lnk) consolidateDirectory(dirPath string) error {
@@ -71,7 +194,6 @@ func (l *Lnk) consolidateDirectory(dirPath string) error {
 			return fmt.Errorf("创建目标子目录失败: %w", err)
 		}
 
-		// Check management by tracking key
 		isManaged, err := l.isFileManaged(l.toTrackingPath(child))
 		if err != nil {
 			rollback()
@@ -80,7 +202,6 @@ func (l *Lnk) consolidateDirectory(dirPath string) error {
 
 		if isManaged {
 
-			// Old repo path based on previous tracking key
 			oldRepo := l.getRepoFilePath(l.toTrackingPath(child))
 			info, err := l.fs.GetFileInfo(oldRepo)
 			if err != nil {
@@ -132,18 +253,17 @@ func (l *Lnk) consolidateDirectory(dirPath string) error {
 		return fmt.Errorf("删除原目录失败: %w", err)
 	}
 
+	// 目录不支持硬链接，统一创建符号链接
 	if err := l.fs.CreateSymlink(repoDir, dirPath); err != nil {
 		rollback()
-		return WrapError(err, ErrCodeFileOperation, "创建目录符号链接失败", SeverityError).
+		return WrapError(err, ErrCodeFileOperation, "创建符号链接失败", SeverityError).
 			WithContext("target", repoDir).WithContext("link", dirPath)
 	}
-
 	rollbackActions = append(rollbackActions, func(p string) func() error {
 		return func() error { return l.fs.RemoveFile(p) }
 	}(dirPath))
 
-	// Track the directory by its tracking key
-	if err := l.addToTrackingFile(trackDirKey); err != nil {
+	if err := l.addToTrackingFileWithType(trackDirKey, LinkTypeSoft); err != nil {
 		rollback()
 		return fmt.Errorf("添加目录到跟踪文件失败: %w", err)
 	}
@@ -277,6 +397,7 @@ func NewLnk(opts ...Option) *Lnk {
 		errorHandler: NewErrorHandler(),
 		resources:    NewResourceManager(),
 		cache:        NewTrackingCache(),
+		linkType:     LinkTypeSoft,
 	}
 
 	for _, opt := range opts {
@@ -354,12 +475,10 @@ func (l *Lnk) readTrackingFile() ([]string, error) {
 	}
 
 	lines := strings.Split(string(content), "\n")
+	entries := l.parseTrackingLines(lines)
 	var files []string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") {
-			files = append(files, line)
-		}
+	for _, e := range entries {
+		files = append(files, e.Path)
 	}
 
 	l.cache.Update(trackingFile, files)
@@ -368,56 +487,46 @@ func (l *Lnk) readTrackingFile() ([]string, error) {
 }
 
 func (l *Lnk) writeTrackingFile(files []string) error {
-	trackingFile := l.getTrackingFilePath()
-
-	if err := l.fs.EnsureDir(filepath.Dir(trackingFile)); err != nil {
-		return fmt.Errorf("创建跟踪文件目录失败: %w", err)
+	entries := make([]TrackedEntry, 0, len(files))
+	for _, p := range files {
+		if p == "" {
+			continue
+		}
+		entries = append(entries, TrackedEntry{Path: p, Type: LinkTypeSoft})
 	}
-
-	content := strings.Join(files, "\n")
-	if content != "" {
-		content += "\n"
-	}
-
-	if err := os.WriteFile(trackingFile, []byte(content), 0o644); err != nil {
-		return fmt.Errorf("写入跟踪文件失败: %w", err)
-	}
-
-	l.cache.Update(trackingFile, files)
-
-	return nil
+	return l.writeTrackingEntries(entries)
 }
 
 func (l *Lnk) addToTrackingFile(filePath string) error {
-	files, err := l.readTrackingFile()
+	entries, err := l.readTrackingEntries()
 	if err != nil {
 		return err
 	}
-
-	for _, f := range files {
-		if f == filePath {
+	for _, e := range entries {
+		if e.Path == filePath {
 			return nil
 		}
 	}
-
-	files = append(files, filePath)
-	return l.writeTrackingFile(files)
+	t := l.linkType
+	if t == "" {
+		t = LinkTypeSoft
+	}
+	entries = append(entries, TrackedEntry{Path: filePath, Type: t})
+	return l.writeTrackingEntries(entries)
 }
 
 func (l *Lnk) removeFromTrackingFile(filePath string) error {
-	files, err := l.readTrackingFile()
+	entries, err := l.readTrackingEntries()
 	if err != nil {
 		return err
 	}
-
-	var newFiles []string
-	for _, f := range files {
-		if f != filePath {
-			newFiles = append(newFiles, f)
+	var out []TrackedEntry
+	for _, e := range entries {
+		if e.Path != filePath {
+			out = append(out, e)
 		}
 	}
-
-	return l.writeTrackingFile(newFiles)
+	return l.writeTrackingEntries(out)
 }
 
 func (l *Lnk) isFileManaged(filePath string) (bool, error) {
@@ -524,10 +633,10 @@ func (l *Lnk) ensureHostDir() error {
 }
 
 func (l *Lnk) getRelativePathInRepo(filePath string) string {
-	repoPath := l.getRepoFilePath(filePath)
-	relPath, err := filepath.Rel(l.repoPath, repoPath)
+	repoFilePath := l.getRepoFilePath(filePath)
+	relPath, err := filepath.Rel(l.repoPath, repoFilePath)
 	if err != nil {
-		return filepath.Base(repoPath)
+		return filepath.Base(repoFilePath)
 	}
 	return relPath
 }
@@ -648,7 +757,7 @@ func (l *Lnk) Init() error {
 		return fmt.Errorf("初始化 Git 仓库失败: %w", err)
 	}
 
-	if err := l.writeTrackingFile([]string{}); err != nil {
+	if err := l.writeTrackingEntries([]TrackedEntry{}); err != nil {
 		return fmt.Errorf("创建跟踪文件失败: %w", err)
 	}
 
@@ -849,7 +958,18 @@ func (l *Lnk) Add(filePath string) error {
 		return l.fs.Move(repoFilePath, normalizedPath, fileInfo)
 	})
 
-	if err := l.fs.CreateSymlink(repoFilePath, normalizedPath); err != nil {
+	if l.linkType == LinkTypeHard {
+		if err := l.fs.CreateHardlink(repoFilePath, normalizedPath); err != nil {
+			if rollbackErr := l.errorHandler.HandleError(err); rollbackErr != nil {
+				return rollbackErr
+			}
+			return WrapError(err, ErrCodeFileOperation, "创建硬链接失败", SeverityError).
+				WithContext("target", repoFilePath).
+				WithContext("link", normalizedPath).
+				WithSuggestion("请检查目标目录权限和硬链接支持").
+				WithRecoverable(true)
+		}
+	} else if err := l.fs.CreateSymlink(repoFilePath, normalizedPath); err != nil {
 		if rollbackErr := l.errorHandler.HandleError(err); rollbackErr != nil {
 			return rollbackErr
 		}
@@ -984,7 +1104,12 @@ func (l *Lnk) AddMultiple(filePaths []string) error {
 			}
 		}(filePath, repoFilePath, fileInfo))
 
-		if err := l.fs.CreateSymlink(repoFilePath, filePath); err != nil {
+		if l.linkType == LinkTypeHard {
+			if err := l.fs.CreateHardlink(repoFilePath, filePath); err != nil {
+				rollback()
+				return fmt.Errorf("创建硬链接 %s 失败: %w", filePath, err)
+			}
+		} else if err := l.fs.CreateSymlink(repoFilePath, filePath); err != nil {
 			rollback()
 			return fmt.Errorf("创建符号链接 %s 失败: %w", filePath, err)
 		}
@@ -1129,7 +1254,12 @@ func (l *Lnk) AddRecursiveWithProgress(paths []string, progressCallback Progress
 			}
 		}(filePath, repoFilePath, fileInfo))
 
-		if err := l.fs.CreateSymlink(repoFilePath, filePath); err != nil {
+		if l.linkType == LinkTypeHard {
+			if err := l.fs.CreateHardlink(repoFilePath, filePath); err != nil {
+				rollback()
+				return fmt.Errorf("创建硬链接 %s 失败: %w", filePath, err)
+			}
+		} else if err := l.fs.CreateSymlink(repoFilePath, filePath); err != nil {
 			rollback()
 			return fmt.Errorf("创建符号链接 %s 失败: %w", filePath, err)
 		}
@@ -1520,12 +1650,10 @@ func (l *Lnk) readTrackingFileByPath(filePath string) ([]string, error) {
 	}
 
 	lines := strings.Split(string(content), "\n")
+	entries := l.parseTrackingLines(lines)
 	var files []string
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") {
-			files = append(files, line)
-		}
+	for _, e := range entries {
+		files = append(files, e.Path)
 	}
 
 	return files, nil
@@ -1543,18 +1671,18 @@ func (l *Lnk) Status() (*StatusInfo, error) {
 		return nil, fmt.Errorf("获取 Git 状态失败: %w", err)
 	}
 
-	files, err := l.List()
+	entries, err := l.readTrackingEntries()
 	if err != nil {
 		return nil, fmt.Errorf("获取管理文件列表失败: %w", err)
 	}
 
-	brokenLinks := l.checkSymlinkStatus(files)
+	brokenLinks := l.checkSymlinkStatus(entries)
 
 	return &StatusInfo{
 		RepoPath:     l.repoPath,
 		Host:         l.host,
 		GitStatus:    gitStatus,
-		ManagedFiles: len(files),
+		ManagedFiles: len(entries),
 		BrokenLinks:  brokenLinks,
 	}, nil
 }
@@ -1567,29 +1695,36 @@ type StatusInfo struct {
 	BrokenLinks  []string
 }
 
-func (l *Lnk) checkSymlinkStatus(files []string) []string {
+func (l *Lnk) checkSymlinkStatus(entries []TrackedEntry) []string {
 	var brokenLinks []string
 
-	for _, filePath := range files {
+	for _, ent := range entries {
+		trackKey := ent.Path
 
-		if !l.fs.FileExists(filePath) {
-			brokenLinks = append(brokenLinks, filePath)
-			continue
+		absPath := trackKey
+		if !filepath.IsAbs(trackKey) {
+			if homeDir, err := os.UserHomeDir(); err == nil {
+				absPath = filepath.Join(homeDir, strings.TrimPrefix(filepath.Clean(trackKey), "./"))
+			}
 		}
 
-		if !l.fs.IsSymlink(filePath) {
-			brokenLinks = append(brokenLinks, filePath)
+		if !l.fs.FileExists(absPath) {
+			brokenLinks = append(brokenLinks, absPath)
 			continue
 		}
-
-		target, err := l.fs.ReadSymlink(filePath)
-		if err != nil {
-			brokenLinks = append(brokenLinks, filePath)
+		if ent.Type == LinkTypeHard {
+			// 对硬链接：不做符号链接校验，只要存在即认为正常
 			continue
 		}
-
-		if !l.fs.FileExists(target) {
-			brokenLinks = append(brokenLinks, filePath)
+		// 软链接校验
+		if !l.fs.IsSymlink(absPath) {
+			brokenLinks = append(brokenLinks, absPath)
+			continue
+		}
+		target, err := l.fs.ReadSymlink(absPath)
+		if err != nil || !l.fs.FileExists(target) {
+			brokenLinks = append(brokenLinks, absPath)
+			continue
 		}
 	}
 
@@ -1640,27 +1775,48 @@ func (l *Lnk) ValidateRepository() error {
 		return fmt.Errorf("跟踪文件不存在: %s", trackingFile)
 	}
 
-	files, err := l.List()
+	entries, err := l.readTrackingEntries()
 	if err != nil {
 		return fmt.Errorf("读取管理文件列表失败: %w", err)
 	}
 
 	var errors []string
-	for _, filePath := range files {
-
-		if !l.fs.FileExists(filePath) {
-			errors = append(errors, fmt.Sprintf("符号链接不存在: %s", filePath))
-			continue
-		}
-
-		if !l.fs.IsSymlink(filePath) {
-			errors = append(errors, fmt.Sprintf("不是符号链接: %s", filePath))
-			continue
-		}
-
+	for _, ent := range entries {
+		filePath := ent.Path
 		repoFilePath := l.getRepoFilePath(filePath)
+
 		if !l.fs.FileExists(repoFilePath) {
 			errors = append(errors, fmt.Sprintf("仓库文件不存在: %s", repoFilePath))
+		}
+
+		absPath := filePath
+		if !filepath.IsAbs(filePath) {
+			if homeDir, err := os.UserHomeDir(); err == nil {
+				absPath = filepath.Join(homeDir, strings.TrimPrefix(filepath.Clean(filePath), "./"))
+			}
+		}
+
+		if ent.Type == LinkTypeHard {
+			if !l.fs.FileExists(absPath) {
+				errors = append(errors, fmt.Sprintf("硬链接不存在: %s", absPath))
+			}
+			continue
+		}
+		if !l.fs.FileExists(absPath) {
+			errors = append(errors, fmt.Sprintf("符号链接不存在: %s", absPath))
+			continue
+		}
+		if !l.fs.IsSymlink(absPath) {
+			errors = append(errors, fmt.Sprintf("不是符号链接: %s", absPath))
+			continue
+		}
+		target, err := l.fs.ReadSymlink(absPath)
+		if err != nil || !l.fs.FileExists(target) {
+			errors = append(errors, fmt.Sprintf("符号链接目标不存在或无效: %s", absPath))
+			continue
+		}
+		if target != repoFilePath {
+			errors = append(errors, fmt.Sprintf("符号链接目标不正确: %s", absPath))
 		}
 	}
 
@@ -1734,19 +1890,20 @@ func (l *Lnk) RestoreSymlinks() error {
 		}
 	}
 
-	files, err := l.List()
+	entries, err := l.readTrackingEntries()
 	if err != nil {
 		return fmt.Errorf("获取管理文件列表失败: %w", err)
 	}
 
-	if len(files) == 0 {
+	if len(entries) == 0 {
 		return nil
 	}
 
 	var errors []string
 	restoredCount := 0
 
-	for _, trackKey := range files {
+	for _, ent := range entries {
+		trackKey := ent.Path
 
 		absPath := trackKey
 		if !filepath.IsAbs(trackKey) {
@@ -1756,19 +1913,16 @@ func (l *Lnk) RestoreSymlinks() error {
 		}
 
 		repoFilePath := l.getRepoFilePath(trackKey)
+
 		if !l.fs.FileExists(repoFilePath) {
-			legacyRepo := l.getRepoFilePath(absPath)
-			if l.fs.FileExists(legacyRepo) {
-				repoFilePath = legacyRepo
-			} else {
-				errors = append(errors, fmt.Sprintf("仓库文件不存在: %s (fallback: %s)", repoFilePath, legacyRepo))
-				continue
-			}
+			errors = append(errors, fmt.Sprintf("仓库文件不存在: %s", repoFilePath))
+			continue
 		}
 
 		if l.fs.IsSymlink(absPath) {
 			target, err := l.fs.ReadSymlink(absPath)
 			if err == nil && target == repoFilePath {
+				restoredCount++
 				continue
 			}
 		}
@@ -1793,10 +1947,18 @@ func (l *Lnk) RestoreSymlinks() error {
 			continue
 		}
 
-		if err := l.fs.CreateSymlink(repoFilePath, absPath); err != nil {
-			errors = append(errors, fmt.Sprintf("创建符号链接失败 %s: %v", absPath, err))
+		if ent.Type == LinkTypeHard {
+			if err := l.fs.CreateHardlink(repoFilePath, absPath); err != nil {
+				errors = append(errors, fmt.Sprintf("创建硬链接失败 %s: %v", absPath, err))
+			} else {
+				restoredCount++
+			}
 		} else {
-			restoredCount++
+			if err := l.fs.CreateSymlink(repoFilePath, absPath); err != nil {
+				errors = append(errors, fmt.Sprintf("创建符号链接失败 %s: %v", absPath, err))
+			} else {
+				restoredCount++
+			}
 		}
 	}
 	if len(errors) > 0 {
@@ -1814,12 +1976,12 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 		}
 	}
 
-	files, err := l.ListByHost(hostName)
+	entries, err := l.readTrackingEntries()
 	if err != nil {
-		return fmt.Errorf("获取主机 %s 的文件列表失败: %w", hostName, err)
+		return fmt.Errorf("获取管理文件列表失败: %w", err)
 	}
 
-	if len(files) == 0 {
+	if len(entries) == 0 {
 		return nil
 	}
 
@@ -1832,7 +1994,8 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 	var errors []string
 	restoredCount := 0
 
-	for _, trackKey := range files {
+	for _, ent := range entries {
+		trackKey := ent.Path
 
 		absPath := trackKey
 		if !filepath.IsAbs(trackKey) {
@@ -1868,9 +2031,16 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 			continue
 		}
 
-		if err := l.fs.CreateSymlink(repoFilePath, absPath); err != nil {
-			errors = append(errors, fmt.Sprintf("创建符号链接失败 %s: %v", absPath, err))
-			continue
+		if ent.Type == LinkTypeHard {
+			if err := l.fs.CreateHardlink(repoFilePath, absPath); err != nil {
+				errors = append(errors, fmt.Sprintf("创建硬链接失败 %s: %v", absPath, err))
+				continue
+			}
+		} else {
+			if err := l.fs.CreateSymlink(repoFilePath, absPath); err != nil {
+				errors = append(errors, fmt.Sprintf("创建符号链接失败 %s: %v", absPath, err))
+				continue
+			}
 		}
 
 		restoredCount++
@@ -1884,7 +2054,6 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 	return nil
 }
 
-// CleanupInvalidEntries 清理跟踪文件中的无效条目（仓库中不存在的文件）
 func (l *Lnk) CleanupInvalidEntries() error {
 	if !l.IsInitialized() {
 		return &RepoNotInitializedError{
@@ -1892,19 +2061,20 @@ func (l *Lnk) CleanupInvalidEntries() error {
 		}
 	}
 
-	files, err := l.readTrackingFile()
+	entries, err := l.readTrackingEntries()
 	if err != nil {
 		return fmt.Errorf("读取跟踪文件失败: %w", err)
 	}
 
-	var validFiles []string
+	var validEntries []TrackedEntry
 	var removedCount int
 
-	for _, filePath := range files {
+	for _, ent := range entries {
+		filePath := ent.Path
 		repoFilePath := l.getRepoFilePath(filePath)
 
 		if l.fs.FileExists(repoFilePath) {
-			validFiles = append(validFiles, filePath)
+			validEntries = append(validEntries, ent)
 		} else {
 			fmt.Printf("移除无效条目: %s (仓库文件不存在: %s)\n", filePath, repoFilePath)
 			removedCount++
@@ -1912,12 +2082,12 @@ func (l *Lnk) CleanupInvalidEntries() error {
 	}
 
 	if removedCount > 0 {
-		if err := l.writeTrackingFile(validFiles); err != nil {
+		if err := l.writeTrackingEntries(validEntries); err != nil {
 			return fmt.Errorf("更新跟踪文件失败: %w", err)
 		}
 		l.cache.Clear()
 
-		fmt.Printf("清理完成: 移除了 %d 个无效条目，保留了 %d 个有效条目\n", removedCount, len(validFiles))
+		fmt.Printf("清理完成: 移除了 %d 个无效条目，保留了 %d 个有效条目\n", removedCount, len(validEntries))
 	} else {
 		fmt.Println("没有发现无效条目")
 	}
