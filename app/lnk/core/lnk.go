@@ -5,9 +5,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/sohaha/zlsgo/zfile"
+	"github.com/sohaha/zlsgo/zcli"
+	"github.com/sohaha/zzz/util"
 	"github.com/sohaha/zzz/app/lnk/fs"
 	"github.com/sohaha/zzz/app/lnk/git"
 )
@@ -406,6 +409,10 @@ func NewLnk(opts ...Option) *Lnk {
 
 	lnk.git = git.New(lnk.repoPath)
 
+	if (runtime.GOOS == "windows"&&!zcli.IsSudo()) {
+		util.Log.Warn("Windows 需要以管理员权限运行 lnk")
+		os.Exit(0)
+	}
 	return lnk
 }
 
@@ -880,6 +887,11 @@ func (l *Lnk) RunBootstrapScript() error {
 		return &BootstrapScriptNotFoundError{
 			RepoPath: l.repoPath,
 		}
+	}
+
+	if runtime.GOOS == "windows" {
+		util.Log.Warn("Windows 不支持执行 bootstrap.sh 脚本: %s\n", bootstrapScript)
+		return nil
 	}
 
 	if err := os.Chmod(bootstrapScript, 0o755); err != nil {
@@ -2062,8 +2074,9 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf("恢复主机 %s 的符号链接时发生错误 (成功: %d, 失败: %d):\n%s",
-			hostName, restoredCount, len(errors), strings.Join(errors, "\n"))
+		fmt.Printf("警告: 恢复主机 %s 的符号链接时发生 %d 个错误 (成功: %d):\n%s\n请检查 Windows 符号链接权限（启用开发者模式或以管理员身份运行）。\n",
+			hostName, len(errors), restoredCount, strings.Join(errors, "\n"))
+		return nil
 	}
 
 	return nil
