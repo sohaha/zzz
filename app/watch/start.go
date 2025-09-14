@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -92,11 +93,19 @@ func start() {
 	poll := v.GetBool("monitor.poll")
 	types = v.GetStringSlice("monitor.types")
 	includeDirs = v.GetStringSlice("monitor.includeDirs")
-	exceptDirs = v.GetStringSlice("monitor.exceptDirs")
-	for i := range exceptDirs {
-		arr := dirParse2Array(exceptDirs[i])
-		exceptDirs[i] = zfile.RealPath(strings.Join(arr, "/"), false)
+	rawExcept := v.GetStringSlice("monitor.exceptDirs")
+	var normalizedExcept []string
+	for _, item := range rawExcept {
+		parts := dirParse2Array(item)
+		for _, p := range parts {
+			p = filepath.ToSlash(strings.TrimSpace(p))
+			if p == "" {
+				continue
+			}
+			normalizedExcept = append(normalizedExcept, p)
+		}
 	}
+	exceptDirs = normalizedExcept
 	// watcher, err = fsnotify.NewWatcher()
 	if poll {
 		watcher = NewPollingWatcher()
@@ -154,7 +163,7 @@ func start() {
 		done <- true
 	}()
 
-	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	keyword := "command.exec"
 	for _, s := range v.AllKeys() {

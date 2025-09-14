@@ -68,20 +68,16 @@ monitor:
 
   # 忽略监听的目录
   exceptDirs:
-    - '*/.idea/*'
-    - '*/.vscode/*'
-    - '*/vendor/*'
-    - '*/tmp/*'
-    - '*/.git/*'
-    - '*/.venv/*'
-    - '*/node_modules/*'
-    - '*/__pycache__/*'
-    - '*/target/*'
+    - '**/vendor/*'
+    - '**/tmp/*'
+    - '**/node_modules/*'
+    - '**/target/*'
 
   # 监听文件的格式，支持通配符*，如“.*”表示监听全部格式文件
   types:
     - .go
     - .php
+    - .zig
 
 # 命令
 command:
