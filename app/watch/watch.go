@@ -28,16 +28,12 @@ func addWatcher() {
 
 func addNewWatcher(dir string) {
 	fullDir := filepath.ToSlash(dir)
-
-	// 使用改进的isExcept函数检查是否应该排除
 	if isExcept(exceptDirs, fullDir) {
-		util.Log.Debugf("Excluding new directory: %s\n", fullDir)
+		// util.Log.Debugf("Excluding new directory: %s\n", fullDir)
 		return
 	}
-
-	// 检查是否是忽略的目录类型
 	if isIgnoreDirectory(fullDir) {
-		util.Log.Debugf("Ignoring directory type: %s\n", fullDir)
+		// util.Log.Debugf("Ignoring directory type: %s\n", fullDir)
 		return
 	}
 
