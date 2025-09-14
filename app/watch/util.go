@@ -59,18 +59,18 @@ func isIgnoreDirectory(folder string) bool {
 func listFile(folder string, fun func(string)) {
 	folder = zfile.RealPath(folder)
 	if isIgnoreDirectory(folder) {
-		util.Log.Debugf("Ignore directory: %s", folder)
+		// util.Log.Debugf("Ignore directory: %s\n", folder)
 		return
 	}
 
 	if isExcept(exceptDirs, folder) {
-		util.Log.Debugf("Excluding directory: %s", folder)
+		// util.Log.Debugf("Excluding directory: %s\n", folder)
 		return
 	}
 
 	files, err := ioutil.ReadDir(folder)
 	if err != nil {
-		util.Log.Errorf("Failed to read directory %s: %v", folder, err)
+		util.Log.Errorf("Failed to read directory %s: %v\n", folder, err)
 		return
 	}
 
@@ -79,11 +79,11 @@ func listFile(folder string, fun func(string)) {
 			d := zfile.RealPath(folder + "/" + file.Name())
 
 			if isIgnoreDirectory(d) {
-				util.Log.Debugf("Ignoring directory: %s", d)
+				// util.Log.Debugf("Ignoring directory: %s\n", d)
 				continue
 			}
 			if isExcept(exceptDirs, d) {
-				util.Log.Debugf("Excluding directory: %s", d)
+				// util.Log.Debugf("Excluding directory: %s\n", d)
 				continue
 			}
 
