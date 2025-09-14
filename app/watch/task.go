@@ -310,7 +310,13 @@ func command(carr []string) *exec.Cmd {
 func fixCmd(carr []string) []string {
 	carr = []string{strings.Join(carr, " ")}
 	if zutil.IsWin() {
-		carr = append([]string{"cmd", "/C"}, carr...)
+		shell := "powershell"
+		if _, err := exec.LookPath("pwsh"); err == nil {
+			shell = "pwsh"
+		} else if _, err := exec.LookPath("powershell"); err != nil {
+			shell = "powershell.exe"
+		}
+		carr = append([]string{shell, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command"}, carr...)
 	} else {
 		carr = append([]string{"sh", "-c"}, carr...)
 	}
