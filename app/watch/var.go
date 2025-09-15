@@ -3,6 +3,8 @@ package watch
 import (
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/sohaha/zlsgo/zfile"
@@ -37,7 +39,8 @@ var (
 	fileDebouncer      *debouncer
 	pendingFiles       sync.Map
 	v                  *viper.Viper
-	ignoreDirectory    = [...]string{".git", ".vscode", ".svn", ".idea", ".github"}
+	ignoreDirectory    = [...]string{".git", ".vscode", ".svn", ".idea", "__pycache__", ".venv", ".github", ".zig-cache"}
+	ignoreDirectorySet map[string]struct{}
 	ignoreFormat       []string
 )
 
@@ -57,4 +60,13 @@ func init() {
 	projectFolder = zfile.RealPath(projectFolder)
 	projectFolder = filepath.ToSlash(projectFolder)
 	projectFolder, _ = filepath.Abs(projectFolder)
+
+	ignoreDirectorySet = make(map[string]struct{}, len(ignoreDirectory))
+	for _, name := range ignoreDirectory {
+		key := name
+		if runtime.GOOS == "windows" {
+			key = strings.ToLower(key)
+		}
+		ignoreDirectorySet[key] = struct{}{}
+	}
 }

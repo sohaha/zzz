@@ -32,9 +32,24 @@ func dirParse2Array(s string) []string {
 }
 
 func isIgnoreDirectory(folder string) bool {
-	base := filepath.Base(folder)
-	for _, v := range ignoreDirectory {
-		if base == v {
+	if folder == "" {
+		return false
+	}
+	p := filepath.ToSlash(folder)
+	p = strings.TrimRight(p, "/")
+	if p == "" {
+		return false
+	}
+	segs := strings.Split(p, "/")
+	for _, seg := range segs {
+		if seg == "" {
+			continue
+		}
+		name := seg
+		if runtime.GOOS == "windows" {
+			name = strings.ToLower(name)
+		}
+		if _, ok := ignoreDirectorySet[name]; ok {
 			return true
 		}
 	}
