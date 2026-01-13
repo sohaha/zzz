@@ -192,7 +192,7 @@ func filename(outDir, name string, cShared bool, goos string) string {
 		}
 	}
 
-	return outDir + zutil.IfVal(goos == "windows", name+".exe", name).(string)
+	return outDir + zutil.IfVal(goos == "windows", name+".exe", name)
 }
 
 func TargetsCommad(target string) map[string][]string {
@@ -224,7 +224,7 @@ func TargetsCommad(target string) map[string][]string {
 		}
 		if goarch == "*" || goarch == "" {
 			util.Log.Errorf(
-				"There is no GOARCH preset for %s, please complete it, for example: linux/amd64,windows/386\n",
+				"没有为 %s 预设 GOARCH，请补全，例如: linux/amd64,windows/386\n",
 				goos,
 			)
 			return nil

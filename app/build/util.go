@@ -24,7 +24,7 @@ func GetGoVersion() string {
 		goversion := strings.TrimPrefix(strings.TrimSpace(string(out)), "go version ")
 		return goversion
 	}
-	return "None"
+	return "未知"
 }
 
 func GetBuildGitID() string {
@@ -34,7 +34,7 @@ func GetBuildGitID() string {
 		commitid := strings.TrimSpace(string(out))
 		return commitid
 	}
-	return "None"
+	return "未知"
 }
 
 func GetBuildTime() string {
@@ -58,7 +58,7 @@ func CheckGarble() error {
 		zshell.Env = envs
 	}()
 	if code, _, _, err := zshell.Run("garble version"); err != nil || code != 0 {
-		return errors.New("please install garble: go install mvdan.cc/garble@latest")
+		return errors.New("请安装 garble: go install mvdan.cc/garble@latest")
 	}
 	return nil
 }
@@ -70,7 +70,7 @@ func CheckUPX() error {
 	}()
 
 	if code, _, _, err := zshell.Run("upx --version"); err != nil || code != 0 {
-		return errors.New("please install upx")
+		return errors.New("请安装 upx")
 	}
 	return nil
 }
@@ -91,7 +91,7 @@ func RunUPX(file string, level string) error {
 
 	code, _, _, _ := zshell.OutRun("upx "+level+" "+file, nil, os.Stdout, os.Stderr)
 	if code != 0 {
-		return errors.New("failed to compress with UPX")
+		return errors.New("UPX 压缩失败")
 	}
 	return nil
 }
@@ -99,7 +99,7 @@ func RunUPX(file string, level string) error {
 func StripUPXHeaders(filePath string) error {
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return errors.New("failed to read file: " + err.Error())
+		return errors.New("读取文件失败: " + err.Error())
 	}
 	header := [][]byte{
 		{0x49, 0x6e, 0x66, 0x6f, 0x3a, 0x20, 0x54, 0x68, 0x69, 0x73},

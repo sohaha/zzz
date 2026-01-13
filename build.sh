@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "Please select the compiled platform version"
+echo "请选择编译目标平台"
 # export CGO_ENABLED=0
 
 # shellcheck disable=SC2006
@@ -14,7 +14,7 @@ GOOS_A=$(uname)/$(uname -m)
 GOOS_Z="All"
 GOARCH=amd64
 __CGO_EN__=0
-select opt in $GOOS_A" (auto)" $GOOS_D $GOOS_L $GOOS_W $GOOS_Z;do
+select opt in $GOOS_A" (自动)" $GOOS_D $GOOS_L $GOOS_W $GOOS_Z;do
 if [ "$opt" = $GOOS_D ];then
   GOOS=darwin
   BUILD_NAME=$NAME.sh
@@ -31,13 +31,13 @@ elif [ "$opt" = $GOOS_Z ];then
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "$LdFlags -s -w" -o ./dist/$NAME ./
   CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "$LdFlags -s -w" -o ./dist/$NAME.sh ./
   CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "$LdFlags -s -w" -o ./dist/$NAME.exe ./
-  echo Compiled
+  echo 已完成全部平台编译
   exit
 else
   __CGO_EN__=
   GOARCH=
   GOOS=
-  echo "Compile the current version of the platform"
+  echo "编译当前平台版本"
   BUILD_NAME=zzz
   break
 fi
@@ -47,10 +47,10 @@ if [ "$opt" = "" ];then
   __CGO_EN__=
   GOARCH=
   GOOS=
-  echo "Compile the current version of the platform"
+  echo "编译当前平台版本"
   BUILD_NAME=zzz
 fi
 
 CGO_ENABLED=$__CGO_EN__ GOARCH=$GOARCH GOOS=$GOOS go build -ldflags "$LdFlags -s -w" -o ./dist/$BUILD_NAME ./
 
-echo $GOOS Compiled
+echo $GOOS 编译完成

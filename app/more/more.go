@@ -14,7 +14,7 @@ func RunMethod(methodName string, vars []string) (err error) {
 	reflectValue := reflect.ValueOf(&Methods{})
 	dataType := reflectValue.MethodByName(methodName)
 	if dataType.Kind() == reflect.Invalid {
-		err = errors.New("unknown commands")
+		err = errors.New("未知命令")
 		return
 	}
 	v := make([]reflect.Value, 0)

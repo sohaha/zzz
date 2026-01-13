@@ -102,7 +102,7 @@ func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 							newAsset := &ReferencedAsset{Name: thisAsset.RHS.Path, Group: nil, AssetPath: AssetPath}
 							thisAssetBundle.Assets = append(thisAssetBundle.Assets, newAsset)
 						default:
-							err = fmt.Errorf("unknown call to static.%s", thisAsset.RHS.Method)
+							err = fmt.Errorf("未知的 static 调用: %s", thisAsset.RHS.Method)
 							return false
 						}
 					} else {

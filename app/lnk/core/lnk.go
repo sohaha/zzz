@@ -8,11 +8,11 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zcli"
-	"github.com/sohaha/zzz/util"
+	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zzz/app/lnk/fs"
 	"github.com/sohaha/zzz/app/lnk/git"
+	"github.com/sohaha/zzz/util"
 )
 
 const (
@@ -409,7 +409,7 @@ func NewLnk(opts ...Option) *Lnk {
 
 	lnk.git = git.New(lnk.repoPath)
 
-	if (runtime.GOOS == "windows"&&!zcli.IsSudo()) {
+	if runtime.GOOS == "windows" && !zcli.IsSudo() {
 		util.Log.Warn("Windows 需要以管理员权限运行 lnk")
 		os.Exit(0)
 	}
@@ -890,7 +890,7 @@ func (l *Lnk) RunBootstrapScript() error {
 	}
 
 	if runtime.GOOS == "windows" {
-		util.Log.Warn("Windows 不支持执行 bootstrap.sh 脚本: %s\n", bootstrapScript)
+		util.Log.Warnf("Windows 不支持执行 bootstrap.sh 脚本: %s", bootstrapScript)
 		return nil
 	}
 

@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	errPollerClosed = errors.New("poller is closed")
-	errNoSuchWatch  = errors.New("watch does not exist")
+	errPollerClosed = errors.New("轮询器已关闭")
+	errNoSuchWatch  = errors.New("监听不存在")
 )
 
 const watchWaitTime = 200 * time.Millisecond
@@ -116,7 +116,7 @@ func (w *filePoller) sendEvent(e fsnotify.Event, chClose <-chan struct{}) error 
 	select {
 	case w.events <- e:
 	case <-chClose:
-		return fmt.Errorf("closed")
+		return fmt.Errorf("已关闭")
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ func (w *filePoller) sendErr(e error, chClose <-chan struct{}) error {
 	select {
 	case w.errors <- e:
 	case <-chClose:
-		return fmt.Errorf("closed")
+		return fmt.Errorf("已关闭")
 	}
 	return nil
 }

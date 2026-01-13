@@ -25,7 +25,7 @@ var (
 	gitType     = "github"
 	createCmd   = &cobra.Command{
 		Use:   createUes,
-		Short: "Init new project",
+		Short: "初始化新项目模板",
 		Long:  ``,
 		// Args:cobra.RangeArgs(1, 2),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -40,8 +40,9 @@ var (
 				}
 				var branches []string
 				for k, v := range depots {
-					ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					res, err := zhttp.Get(v, ctx)
+					cancel()
 					handle := func(res *zhttp.Res) {
 						body := res.Bytes()
 						zjson.ParseBytes(body).ForEach(func(key, value *zjson.Res) bool {
@@ -59,7 +60,7 @@ var (
 					if err == nil {
 						handle(res)
 					} else {
-						util.Log.Warn("Timeout, retry")
+						util.Log.Warn("请求超时，正在重试")
 						res, err = zhttp.Get("https://github.73zls.com/" + v)
 						if err == nil {
 							handle(res)
@@ -67,11 +68,11 @@ var (
 					}
 				}
 				if len(branches) == 0 {
-					util.Log.Error("Failed to get the template list, please check your network")
+					util.Log.Error("获取模板列表失败，请检查网络连接")
 					return
 				}
 				prompt := promptui.Select{
-					Label: "Select Template",
+					Label: "选择模板",
 					Items: branches,
 				}
 				_, result, err := prompt.Run()
@@ -106,13 +107,13 @@ var (
 			if name == "" {
 				return
 			}
-			util.Log.Info("Start downloading the template...")
+			util.Log.Info("开始下载模板...")
 			err := initApp.Clone(dir, name, branch)
 			if err != nil {
 				util.Log.Fatal(err)
 				return
 			}
-			util.Log.Successf("Init Done: %s\n", dir)
+			util.Log.Successf("初始化完成：%s\n", dir)
 		},
 	}
 )
