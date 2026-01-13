@@ -1,14 +1,13 @@
 package more
 
 import (
-	"github.com/sohaha/zlsgo/zfile"
-	"github.com/sohaha/zlsgo/zutil"
-	"github.com/sohaha/zzz/util"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/sohaha/zlsgo/zutil"
+	"github.com/sohaha/zzz/util"
 )
 
 func (m *Methods) Install(vars []string) {
@@ -24,15 +23,15 @@ func (m *Methods) Install(vars []string) {
 	res, err := copyMain(ePath, path)
 	if err != nil {
 		if strings.Contains(res, "Permission denied") {
-			util.Log.Fatal("Permission denied, Please use root to execute")
+			util.Log.Fatal("权限不足，请使用 root 权限执行")
 		} else if strings.Contains(err.Error(), "exit status 1") {
-			util.Log.Fatal("Installation failed, please try again")
+			util.Log.Fatal("安装失败，请重试")
 		} else {
 			util.Log.Fatal(err)
 		}
 	}
 
-	util.Log.Success("The installation is complete")
+	util.Log.Success("安装完成")
 }
 
 func copyMain(src, dest string) (data string, err error) {
@@ -42,34 +41,4 @@ func copyMain(src, dest string) (data string, err error) {
 		data, err = util.ExecCommand("cp", src, dest)
 	}
 	return
-}
-
-func copyFile(src, dest string) (w int64, err error) {
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return
-	}
-	defer srcFile.Close()
-	destSplitPathDirs := strings.Split(dest, string(filepath.Separator))
-
-	destSplitPath := ""
-	for index, dir := range destSplitPathDirs {
-		if index < len(destSplitPathDirs)-1 {
-			destSplitPath = destSplitPath + dir + string(filepath.Separator)
-			i, _ := zfile.PathExist(destSplitPath)
-			if i == 0 {
-				err := os.Mkdir(destSplitPath, os.ModePerm)
-				if err != nil {
-					util.Log.Error(err)
-				}
-			}
-		}
-	}
-	dstFile, err := os.Create(dest)
-	if err != nil {
-		return
-	}
-	defer dstFile.Close()
-
-	return io.Copy(dstFile, srcFile)
 }

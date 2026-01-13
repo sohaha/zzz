@@ -17,13 +17,13 @@ func addWatcher() {
 		if _dir == "." {
 			_dir = projectFolder
 		}
-		util.Log.Println("Watcher: ", _dir)
+		util.Log.Println("监控: ", _dir)
 		err := watcher.Add(dir)
 		if err != nil {
 			util.Log.Fatal(err)
 		}
 	}
-	util.Log.Println("Watching...")
+	util.Log.Println("监控中...")
 }
 
 func addNewWatcher(dir string) {
@@ -39,10 +39,10 @@ func addNewWatcher(dir string) {
 
 	if !inStringArray(fullDir, watchDirs) {
 		watchDirs = append(watchDirs, fullDir)
-		util.Log.Println("Watcher: ", fullDir)
+		util.Log.Println("监控: ", fullDir)
 		err := watcher.Add(fullDir)
 		if err != nil {
-			util.Log.Errorf("Failed to add new watcher for %s: %v\n", fullDir, err)
+			util.Log.Errorf("添加监控失败 %s: %v\n", fullDir, err)
 		}
 	}
 }
@@ -69,10 +69,10 @@ func arrIncludeDirs() {
 		arr := dirParse2Array(includeDirs[i])
 		isD := strings.Index(arr[0], ".") == 0
 		if len(arr) < 1 || len(arr) > 2 {
-			util.Log.Fatal("Error listening for file path: ", includeDirs[i])
+			util.Log.Fatal("监听文件路径错误: ", includeDirs[i])
 		}
 		if strings.HasPrefix(arr[0], "/") {
-			util.Log.Fatal("watchDirs must be relative paths: ", includeDirs[i])
+			util.Log.Fatal("监控目录必须是相对路径: ", includeDirs[i])
 		}
 		isAll := len(arr) == 2 && arr[1] == "*"
 
@@ -80,7 +80,7 @@ func arrIncludeDirs() {
 			dir = zfile.RealPath(dir)
 
 			if isExcept(exceptDirs, dir) {
-				util.Log.Debugf("Excluding directory from watch: %s", dir)
+				util.Log.Debugf("从监控中排除目录: %s", dir)
 				return
 			}
 
@@ -97,7 +97,7 @@ func arrIncludeDirs() {
 		if strings.Contains(arr[0], "*") {
 			matches, err := filepath.Glob(arr[0])
 			if err != nil {
-				util.Log.Errorf("Invalid glob pattern %s: %v", arr[0], err)
+				util.Log.Errorf("无效的 glob 模式 %s: %v", arr[0], err)
 				continue
 			}
 			for _, match := range matches {

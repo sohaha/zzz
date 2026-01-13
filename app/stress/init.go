@@ -1,29 +1,30 @@
 package stress
 
 import (
+	"io/ioutil"
+
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zzz/app/root"
 	"github.com/sohaha/zzz/util"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 )
 
 var (
 	initCmdUse = "init"
 	initCmd    = &cobra.Command{
 		Use:   initCmdUse,
-		Short: "Generate config file",
+		Short: "生成配置文件",
 		Run: func(cmd *cobra.Command, args []string) {
 			cfg, _ := cmd.Flags().GetString("cfg")
 			path := zfile.RealPath(cfg)
 			if zfile.FileExist(path) && !force {
-				util.Log.Fatal("The configuration file already exists. If you need to override it, use --force")
+				util.Log.Fatal("配置文件已存在，如需覆盖请使用 --force")
 			}
 			err := initCfg(path)
 			if err != nil {
 				util.Log.Fatal(err)
 			}
-			util.Log.Successf("create %s successful\n", path)
+			util.Log.Successf("创建 %s 成功", path)
 		},
 	}
 	force bool
@@ -34,10 +35,10 @@ func InitCmd(watchCmd *cobra.Command) {
 }
 
 func init() {
-	initCmd.Flags().BoolVarP(&force, "force", "f", false, "Override config file")
+	initCmd.Flags().BoolVarP(&force, "force", "f", false, "覆盖配置文件")
 }
 
 func initCfg(path string) error {
 	config := root.GetExampleStressConfig("")
-	return ioutil.WriteFile(path, []byte(config), 0644)
+	return ioutil.WriteFile(path, []byte(config), 0o644)
 }
