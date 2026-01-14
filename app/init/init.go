@@ -37,7 +37,7 @@ func Clone(dir, name, branch string) (err error) {
 		} else if errStr != "" {
 			err = errors.New(errStr)
 		} else {
-			err = errors.New("download failed, please check if the network is normal")
+			err = errors.New("下载失败，请检查网络是否正常")
 		}
 	}
 	if err != nil {
@@ -68,7 +68,7 @@ func initConf(dir string) bool {
 		conf.Dir = dir
 	}
 	if err != nil {
-		util.Log.Warn("init conf err:", err)
+		util.Log.Warn("初始化配置错误:", err)
 	}
 	return true
 }
@@ -83,16 +83,17 @@ func initCommand(dir string) {
 			}
 			cmd := strings.Split(command, "&&")
 			for _, v := range cmd {
-				ctx, _ := context.WithTimeout(context.Background(), 60*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 				c := strings.Trim(v, " ")
-				util.Log.Info("Conmand:", c)
+				util.Log.Info("命令:", c)
 				zshell.Dir = dir
 				code, _, errMsg, err := zshell.RunContext(ctx, c)
+				cancel()
 				if errMsg != "" {
 					util.Log.Println(errMsg)
 				}
 				if err != nil || code != 0 {
-					util.Log.Error("Fatal:", c)
+					util.Log.Error("致命错误:", c)
 					break
 				}
 			}

@@ -48,7 +48,7 @@ var (
 
 var buildCmd = &cobra.Command{
 	Use:   buildUse,
-	Short: "Generates asset packs replace 'go build'",
+	Short: "生成资源包并替代 `go build` 使用",
 	Args:  cobra.ArbitraryArgs,
 	Example: fmt.Sprintf(`  %s %s
   %[1]s %[2]s --pack -- -o output
@@ -69,7 +69,7 @@ var buildCmd = &cobra.Command{
 		dirPath := zfile.RealPath(".", true)
 		name := build.Basename(dirPath)
 		existZlsGO := strings.Contains(build.ReadMod(dirPath), "/zlsgo")
-		sd := zutil.IfVal(skipDirs == "", []string{}, strings.Split(skipDirs, ",")).([]string)
+		sd := zutil.IfVal(skipDirs == "", []string{}, strings.Split(skipDirs, ","))
 		if !skipEmbed && !buildDebug {
 			mewnFiles, err := zbuild.GetBinFiles([]string{}, buildIgnore, sd)
 			if err != nil {
@@ -270,23 +270,23 @@ func localCommad(v string, buildArgs []string, env []string, goos string) string
 func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().
-		BoolVarP(&skipEmbed, "skip-embed", "S", false, "Skip static analysis, do not use package static file function")
+		BoolVarP(&skipEmbed, "skip-embed", "S", false, "跳过静态资源分析，不生成打包文件")
 	buildCmd.Flags().
-		BoolVarP(&isPack, "pack", "P", false, "Same as build, will compile with '-w -s' flags")
+		BoolVarP(&isPack, "pack", "P", false, "与编译一致，但会附加 '-w -s' 压缩参数")
 	buildCmd.Flags().
-		StringVarP(&cross, "os", "O", "", "Cross-compile, compile to the specified system application, use more ',' separate")
-	buildCmd.Flags().StringVarP(&outDir, "out", "", "", "Output directory")
-	buildCmd.Flags().BoolVarP(&isCGO, "cgo", "C", false, "Turn on CGO_ENABLED, need to install zig")
-	buildCmd.Flags().BoolVarP(&buildIgnore, "ignoreE", "I", false, "Ignore files that don't exist")
-	buildCmd.Flags().BoolVar(&buildDebug, "debug", false, "Print execution command")
-	buildCmd.Flags().BoolVar(&buildEmbed, "embed", false, "Compile only static resource files")
+		StringVarP(&cross, "os", "O", "", "交叉编译到指定系统，多个值用英文逗号分隔")
+	buildCmd.Flags().StringVarP(&outDir, "out", "", "", "输出目录")
+	buildCmd.Flags().BoolVarP(&isCGO, "cgo", "C", false, "开启 CGO_ENABLED，需要预装 zig")
+	buildCmd.Flags().BoolVarP(&buildIgnore, "ignoreE", "I", false, "忽略不存在的文件")
+	buildCmd.Flags().BoolVar(&buildDebug, "debug", false, "打印执行命令，不实际编译")
+	buildCmd.Flags().BoolVar(&buildEmbed, "embed", false, "仅编译静态资源文件")
 	buildCmd.Flags().
-		BoolVarP(&buildTrimpath, "trimpath", "T", false, "Removes all file system paths from the compiled executable")
-	buildCmd.Flags().StringVar(&skipDirs, "skip-dirs", "", "Directory to skip static analysis")
-	buildCmd.Flags().IntVarP(&obfuscate, "garble", "G", 0, "Obfuscate code, 1: fast mode, 2: strong mode, need to install garble")
-	buildCmd.Flags().BoolVar(&cShared, "c-shared", false, "Build a shared library")
-	buildCmd.Flags().BoolVar(&hideWinConsole, "hide-win-console", false, "Hide win console, only for windows")
-	buildCmd.Flags().StringVar(&upx, "upx", "", "Use UPX to compress the executable, need to install upx")
-	buildCmd.Flags().BoolVar(&NoStatic, "no-static", false, "do not static link")
-	buildCmd.Flags().StringVar(&Ldflags, "ldflags", "", "Use ldflags")
+		BoolVarP(&buildTrimpath, "trimpath", "T", false, "移除编译产物中的文件系统路径")
+	buildCmd.Flags().StringVar(&skipDirs, "skip-dirs", "", "静态资源分析时跳过的目录")
+	buildCmd.Flags().IntVarP(&obfuscate, "garble", "G", 0, "代码混淆，1：快速模式，2：强化模式，需要安装 garble")
+	buildCmd.Flags().BoolVar(&cShared, "c-shared", false, "编译为共享库")
+	buildCmd.Flags().BoolVar(&hideWinConsole, "hide-win-console", false, "隐藏 Windows 控制台窗口，仅对 Windows 生效")
+	buildCmd.Flags().StringVar(&upx, "upx", "", "使用 UPX 压缩可执行文件，需要安装 upx")
+	buildCmd.Flags().BoolVar(&NoStatic, "no-static", false, "不进行静态链接")
+	buildCmd.Flags().StringVar(&Ldflags, "ldflags", "", "自定义 ldflags 参数")
 }

@@ -59,12 +59,12 @@ func NewStressConfig() (s *StressConfig) {
 // Throughout the test, data is sent to w, useful for live updates.
 func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 	if w == nil {
-		return nil, errors.New("nil writer")
+		return nil, errors.New("写入器为空")
 	}
 	err := validateStressConfig(s)
 
 	if err != nil {
-		return nil, errors.New("invalid configuration: " + err.Error())
+		return nil, errors.New("配置无效: " + err.Error())
 	}
 	targetCount := len(s.Targets)
 
@@ -82,9 +82,9 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 	}
 
 	if targetCount == 1 {
-		_, _ = fmt.Fprintf(w, "Stress testing %d target:\n", targetCount)
+		_, _ = fmt.Fprintf(w, "压测 %d 个目标:\n", targetCount)
 	} else {
-		_, _ = fmt.Fprintf(w, "Stress testing %d targets:\n", targetCount)
+		_, _ = fmt.Fprintf(w, "压测 %d 个目标:\n", targetCount)
 	}
 
 	// when a target is finished, send all stats into this
@@ -157,16 +157,16 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 
 func validateStressConfig(s StressConfig) error {
 	if len(s.Targets) == 0 {
-		return errors.New("zero targets")
+		return errors.New("目标数量为零")
 	}
 	if s.Count <= 0 {
-		return errors.New("request count must be greater than zero")
+		return errors.New("请求数量必须大于零")
 	}
 	if s.Concurrency <= 0 {
-		return errors.New("concurrency must be greater than zero")
+		return errors.New("并发数必须大于零")
 	}
 	if s.Concurrency > s.Count {
-		return errors.New("concurrency must be higher than request count")
+		return errors.New("并发数不能超过请求总数")
 	}
 
 	for _, target := range s.Targets {
@@ -183,7 +183,7 @@ func createRequestQueue(count int, target Target) (chan http.Request, error) {
 	// attempt to build one request - if passes, the rest should too
 	_, err := buildRequest(target)
 	if err != nil {
-		return nil, errors.New("failed to create request with target configuration: " + err.Error())
+		return nil, errors.New("使用目标配置创建请求失败: " + err.Error())
 	}
 	go func() {
 		for i := 0; i < count; i++ {

@@ -11,3 +11,4 @@ zzz-stress.toml
 .DS_Store
 /zzz_*
 /tmpApp
+build/main

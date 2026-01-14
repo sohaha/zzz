@@ -70,7 +70,7 @@ func listFile(folder string, fun func(string)) {
 
 	files, err := ioutil.ReadDir(folder)
 	if err != nil {
-		util.Log.Errorf("Failed to read directory %s: %v\n", folder, err)
+		util.Log.Errorf("读取目录失败 %s: %v\n", folder, err)
 		return
 	}
 
@@ -226,7 +226,7 @@ func openBrowser(url string) error {
 	case "darwin":
 		err = exec.Command("open", url).Start()
 	default:
-		err = errors.New("unsupported platform")
+		err = errors.New("不支持的平台")
 	}
 	return err
 }

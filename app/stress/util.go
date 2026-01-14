@@ -24,17 +24,17 @@ import (
 func parseKeyValString(keyValStr, delim1, delim2 string) (map[string]string, error) {
 	m := make(map[string]string)
 	if delim1 == delim2 {
-		return m, errors.New("delimiters can't be equal")
+		return m, errors.New("分隔符不能相同")
 	}
 	pairs := strings.SplitN(keyValStr, delim1, -1)
 	for _, pair := range pairs {
 		parts := strings.SplitN(pair, delim2, 2)
 		if len(parts) != 2 {
-			return m, errors.New("failed to parse into two parts")
+			return m, errors.New("解析为两部分失败")
 		}
 		key, val := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 		if key == "" || val == "" {
-			return m, errors.New("key or value is empty")
+			return m, errors.New("键或值为空")
 		}
 		m[key] = val
 	}
@@ -44,10 +44,10 @@ func parseKeyValString(keyValStr, delim1, delim2 string) (map[string]string, err
 // build the http request out of the target's config
 func buildRequest(t Target) (http.Request, error) {
 	if t.URL == "" {
-		return http.Request{}, errors.New("empty URL")
+		return http.Request{}, errors.New("URL 为空")
 	}
 	if len(t.URL) < 8 {
-		return http.Request{}, errors.New("URL too short")
+		return http.Request{}, errors.New("URL 过短")
 	}
 	//prepend "http://" if scheme not provided
 	//maybe a cleaner way to do this via net.url?
@@ -60,26 +60,26 @@ func buildRequest(t Target) (http.Request, error) {
 	if t.RegexURL {
 		urlStr, err = reggen.Generate(t.URL, 10)
 		if err != nil {
-			return http.Request{}, errors.New("failed to parse regex: " + err.Error())
+			return http.Request{}, errors.New("解析正则表达式失败: " + err.Error())
 		}
 	} else {
 		urlStr = t.URL
 	}
 	URL, err := url.Parse(urlStr)
 	if err != nil {
-		return http.Request{}, errors.New("failed to parse URL " + urlStr + " : " + err.Error())
+		return http.Request{}, errors.New("解析 URL 失败 " + urlStr + " : " + err.Error())
 	}
 	if URL.Host == "" {
-		return http.Request{}, errors.New("empty hostname")
+		return http.Request{}, errors.New("主机名为空")
 	}
 
 	if t.DNSPrefetch {
 		addrs, err := net.LookupHost(URL.Hostname())
 		if err != nil {
-			return http.Request{}, errors.New("failed to prefetch host " + URL.Host)
+			return http.Request{}, errors.New("预取主机失败 " + URL.Host)
 		}
 		if len(addrs) == 0 {
-			return http.Request{}, errors.New("no addresses found for " + URL.Host)
+			return http.Request{}, errors.New("未找到地址 " + URL.Host)
 		}
 		URL.Host = addrs[0]
 	}
@@ -89,7 +89,7 @@ func buildRequest(t Target) (http.Request, error) {
 	if t.BodyFilename != "" {
 		fileContents, fileErr := ioutil.ReadFile(t.BodyFilename)
 		if fileErr != nil {
-			return http.Request{}, errors.New("failed to read contents of file " + t.BodyFilename + ": " + fileErr.Error())
+			return http.Request{}, errors.New("读取文件内容失败 " + t.BodyFilename + ": " + fileErr.Error())
 		}
 		req, err = http.NewRequest(t.Method, URL.String(), bytes.NewBuffer(fileContents))
 	} else if t.Body != "" {
@@ -98,13 +98,13 @@ func buildRequest(t Target) (http.Request, error) {
 		req, err = http.NewRequest(t.Method, URL.String(), nil)
 	}
 	if err != nil {
-		return http.Request{}, errors.New("failed to create request: " + err.Error())
+		return http.Request{}, errors.New("创建请求失败: " + err.Error())
 	}
 	// add headers
 	if t.Headers != "" {
 		headerMap, err := parseKeyValString(t.Headers, ",", ":")
 		if err != nil {
-			return http.Request{}, errors.New("could not parse headers: " + err.Error())
+			return http.Request{}, errors.New("解析请求头失败: " + err.Error())
 		}
 		for key, val := range headerMap {
 			req.Header.Add(key, val)
@@ -117,7 +117,7 @@ func buildRequest(t Target) (http.Request, error) {
 	if t.Cookies != "" {
 		cookieMap, err := parseKeyValString(t.Cookies, ";", "=")
 		if err != nil {
-			return http.Request{}, errors.New("could not parse cookies: " + err.Error())
+			return http.Request{}, errors.New("解析 Cookie 失败: " + err.Error())
 		}
 		for key, val := range cookieMap {
 			req.AddCookie(&http.Cookie{Name: key, Value: val})
@@ -127,7 +127,7 @@ func buildRequest(t Target) (http.Request, error) {
 	if t.BasicAuth != "" {
 		authMap, err := parseKeyValString(t.BasicAuth, ",", ":")
 		if err != nil {
-			return http.Request{}, errors.New("could not parse basic auth: " + err.Error())
+			return http.Request{}, errors.New("解析基础认证失败: " + err.Error())
 		}
 		for key, val := range authMap {
 			req.SetBasicAuth(key, val)

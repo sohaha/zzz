@@ -134,9 +134,9 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 		}
 		carr := cmdParse2Array(c, cf)
 		if outpuContent {
-			util.Log.Printf("Command: %v\n", carr)
+			util.Log.Printf("命令: %v\n", carr)
 		} else {
-			util.Log.Printf("Background command: %v\n", carr)
+			util.Log.Printf("后台命令: %v\n", carr)
 			continue
 		}
 
@@ -160,16 +160,16 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 		stdout, err := cmd.StdoutPipe()
 		stderr, stderrErr := cmd.StderrPipe()
 		if err != nil {
-			util.Log.Println("Error: ", err.Error())
+			util.Log.Println("错误: ", err.Error())
 			return nil
 		}
 		if stderrErr != nil {
-			util.Log.Println("Error: ", stderrErr.Error())
+			util.Log.Println("错误: ", stderrErr.Error())
 			return nil
 		}
 		err = cmd.Start()
 		if err != nil {
-			util.Log.Println("command Error: ", err)
+			util.Log.Println("命令错误: ", err)
 			break
 		}
 
@@ -213,7 +213,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 			if err = cmd.Wait(); err != nil {
 				errMsg := err.Error()
 				if !strings.Contains(errMsg, "exit status 1") && !strings.Contains(errMsg, "signal: killed") {
-					util.Log.Println("command End:", err)
+					util.Log.Println("命令结束:", err)
 				}
 				//  todo 其中一个命令报错后面的都不执行
 				waiting()
@@ -223,7 +223,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 				if cmd.Process != nil {
 					if err = cmd.Process.Kill(); err != nil && (!strings.Contains(err.Error(), "os: process already finished")) {
 						if cmd.ProcessState.String() != "exit status 0" {
-							util.Log.Println("cmd cannot kill ", err)
+							util.Log.Println("无法终止命令 ", err)
 						}
 					}
 				}
@@ -244,7 +244,7 @@ func (t *taskType) runBackground(cf *changedFile, commands []string) []*exec.Cmd
 
 	for i := 0; i < l; i++ {
 		carr := []string{strings.Join(cmdParse2Array(commands[i], cf), " ")}
-		util.Log.Printf("Background command: %v\n", carr)
+		util.Log.Printf("后台命令: %v\n", carr)
 		cmd := command(fixCmd(carr))
 
 		stdout, err := cmd.StdoutPipe()

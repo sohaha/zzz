@@ -44,7 +44,6 @@ func (g *Git) Init() error {
 }
 
 func (g *Git) Clone(url string) error {
-
 	parentDir := filepath.Dir(g.repoPath)
 	if err := os.MkdirAll(parentDir, 0o755); err != nil {
 		return &GitCommandError{
@@ -53,7 +52,7 @@ func (g *Git) Clone(url string) error {
 		}
 	}
 
-	cmd := exec.Command("git", "clone", url, g.repoPath)
+	cmd := exec.Command("git", "clone", "--recursive", url, g.repoPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 
@@ -218,51 +217,51 @@ func (g *Git) Push() error {
 }
 
 func (g *Git) Pull() error {
-    remote, err := g.getRemoteName()
-    if err != nil {
-        return err
-    }
+	remote, err := g.getRemoteName()
+	if err != nil {
+		return err
+	}
 
-    branch, err := g.getCurrentBranch()
-    if err != nil {
-        return err
-    }
+	branch, err := g.getCurrentBranch()
+	if err != nil {
+		return err
+	}
 
-    cmd := exec.Command("git", "pull", remote, branch)
-    cmd.Dir = g.repoPath
+	cmd := exec.Command("git", "pull", remote, branch)
+	cmd.Dir = g.repoPath
 
-    output, err := cmd.CombinedOutput()
-    if err != nil {
-        if strings.Contains(string(output), "CONFLICT") {
-            files := g.parseConflictFiles(string(output))
-            return &MergeConflictError{
-                Files: files,
-            }
-        }
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "CONFLICT") {
+			files := g.parseConflictFiles(string(output))
+			return &MergeConflictError{
+				Files: files,
+			}
+		}
 
-        if strings.Contains(string(output), "Could not resolve host") ||
-            strings.Contains(string(output), "Connection refused") {
-            return &NetworkError{
-                Operation: "pull",
-                Err:       err,
-            }
-        }
+		if strings.Contains(string(output), "Could not resolve host") ||
+			strings.Contains(string(output), "Connection refused") {
+			return &NetworkError{
+				Operation: "pull",
+				Err:       err,
+			}
+		}
 
-        if strings.Contains(string(output), "couldn't find remote ref") ||
-            strings.Contains(string(output), "Couldn't find remote ref") {
-            return &BranchNotFoundError{
-                BranchName: branch,
-            }
-        }
+		if strings.Contains(string(output), "couldn't find remote ref") ||
+			strings.Contains(string(output), "Couldn't find remote ref") {
+			return &BranchNotFoundError{
+				BranchName: branch,
+			}
+		}
 
-        return &GitCommandError{
-            Command: fmt.Sprintf("git pull %s %s", remote, branch),
-            Output:  string(output),
-            Err:     err,
-        }
-    }
+		return &GitCommandError{
+			Command: fmt.Sprintf("git pull %s %s", remote, branch),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
 
-    return nil
+	return nil
 }
 
 func (g *Git) GetStatus() (*StatusInfo, error) {
@@ -358,7 +357,6 @@ func (g *Git) getRemoteName() (string, error) {
 }
 
 func (g *Git) getAheadBehind(remote string) (int, int, error) {
-
 	currentBranch, err := g.getCurrentBranch()
 	if err != nil {
 		return 0, 0, err
@@ -465,6 +463,224 @@ func (g *Git) updateRemote(name, url string) error {
 	if err != nil {
 		return &GitCommandError{
 			Command: fmt.Sprintf("git remote set-url %s %s", name, url),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return nil
+}
+
+func (g *Git) Checkout(branch string) error {
+	cmd := exec.Command("git", "checkout", branch)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return &GitCommandError{
+			Command: fmt.Sprintf("git checkout %s", branch),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return nil
+}
+
+func (g *Git) CreateBranch(branch string) error {
+	cmd := exec.Command("git", "checkout", "-b", branch)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return &GitCommandError{
+			Command: fmt.Sprintf("git checkout -b %s", branch),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return nil
+}
+
+func (g *Git) DeleteBranch(branch string, force bool) error {
+	flag := "-d"
+	if force {
+		flag = "-D"
+	}
+
+	cmd := exec.Command("git", "branch", flag, branch)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return &GitCommandError{
+			Command: fmt.Sprintf("git branch %s %s", flag, branch),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return nil
+}
+
+func (g *Git) PushBranch(branch string) error {
+	cmd := exec.Command("git", "push", "-u", "origin", branch)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "Could not resolve host") ||
+			strings.Contains(string(output), "Connection refused") {
+			return &NetworkError{
+				Operation: "push",
+				Err:       err,
+			}
+		}
+
+		if strings.Contains(string(output), "Authentication failed") ||
+			strings.Contains(string(output), "Permission denied") {
+			return &AuthenticationError{
+				Err: err,
+			}
+		}
+
+		return &GitCommandError{
+			Command: fmt.Sprintf("git push -u origin %s", branch),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return nil
+}
+
+func (g *Git) GetRemoteURL(remote string) (string, error) {
+	if remote == "" {
+		remote = "origin"
+	}
+
+	cmd := exec.Command("git", "remote", "get-url", remote)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", &GitCommandError{
+			Command: fmt.Sprintf("git remote get-url %s", remote),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return strings.TrimSpace(string(output)), nil
+}
+
+func (g *Git) GetCommitMessage(ref string) (string, error) {
+	if ref == "" {
+		ref = "HEAD"
+	}
+
+	cmd := exec.Command("git", "log", "-1", "--format=%B", ref)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", &GitCommandError{
+			Command: fmt.Sprintf("git log -1 --format=%%B %s", ref),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return strings.TrimSpace(string(output)), nil
+}
+
+func (g *Git) GetCommitTitle(ref string) (string, error) {
+	if ref == "" {
+		ref = "HEAD"
+	}
+
+	cmd := exec.Command("git", "log", "-1", "--format=%s", ref)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", &GitCommandError{
+			Command: fmt.Sprintf("git log -1 --format=%%s %s", ref),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return strings.TrimSpace(string(output)), nil
+}
+
+func (g *Git) HasChanges() (bool, error) {
+	code1 := exec.Command("git", "diff", "--quiet")
+	code1.Dir = g.repoPath
+	err1 := code1.Run()
+
+	code2 := exec.Command("git", "diff", "--cached", "--quiet")
+	code2.Dir = g.repoPath
+	err2 := code2.Run()
+
+	code3 := exec.Command("git", "ls-files", "--others", "--exclude-standard")
+	code3.Dir = g.repoPath
+	output, _ := code3.CombinedOutput()
+
+	hasUntracked := strings.TrimSpace(string(output)) != ""
+
+	return err1 != nil || err2 != nil || hasUntracked, nil
+}
+
+func (g *Git) ListBranches() ([]string, error) {
+	cmd := exec.Command("git", "branch", "--format=%(refname:short)")
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, &GitCommandError{
+			Command: "git branch --format=%(refname:short)",
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	branches := strings.Split(strings.TrimSpace(string(output)), "\n")
+	result := make([]string, 0, len(branches))
+	for _, b := range branches {
+		if b = strings.TrimSpace(b); b != "" {
+			result = append(result, b)
+		}
+	}
+
+	return result, nil
+}
+
+func (g *Git) GetCurrentBranchPublic() (string, error) {
+	return g.getCurrentBranch()
+}
+
+func (g *Git) Fetch(remote string) error {
+	if remote == "" {
+		remote = "origin"
+	}
+
+	cmd := exec.Command("git", "fetch", remote)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "Could not resolve host") ||
+			strings.Contains(string(output), "Connection refused") {
+			return &NetworkError{
+				Operation: "fetch",
+				Err:       err,
+			}
+		}
+
+		return &GitCommandError{
+			Command: fmt.Sprintf("git fetch %s", remote),
 			Output:  string(output),
 			Err:     err,
 		}

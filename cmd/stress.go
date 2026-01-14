@@ -19,13 +19,15 @@ import (
 	"github.com/sohaha/zzz/util"
 )
 
-var stressUse = "stress"
-var stressCfg string
+var (
+	stressUse = "stress"
+	stressCfg string
+)
 
 // copyright: https://github.com/bengadbois/pewpew
 var stressCmd = &cobra.Command{
 	Use:     stressUse,
-	Short:   "Run stress tests",
+	Short:   "运行压测",
 	Aliases: []string{"s"},
 	// 	Example: fmt.Sprintf(`  %s %s www.baidu.com
 	//   %[1]s %[2]s -c 10 -t 10 -u https://www.baidu.com`, use, stressUse),
@@ -36,30 +38,30 @@ var stressCmd = &cobra.Command{
 		err := viper.ReadInConfig()
 		if err != nil {
 			if _, ok := err.(v.ConfigParseError); ok {
-				fmt.Println("Failed to parse config file " + viper.ConfigFileUsed())
+				fmt.Println("解析配置文件失败: " + viper.ConfigFileUsed())
 				fmt.Println(err)
 				os.Exit(-1)
 			}
 		}
 		if viper.ConfigFileUsed() != "" {
-			fmt.Println("Using config file: " + viper.ConfigFileUsed())
+			fmt.Println("使用配置文件: " + viper.ConfigFileUsed())
 		}
 		err = viper.BindPFlag("count", cmd.Flags().Lookup("num"))
 		if err != nil {
-			fmt.Println("failed to configure flags")
+			fmt.Println("绑定参数失败")
 			fmt.Println(err)
 			os.Exit(-1)
 		}
 
 		err = viper.BindPFlag("concurrency", cmd.Flags().Lookup("concurrent"))
 		if err != nil {
-			fmt.Println("failed to configure flags")
+			fmt.Println("绑定参数失败")
 			fmt.Println(err)
 			os.Exit(-1)
 		}
 		err = viper.BindPFlags(cmd.PersistentFlags())
 		if err != nil {
-			fmt.Println("failed to configure flags")
+			fmt.Println("绑定参数失败")
 			fmt.Println(err)
 			os.Exit(-1)
 		}
@@ -67,7 +69,7 @@ var stressCmd = &cobra.Command{
 		stressCfg := stress.StressConfig{}
 		err = viper.Unmarshal(&stressCfg)
 		if err != nil {
-			return errors.New("could not parse config file")
+			return errors.New("无法解析配置文件")
 		}
 		stressCfg.Quiet = viper.GetBool("quiet")
 		stressCfg.Verbose = viper.GetBool("verbose")
@@ -160,13 +162,13 @@ var stressCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Print("\n----Summary----\n\n")
+		fmt.Print("\n----汇总----\n\n")
 
 		// only print individual target data if multiple targets
 		if len(stressCfg.Targets) > 1 {
 			for idx, target := range stressCfg.Targets {
 				// info about the request
-				fmt.Printf("----Target %d: %s %s\n", idx+1, target.Method, target.URL)
+				fmt.Printf("----目标 %d: %s %s\n", idx+1, target.Method, target.URL)
 				reqStats := stress.CreateRequestsStats(targetRequestStats[idx])
 				fmt.Println(stress.CreateTextStressSummary(reqStats))
 			}
@@ -180,29 +182,29 @@ var stressCmd = &cobra.Command{
 			}
 		}
 		if len(stressCfg.Targets) > 1 {
-			fmt.Println("----Global----")
+			fmt.Println("----全局统计----")
 		}
 		reqStats := stress.CreateRequestsStats(globalStats)
 		fmt.Println(stress.CreateTextStressSummary(reqStats))
 
 		if viper.GetString("output-json") != "" {
 			filename := viper.GetString("output-json")
-			fmt.Print("Writing full result data to: " + filename + " ...")
+			fmt.Print("正在将完整结果数据写入: " + filename + " ...")
 			json, _ := json.MarshalIndent(globalStats, "", "    ")
 			err = ioutil.WriteFile(filename, json, 0644)
 			if err != nil {
-				return errors.New("failed to write full result data to " +
+				return errors.New("写入完整结果数据失败: " +
 					filename + ": " + err.Error())
 			}
-			fmt.Println("finished!")
+			fmt.Println("写入完成!")
 		}
 		// write out csv
 		if viper.GetString("output-csv") != "" {
 			filename := viper.GetString("output-csv")
-			fmt.Print("Writing full result data to: " + filename + " ...")
+			fmt.Print("正在写入 CSV 结果到: " + filename + " ...")
 			file, err := os.Create(filename)
 			if err != nil {
-				return errors.New("failed to write full result data to " +
+				return errors.New("写入完整结果数据失败: " +
 					filename + ": " + err.Error())
 			}
 			defer file.Close()
@@ -218,24 +220,24 @@ var stressCmd = &cobra.Command{
 				}
 				err := writer.Write(line)
 				if err != nil {
-					return errors.New("failed to write full result data to " +
+					return errors.New("写入完整结果数据失败: " +
 						filename + ": " + err.Error())
 				}
 			}
 			defer writer.Flush()
-			fmt.Println("finished!")
+			fmt.Println("写入完成!")
 		}
 
 		if viper.GetString("output-xml") != "" {
 			filename := viper.GetString("output-xml")
-			fmt.Print("Writing full result data to: " + filename + " ...")
+			fmt.Print("正在写入 XML 结果到: " + filename + " ...")
 			xml, _ := xml.MarshalIndent(globalStats, "", "    ")
 			err = ioutil.WriteFile(viper.GetString("output-xml"), xml, 0644)
 			if err != nil {
-				return errors.New("failed to write full result data to " +
+				return errors.New("写入完整结果数据失败: " +
 					filename + ": " + err.Error())
 			}
-			fmt.Println("finished!")
+			fmt.Println("写入完成!")
 		}
 		return nil
 	},
@@ -243,28 +245,28 @@ var stressCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(stressCmd)
-	stressCmd.Flags().BoolP("regex", "r", false, "Interpret URLs as regular expressions.")
-	stressCmd.Flags().Bool("dns-prefetch", false, "Prefetch IP from hostname before making request, eliminating DNS fetching from timing.")
-	stressCmd.Flags().StringP("timeout", "t", "10s", "Maximum seconds to wait for response")
-	stressCmd.Flags().StringP("request-method", "X", "GET", "Request type. GET, HEAD, POST, PUT, etc.")
-	stressCmd.Flags().String("body", "", "String to use as request body e.g. POST body.")
-	stressCmd.Flags().String("body-file", "", "Path to file to use as request body. Will overwrite --body if both are present.")
-	stressCmd.Flags().StringP("headers", "H", "", "Add arbitrary header line, eg. 'Accept-Encoding:gzip, Content-Type:application/json'")
-	stressCmd.Flags().String("cookies", "", "Add request cookies, eg. 'data=123; session=456'")
-	stressCmd.Flags().StringP("user-agent", "A", "zzz-stress", "Add User-Agent header. Can also be done with the arbitrary header flag.")
-	stressCmd.Flags().String("basic-auth", "", "Add HTTP basic authentication, eg. 'user123:password456'.")
-	stressCmd.Flags().BoolP("compress", "C", true, "Add 'Accept-Encoding: gzip' header if Accept-Encoding is not already present.")
-	stressCmd.Flags().BoolP("keepalive", "k", true, "Enable HTTP KeepAlive.")
-	stressCmd.Flags().Bool("follow-redirects", true, "Follow HTTP redirects.")
-	stressCmd.Flags().Bool("no-http2", false, "Disable HTTP2.")
-	stressCmd.Flags().Bool("enforce-ssl", false, "Enfore SSL certificate correctness.")
-	stressCmd.Flags().String("output-json", "", "Path to file to write full data as JSON")
-	stressCmd.Flags().String("output-csv", "", "Path to file to write full data as CSV")
-	stressCmd.Flags().String("output-xml", "", "Path to file to write full data as XML")
-	stressCmd.Flags().BoolP("quiet", "q", false, "Do not print while requests are running.")
-	stressCmd.Flags().Int("cpu", runtime.GOMAXPROCS(0), "Number of CPUs to use.")
-	stressCmd.Flags().IntP("concurrent", "c", stress.DefaultConcurrency, "Number of concurrent requests to make.")
-	stressCmd.Flags().IntP("num", "n", stress.DefaultCount, "Number of total requests to make.")
+	stressCmd.Flags().BoolP("regex", "r", false, "将目标 URL 视为正则表达式")
+	stressCmd.Flags().Bool("dns-prefetch", false, "请求前预解析 DNS，避免计时包含 DNS 解析")
+	stressCmd.Flags().StringP("timeout", "t", "10s", "等待响应的最长时间")
+	stressCmd.Flags().StringP("request-method", "X", "GET", "请求方法，如 GET、HEAD、POST、PUT 等")
+	stressCmd.Flags().String("body", "", "作为请求 Body 的字符串，例如 POST 数据")
+	stressCmd.Flags().String("body-file", "", "从文件读取请求 Body（同时提供时优先于 --body）")
+	stressCmd.Flags().StringP("headers", "H", "", "附加自定义请求头，如 'Accept-Encoding:gzip, Content-Type:application/json'")
+	stressCmd.Flags().String("cookies", "", "附加请求 Cookie，如 'data=123; session=456'")
+	stressCmd.Flags().StringP("user-agent", "A", "zzz-stress", "自定义 User-Agent 头")
+	stressCmd.Flags().String("basic-auth", "", "HTTP 基础认证，如 'user123:password456'")
+	stressCmd.Flags().BoolP("compress", "C", true, "若未指定则添加 'Accept-Encoding: gzip' 请求头")
+	stressCmd.Flags().BoolP("keepalive", "k", true, "启用 HTTP KeepAlive")
+	stressCmd.Flags().Bool("follow-redirects", true, "跟随 HTTP 跳转")
+	stressCmd.Flags().Bool("no-http2", false, "禁用 HTTP/2")
+	stressCmd.Flags().Bool("enforce-ssl", false, "严格校验证书正确性")
+	stressCmd.Flags().String("output-json", "", "将完整结果写入 JSON 文件")
+	stressCmd.Flags().String("output-csv", "", "将完整结果写入 CSV 文件")
+	stressCmd.Flags().String("output-xml", "", "将完整结果写入 XML 文件")
+	stressCmd.Flags().BoolP("quiet", "q", false, "执行过程中不打印输出")
+	stressCmd.Flags().Int("cpu", runtime.GOMAXPROCS(0), "使用的 CPU 数量")
+	stressCmd.Flags().IntP("concurrent", "c", stress.DefaultConcurrency, "并发请求数")
+	stressCmd.Flags().IntP("num", "n", stress.DefaultCount, "总请求数")
 	stress.InitCmd(stressCmd)
-	stressCmd.PersistentFlags().StringVar(&stressCfg, "cfg", "./zzz-stress.yml", "Stress config file path")
+	stressCmd.PersistentFlags().StringVar(&stressCfg, "cfg", "./zzz-stress.yml", "压测配置文件路径")
 }

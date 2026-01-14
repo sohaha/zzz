@@ -7,36 +7,36 @@ GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/ | grep -v _test.go)
 
 all: build
 
-dep: ## Get the dependencies
+dep: ## 获取依赖
 	@go mod download
 
-lint: ## Lint Golang files
+lint: ## Go 代码静态检查
 	@golint -set_exit_status ${PKG_LIST}
 
-vet: ## Run go vet
+vet: ## 运行 go vet
 	@go vet ${PKG_LIST}
 
-test: ## Run unittests
+test: ## 运行单元测试
 	@go test -short ${PKG_LIST}
 
-test-coverage: ## Run tests with coverage
+test-coverage: ## 运行覆盖率测试
 	@go test -short -coverprofile cover.out -covermode=atomic ${PKG_LIST}
 	@cat cover.out >> coverage.txt
 
 .PHONY: build
-build: dep ## Build the binary file
-	@go build -i -o build/main $(PKG)
+build: dep ## 构建可执行文件
+	@go build -o build/main $(PKG)
 
 .PHONY: install
-install: dep ## Install the binary file
+install: dep ## 安装可执行文件
 	@go install -ldflags '$(LDFLAGS)'
 
 .PHONY: clean
-clean: ## Remove previous build
+clean: ## 清理旧的构建产物
 	@rm -f ./build
 
 .PHONY: help
-help: ## Display this help screen
+help: ## 显示此帮助列表
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: docker-image

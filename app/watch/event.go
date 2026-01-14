@@ -60,7 +60,7 @@ func fileChange(event fsnotify.Event) {
 			fileDebouncer.trigger(relativeFilePath)
 		} else {
 			push := func() {
-				util.Log.Printf("Change: %v (%v)\n", relativeFilePath, opType)
+				util.Log.Printf("变更: %v (%v)\n", relativeFilePath, opType)
 				task.Put(data)
 				sendChang(data)
 			}
@@ -78,7 +78,7 @@ func fileChange(event fsnotify.Event) {
 }
 
 func handleFileChangeDebounced(cf *changedFile) {
-	util.Log.Printf("Change: %v (%v)\n", cf.Name, cf.Type)
+	util.Log.Printf("变更: %v (%v)\n", cf.Name, cf.Type)
 	task.Put(cf)
 	sendChang(cf)
 }

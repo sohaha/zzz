@@ -37,7 +37,7 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:     use,
-	Short:   "Daily development aids",
+	Short:   "日常开发辅助工具",
 	Long:    ``,
 	Version: version,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -59,21 +59,36 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	localizeHelpFlags(rootCmd)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
+func localizeHelpFlags(cmd *cobra.Command) {
+	cmd.InitDefaultHelpFlag()
+	if helpFlag := cmd.Flags().Lookup("help"); helpFlag != nil {
+		if cmd == rootCmd {
+			helpFlag.Usage = "显示帮助信息"
+		} else {
+			helpFlag.Usage = "显示 " + cmd.Name() + " 的帮助信息"
+		}
+	}
+	for _, subcmd := range cmd.Commands() {
+		localizeHelpFlags(subcmd)
+	}
+}
+
 func init() {
 	// var defConfig string
-	var versionText = fmt.Sprintf("version %s\n", version)
+	versionText := fmt.Sprintf("version %s\n", version)
 	//noinspection GoBoolExpressions
 	if buildTime != "" {
-		versionText = fmt.Sprintf("%sbuild time %s\n", versionText, buildTime)
+		versionText = fmt.Sprintf("%s构建时间 %s\n", versionText, buildTime)
 	}
 	//noinspection GoBoolExpressions
 	if buildGoVersion != "" {
-		versionText = fmt.Sprintf("%s%s\n", versionText, buildGoVersion)
+		versionText = fmt.Sprintf("%sGo 版本 %s\n", versionText, buildGoVersion)
 	}
 	rootCmd.SetVersionTemplate(versionText)
 	homePath = util.GetHome()
@@ -97,16 +112,64 @@ func init() {
 	usageTemplate = strings.NewReplacer(
 		`{{.NameAndAliases}}`, `{{StyleAliases .NameAndAliases}}`,
 		`{{rpad .Name .NamePadding }}`, `{{StyleTip .Name .NamePadding }}`,
-		`Examples:`, `{{StyleHeading "Examples:"}}`,
-		`Usage:`, `{{StyleHeading "Usage:"}}`,
-		`Aliases:`, `{{StyleHeading "Aliases:"}}`,
-		`Available Commands:`, `{{StyleHeading "Available Commands:"}}`,
-		`Global Flags:`, `{{StyleHeading "Global Flags:"}}`,
-		`Flags:`, `{{StyleHeading "Flags:"}}`,
+		`Examples:`, `{{StyleHeading "示例:"}}`,
+		`Usage:`, `{{StyleHeading "用法:"}}`,
+		`Aliases:`, `{{StyleHeading "别名:"}}`,
+		`Available Commands:`, `{{StyleHeading "可用命令:"}}`,
+		`Global Flags:`, `{{StyleHeading "全局参数:"}}`,
+		`Flags:`, `{{StyleHeading "参数:"}}`,
+		`Use "{{.CommandPath}} [command] --help" for more information about a command.`, `使用 "{{.CommandPath}} [command] --help" 查看命令的详细信息。`,
+		`Additional help topics:`, `{{StyleHeading "其他帮助主题:"}}`,
+		`Use "{{.CommandPath}} [command] --help" for more information about that command.`, `使用 "{{.CommandPath}} [command] --help" 查看该命令的详细信息。`,
 	).Replace(usageTemplate)
+	usageTemplate = strings.ReplaceAll(usageTemplate, "help for {{.Name}}", "显示 {{.Name}} 的帮助信息")
 	re := regexp.MustCompile(`(?m)^Flags:\s*$`)
-	usageTemplate = re.ReplaceAllLiteralString(usageTemplate, `{{StyleHeading "Flags:"}}`)
+	usageTemplate = re.ReplaceAllLiteralString(usageTemplate, `{{StyleHeading "参数:"}}`)
 	rootCmd.SetUsageTemplate(usageTemplate)
+
+	rootCmd.InitDefaultHelpFlag()
+	rootCmd.Flags().Lookup("help").Usage = "显示帮助信息"
+	rootCmd.InitDefaultVersionFlag()
+	rootCmd.Flags().Lookup("version").Usage = "显示版本信息"
+
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.SetHelpCommand(&cobra.Command{
+		Use:    "help [command]",
+		Short:  "查看命令帮助信息",
+		Long:   "查看任意命令的详细帮助信息",
+		Hidden: false,
+		Run: func(c *cobra.Command, args []string) {
+			cmd, _, e := c.Root().Find(args)
+			if cmd == nil || e != nil {
+				c.Printf("未知命令 \"%s\"\n", args)
+				_ = c.Root().Usage()
+			} else {
+				cmd.InitDefaultHelpFlag()
+				_ = cmd.Help()
+			}
+		},
+	})
+	rootCmd.AddCommand(&cobra.Command{
+		Use:                   "completion [bash|zsh|fish|powershell]",
+		Short:                 "生成命令行补全脚本",
+		Long:                  "为指定的 shell 生成自动补全脚本",
+		DisableFlagsInUseLine: true,
+		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
+		Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
+		Run: func(cmd *cobra.Command, args []string) {
+			switch args[0] {
+			case "bash":
+				_ = cmd.Root().GenBashCompletion(os.Stdout)
+			case "zsh":
+				_ = cmd.Root().GenZshCompletion(os.Stdout)
+			case "fish":
+				_ = cmd.Root().GenFishCompletion(os.Stdout, true)
+			case "powershell":
+				_ = cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+			}
+		},
+	})
+
 	zfile.ProjectPath, _ = os.Getwd()
 }
 

@@ -21,7 +21,7 @@ import (
 func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 	app = &cobra.Command{
 		Use:   "start",
-		Short: "Start listening service",
+		Short: "启动监听服务",
 		Run: func(cmd *cobra.Command, args []string) {
 			var cfgPath string
 			cfgPath, _ = cmd.Flags().GetString("cfg")
@@ -54,10 +54,9 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 }
 
 func showInitCmd(cmd *cobra.Command) {
-	util.Log.Infof(
-		"Please run `%s %s %s` %s\n", cmd.Root().Use,
+	util.Log.Printf(
+		"请运行 `%s %s %s` 以生成配置文件\n", cmd.Root().Use,
 		cmd.Parent().Use, initCmdUse,
-		"Generate configuration file",
 	)
 }
 
@@ -129,7 +128,7 @@ func start() {
 				if !ok {
 					return
 				}
-				util.Log.Println("error:", err)
+				util.Log.Println("错误:", err)
 			}
 		}
 	}()

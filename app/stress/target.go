@@ -39,18 +39,18 @@ type (
 
 func validateTarget(target Target) error {
 	if target.URL == "" {
-		return errors.New("empty URL")
+		return errors.New("URL 为空")
 	}
 	if target.Method == "" {
-		return errors.New("method cannot be empty string")
+		return errors.New("请求方法不能为空")
 	}
 	if target.Timeout != "" {
 		timeout, err := time.ParseDuration(target.Timeout)
 		if err != nil {
-			return errors.New("failed to parse timeout: " + target.Timeout)
+			return errors.New("解析超时时间失败: " + target.Timeout)
 		}
 		if timeout <= time.Millisecond {
-			return errors.New("timeout must be greater than one millisecond")
+			return errors.New("超时时间必须大于 1 毫秒")
 		}
 	}
 	return nil

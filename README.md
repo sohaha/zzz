@@ -1,44 +1,46 @@
 # zzz
 
-日常开发辅助工具 _- Daily development aids_
+日常开发辅助工具
 
 ## 安装
 
-**Linux or MacOS**
+**Linux / macOS**
 
-一键安装
+一键安装：
 
 ```bash
 curl -L https://raw.githubusercontent.com/sohaha/zzz/master/install.sh | bash
 ```
 
+手动安装：
 
-手动安装
-
-_[下载对应版本压缩包](https://github.com/sohaha/zzz/releases)_
-
-```bash
-# 解压
-tar zxvf zzz_1.0.0_Linux_x86_64.tar.gz
-# 执行权限
-sudo chmod +x ./zzz
-# 执行安装到系统（可不安装）
-./zzz more install
-# 测试执行
-zzz help
-```
+1. [下载对应版本压缩包](https://github.com/sohaha/zzz/releases)
+2. 解压：
+   ```bash
+   tar zxvf zzz_1.0.0_Linux_x86_64.tar.gz
+   ```
+3. 赋予可执行权限：
+   ```bash
+   sudo chmod +x ./zzz
+   ```
+4. 安装到系统（可选）：
+   ```bash
+   ./zzz more install
+   ```
+5. 测试：
+   ```bash
+   zzz help
+   ```
 
 **Windows**
 
-手动下载 [zzz_Windows_x86_64.tar.gz
-](https://github.com/sohaha/zzz/releases) （ [国内点这里下载](https://github.73zls.com/sohaha/zzz/releases) ）
+手动下载 [zzz_Windows_x86_64.tar.gz](https://github.com/sohaha/zzz/releases)（[国内镜像](https://github.73zls.com/sohaha/zzz/releases)）。
 
-然后打开 cmd 执行 `zzz.exe more install` 或者 设置自行环境变量。
-
+下载后在 cmd 执行 `zzz.exe more install`，或自行配置环境变量。
 
 **Go 安装**
 
-如果本地有 Go 环境可使用该方式
+本地有 Go 环境可直接：
 
 ```bash
 go install github.com/sohaha/zzz@latest
@@ -57,12 +59,11 @@ npm i -g @sohaha/zzz
 zzz help
 ```
 
-## Thanks
+## 致谢
 
-[YXVM](https://yxvm.com/aff.php?aff=765)赞助了本项目
-
-[NodeSupport](https://github.com/NodeSeekDev/NodeSupport)赞助了本项目
+- [YXVM](https://yxvm.com/aff.php?aff=765) 赞助
+- [NodeSupport](https://github.com/NodeSeekDev/NodeSupport) 赞助
 
 <div align="center">
-  <p>⭐ 如果你喜欢这个项目，请给它一个星标! ⭐</p>
+  <p>⭐ 如果你喜欢这个项目，请给它一个星标！⭐</p>
 </div>
