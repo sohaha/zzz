@@ -34,15 +34,9 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 
 	util.Log.Printf("%s 正在提交更改...\n", display())
 
-	code, _, _, _ := zshell.ExecCommand(context.Background(), []string{
-		"claude", "-p", PromptCommitMessage,
-		"--allowedTools", "Bash(git)",
-		"--dangerously-skip-permissions",
-	}, nil, nil, nil)
-
-	if code != 0 {
+	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
 		CleanupBranch(branchName, mainBranch)
-		return fmt.Errorf("提交更改失败")
+		return fmt.Errorf("提交更改失败: %v", err)
 	}
 
 	hasChangesAfter, _ := CheckHasChanges()
@@ -53,7 +47,7 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 
 	util.Log.Printf("%s 已在分支提交更改: %s\n", display(), branchName)
 
-	code, commitMsg, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "log", "-1", "--format=%B", branchName}, nil, nil, nil)
+	_, commitMsg, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "log", "-1", "--format=%B", branchName}, nil, nil, nil)
 	commitMsg = strings.TrimSpace(commitMsg)
 	lines := strings.Split(commitMsg, "\n")
 	commitTitle := lines[0]
@@ -107,7 +101,9 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 			}
 		} else {
 			util.Log.Warnf("%s PR 检查失败或超时，正在关闭 PR 并删除远程分支...", display())
-			zshell.ExecCommand(context.Background(), []string{"gh", "pr", "close", prNumber, "--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo), "--delete-branch"}, nil, nil, nil)
+			if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"gh", "pr", "close", prNumber, "--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo), "--delete-branch"}, nil, nil, nil); code != 0 {
+				util.Log.Warnf("关闭 PR 失败")
+			}
 			CleanupBranch(branchName, mainBranch)
 			return fmt.Errorf("PR 检查失败")
 		}
@@ -189,7 +185,9 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 
 		var prInfo PRInfo
 		if code == 0 && prInfoJSON != "" {
-			json.Unmarshal([]byte(strings.TrimSpace(prInfoJSON)), &prInfo)
+			if err := json.Unmarshal([]byte(strings.TrimSpace(prInfoJSON)), &prInfo); err != nil {
+				util.Log.Warnf("解析 PR 信息失败: %v", err)
+			}
 		}
 
 		reviewsPending := false

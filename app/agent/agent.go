@@ -46,12 +46,8 @@ func runMainLoop(ctx *Context) error {
 		util.Log.Printf("%s 开始迭代...\n", display())
 
 		if err := executeSingleIteration(ctx, iteration, display); err != nil {
-			ctx.ErrorCount++
-			ctx.ExtraIterations++
-			util.Log.Errorf("%s 迭代失败: %v", display(), err)
-
-			if ctx.ErrorCount >= 3 {
-				return fmt.Errorf("连续发生 3 次错误,退出")
+			if err := handleIterationError(ctx, display, err); err != nil {
+				return err
 			}
 		} else {
 			ctx.ErrorCount = 0
@@ -62,10 +58,21 @@ func runMainLoop(ctx *Context) error {
 		}
 
 		iteration++
-		time.Sleep(time.Second)
+		time.Sleep(IterationDelaySeconds * time.Second)
 	}
 
 	showCompletionSummary(ctx)
+	return nil
+}
+
+func handleIterationError(ctx *Context, display func() string, err error) error {
+	ctx.ErrorCount++
+	ctx.ExtraIterations++
+	util.Log.Printf("%s 错误: %v\n", display(), err)
+
+	if ctx.ErrorCount >= MaxConsecutiveErrors {
+		return fmt.Errorf("连续发生 %d 次错误，退出", MaxConsecutiveErrors)
+	}
 	return nil
 }
 
@@ -95,8 +102,7 @@ func shouldContinue(ctx *Context) bool {
 }
 
 func executeSingleIteration(ctx *Context, iteration int, display func() string) error {
-	mainBranch := "main"
-	branchName := ""
+	var mainBranch, branchName string
 
 	if ctx.EnableCommits && ctx.EnableBranches {
 		var err error
@@ -108,8 +114,8 @@ func executeSingleIteration(ctx *Context, iteration int, display func() string) 
 
 	enhancedPrompt := BuildEnhancedPrompt(ctx)
 
-	util.Log.Printf("%s 正在运行 Agent...\n", display())
-	result, err := RunClaudeIteration(ctx, enhancedPrompt, display)
+	util.Log.Printf("%s 正在运行 %s Agent...\n", display(), ctx.Backend.Name())
+	result, err := ctx.Backend.RunIteration(ctx, enhancedPrompt, display)
 	if err != nil {
 		CleanupBranch(branchName, mainBranch)
 		return err
@@ -138,42 +144,27 @@ func executeSingleIteration(ctx *Context, iteration int, display func() string) 
 	if ctx.ReviewPrompt != "" {
 		if err := RunReviewerIteration(ctx, display); err != nil {
 			CleanupBranch(branchName, mainBranch)
-			ctx.ErrorCount++
-			ctx.ExtraIterations++
-			if ctx.ErrorCount >= 3 {
-				return fmt.Errorf("连续发生 3 次错误,退出")
-			}
 			return fmt.Errorf("审查失败: %v", err)
 		}
 	}
 
 	util.Log.Printf("%s 工作完成\n", display())
 
-	if ctx.EnableCommits {
-		if ctx.EnableBranches {
-			if err := CommitAndCreatePR(ctx, branchName, mainBranch, display); err != nil {
-				ctx.ErrorCount++
-				ctx.ExtraIterations++
-				util.Log.Errorf("%s PR 合并队列失败 (%d 个连续错误)", display(), ctx.ErrorCount)
-				if ctx.ErrorCount >= 3 {
-					return fmt.Errorf("连续发生 3 次错误，退出")
-				}
-				return err
-			}
-		} else {
-			if err := CommitOnCurrentBranch(ctx, display); err != nil {
-				ctx.ErrorCount++
-				ctx.ExtraIterations++
-				util.Log.Errorf("%s 提交失败 (%d 个连续错误)", display(), ctx.ErrorCount)
-				if ctx.ErrorCount >= 3 {
-					return fmt.Errorf("连续发生 3 次错误，退出")
-				}
-				return err
-			}
-		}
-	} else {
-		util.Log.Printf("%s 跳过提交（没设置 --enable-commits 标志）\n", display())
+	if !ctx.EnableCommits {
+		util.Log.Printf("%s 跳过提交（未开启 --enable-commits）\n", display())
 		CleanupBranch(branchName, mainBranch)
+		return nil
+	}
+
+	var commitErr error
+	if ctx.EnableBranches {
+		commitErr = CommitAndCreatePR(ctx, branchName, mainBranch, display)
+	} else {
+		commitErr = CommitOnCurrentBranch(ctx, display)
+	}
+
+	if commitErr != nil {
+		return commitErr
 	}
 
 	return nil
@@ -192,5 +183,5 @@ func showCompletionSummary(ctx *Context) {
 		util.Log.Printf("完成%s\n", elapsedMsg)
 	}
 
-	_ = os.Remove(ctx.NotesFile)
+	os.Remove(ctx.NotesFile)
 }

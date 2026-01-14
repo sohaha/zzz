@@ -86,11 +86,14 @@ func DetectGitHubRepo() (owner, repo string, err error) {
 }
 
 func CheckHasChanges() (bool, error) {
-	code1, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "diff", "--quiet"}, nil, nil, nil)
-	code2, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "diff", "--cached", "--quiet"}, nil, nil, nil)
-	_, stdout, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "ls-files", "--others", "--exclude-standard"}, nil, nil, nil)
+	code, output, _, _ := zshell.ExecCommand(context.Background(),
+		[]string{"git", "status", "--porcelain"}, nil, nil, nil)
 
-	return code1 != 0 || code2 != 0 || strings.TrimSpace(stdout) != "", nil
+	if code != 0 {
+		return false, fmt.Errorf("git status 失败")
+	}
+
+	return strings.TrimSpace(output) != "", nil
 }
 
 func CleanupBranch(branchName, mainBranch string) {

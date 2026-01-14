@@ -15,9 +15,15 @@ func CreateIterationBranch(ctx *Context, iteration int, display func() string) (
 	mainBranch = GetCurrentBranch()
 
 	if strings.HasPrefix(mainBranch, ctx.BranchPrefix) {
+		originalBranch := mainBranch
 		util.Log.Warnf("%s 已在迭代分支上: %s", display(), mainBranch)
-		zshell.ExecCommand(context.Background(), []string{"git", "checkout", "main"}, nil, nil, nil)
-		mainBranch = "main"
+		if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "checkout", "main"}, nil, nil, nil); code == 0 {
+			mainBranch = "main"
+		} else if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "checkout", "master"}, nil, nil, nil); code == 0 {
+			mainBranch = "master"
+		} else {
+			return "", "", fmt.Errorf("无法切换到 main/master 分支，当前在迭代分支: %s", originalBranch)
+		}
 	}
 
 	dateStr := ztime.FormatTime(time.Now(), "2006-01-02")
@@ -56,14 +62,8 @@ func CommitOnCurrentBranch(ctx *Context, display func() string) error {
 
 	util.Log.Printf("%s 正在当前分支提交更改...\n", display())
 
-	code, _, _, _ := zshell.ExecCommand(context.Background(), []string{
-		"claude", "-p", PromptCommitMessage,
-		"--allowedTools", "Bash(git)",
-		"--dangerously-skip-permissions",
-	}, nil, nil, nil)
-
-	if code != 0 {
-		return fmt.Errorf("提交更改失败")
+	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
+		return fmt.Errorf("提交更改失败: %v", err)
 	}
 
 	hasChangesAfter, _ := CheckHasChanges()

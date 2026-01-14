@@ -103,7 +103,7 @@ func CleanupWorktree(ctx *Context) {
 		util.Log.Printf("Worktree 移除成功\n")
 	} else {
 		util.Log.Warnf("警告：移除 worktree 失败（可能需要手动清理）\n")
-		util.Log.Printf("   您可以手动移除: git worktree remove %s --force\n", worktreePath)
+		util.Log.Printf("您可以手动移除: git worktree remove %s --force\n", worktreePath)
 	}
 }
 
@@ -114,7 +114,6 @@ func ListWorktrees() error {
 	}
 
 	util.Log.Info("活跃的 Git Worktrees:")
-	fmt.Println()
 
 	code, output, stderr, _ := zshell.ExecCommand(context.Background(), []string{"git", "worktree", "list"}, nil, nil, nil)
 	if code != 0 {

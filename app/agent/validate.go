@@ -8,8 +8,8 @@ import (
 )
 
 func ValidateRequirements(ctx *Context) error {
-	if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"claude", "--version"}, nil, nil, nil); code != 0 {
-		return fmt.Errorf("未安装 Claude Code: https://claude.ai/code")
+	if err := ctx.Backend.Validate(); err != nil {
+		return err
 	}
 
 	if ctx.EnableCommits {

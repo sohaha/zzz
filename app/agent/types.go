@@ -5,11 +5,14 @@ import (
 )
 
 const (
-	CompletionSignal = "CONTINUOUS_PROJECT_COMPLETE"
+	CompletionSignal      = "CONTINUOUS_PROJECT_COMPLETE"
+	MaxConsecutiveErrors  = 3
+	IterationDelaySeconds = 1
 )
 
 type Context struct {
 	Prompt              string
+	Model               string
 	MaxRuns             int
 	MaxCost             float64
 	MaxDuration         time.Duration
@@ -29,6 +32,7 @@ type Context struct {
 	WorktreeName        string
 	WorktreeBaseDir     string
 	CleanupWorktree     bool
+	Backend             AIBackend
 
 	SuccessfulIterations int
 	ErrorCount           int
@@ -38,7 +42,7 @@ type Context struct {
 	StartTime            time.Time
 }
 
-type ClaudeResult struct {
+type BackendResult struct {
 	Type         string  `json:"type"`
 	Result       string  `json:"result"`
 	IsError      bool    `json:"is_error"`
