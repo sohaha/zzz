@@ -16,8 +16,6 @@ type Context struct {
 	MaxRuns             int
 	MaxCost             float64
 	MaxDuration         time.Duration
-	Owner               string
-	Repo                string
 	EnableCommits       bool
 	EnableBranches      bool
 	BranchPrefix        string
@@ -33,6 +31,10 @@ type Context struct {
 	WorktreeBaseDir     string
 	CleanupWorktree     bool
 	Backend             AIBackend
+
+	// 仓库提供商抽象
+	RepoProvider RepositoryProvider
+	RepoInfo     *RepositoryInfo
 
 	SuccessfulIterations int
 	ErrorCount           int

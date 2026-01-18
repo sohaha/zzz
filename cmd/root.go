@@ -195,7 +195,7 @@ func createCfg(cfgFilepath string) error {
 	if !zfile.FileExist(cfgFilepath) {
 		config := root.GetExampleConfig(version)
 		zfile.RealPathMkdir(filepath.Dir(cfgFilepath))
-		return ioutil.WriteFile(cfgFilepath, []byte(config), 0644)
+		return ioutil.WriteFile(cfgFilepath, []byte(config), 0o644)
 	}
 	return nil
 }
