@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/sohaha/zlsgo/zshell"
 	"github.com/sohaha/zzz/app/agent"
 )
 
@@ -18,8 +19,6 @@ var (
 	agentMaxRuns             int
 	agentMaxCost             float64
 	agentMaxDuration         string
-	agentOwner               string
-	agentRepo                string
 	agentEnableCommits       bool
 	agentEnableBranches      bool
 	agentBranchPrefix        string
@@ -35,6 +34,12 @@ var (
 	agentCleanupWorktree     bool
 	agentListWorktrees       bool
 	agentBackendName         string
+
+	// 仓库提供商参数
+	agentProvider     string
+	agentRepoID       string
+	agentRepoAPIKey   string
+	agentRepoEndpoint string
 )
 
 var agentCmd = &cobra.Command{
@@ -59,8 +64,6 @@ func init() {
 	agentCmd.Flags().IntVarP(&agentMaxRuns, "max-runs", "m", 0, "成功迭代的最大次数 (0 为无限)")
 	agentCmd.Flags().Float64Var(&agentMaxCost, "max-cost", 0, "最大花费成本 (美元) (0 为无限)")
 	agentCmd.Flags().StringVar(&agentMaxDuration, "max-duration", "", "最大运行时长 (例如: 2h, 30m, 1h30m)")
-	agentCmd.Flags().StringVar(&agentOwner, "owner", "", "GitHub 仓库所有者 (未提供时从 git remote 自动检测)")
-	agentCmd.Flags().StringVar(&agentRepo, "repo", "", "GitHub 仓库名称 (未提供时从 git remote 自动检测)")
 	agentCmd.Flags().BoolVar(&agentEnableCommits, "enable-commits", false, "启用自动提交和 PR 创建")
 	agentCmd.Flags().BoolVar(&agentEnableBranches, "enable-branches", false, "启用分支和 PR 创建")
 	agentCmd.Flags().StringVar(&agentBranchPrefix, "branch-prefix", "continuous/", "迭代分支名前缀")
@@ -76,6 +79,12 @@ func init() {
 	agentCmd.Flags().BoolVar(&agentCleanupWorktree, "cleanup-worktree", false, "完成后移除 worktree")
 	agentCmd.Flags().BoolVar(&agentListWorktrees, "list-worktrees", false, "列出所有活动的 git worktree 并退出")
 	agentCmd.Flags().StringVar(&agentBackendName, "agent", "claude-code", "AI 后端 [claude-code, codex]")
+
+	// 仓库提供商参数
+	agentCmd.Flags().StringVar(&agentProvider, "provider", "", "仓库提供商 [github, cool]，不指定时从 git remote 自动检测")
+	agentCmd.Flags().StringVar(&agentRepoID, "repo-id", "", "仓库 ID (格式: owner/repo)，不指定时从 git remote 自动检测")
+	agentCmd.Flags().StringVar(&agentRepoAPIKey, "repo-api-key", "", "API Key (或使用环境变量 COOL_API_KEY)")
+	agentCmd.Flags().StringVar(&agentRepoEndpoint, "repo-endpoint", "", "API 端点 (仅 API-based providers，如 https://api.cnb.cool)")
 }
 
 func runAgentCommand(cmd *cobra.Command, args []string) error {
@@ -144,23 +153,78 @@ func runAgentCommand(cmd *cobra.Command, args []string) error {
 	}
 
 	if ctx.EnableCommits {
-		owner, repo, err := agent.DetectGitHubRepo()
-		if err != nil && agentOwner == "" && agentRepo == "" {
-			return fmt.Errorf("检测 GitHub 仓库失败: %v\n请使用 --owner 和 --repo 参数，或从带有 GitHub remote 的 Git 仓库运行", err)
-		}
-		if agentOwner != "" {
-			ctx.Owner = agentOwner
+		// 检测或解析仓库信息
+		var repoInfo *agent.RepositoryInfo
+		var providerName string
+
+		if agentRepoID != "" {
+			// 手动指定仓库 ID
+			parts := strings.Split(agentRepoID, "/")
+			if len(parts) != 2 {
+				return fmt.Errorf("--repo-id 格式错误，应为 'owner/repo'")
+			}
+
+			// 优先使用 --provider 参数，否则自动检测
+			if agentProvider != "" {
+				providerName = agentProvider
+			} else {
+				// 尝试从 git remote 检测
+				code, stdout, _, err := zshell.ExecCommand(nil,
+					[]string{"git", "remote", "get-url", "origin"}, nil, nil, nil)
+				if err == nil && code == 0 {
+					providerName = agent.DetectProviderFromRemote(stdout)
+				}
+				if providerName == "" {
+					providerName = "github" // 默认
+				}
+			}
+
+			repoInfo = &agent.RepositoryInfo{
+				Provider: providerName,
+				Owner:    parts[0],
+				Repo:     parts[1], // 只取仓库名，不包含 owner
+			}
 		} else {
-			ctx.Owner = owner
-		}
-		if agentRepo != "" {
-			ctx.Repo = agentRepo
-		} else {
-			ctx.Repo = repo
+			// 完全自动检测
+			code, stdout, _, err := zshell.ExecCommand(nil,
+				[]string{"git", "remote", "get-url", "origin"}, nil, nil, nil)
+			if err != nil || code != 0 {
+				return fmt.Errorf("无法检测仓库类型，请使用 --repo-id 或 --provider 手动指定")
+			}
+
+			providerName = agent.DetectProviderFromRemote(stdout)
+			if providerName == "" {
+				return fmt.Errorf("无法检测仓库类型，请使用 --repo-id 或 --provider 手动指定")
+			}
+
+			providerOpts := agent.ProviderOptions{
+				Endpoint: agentRepoEndpoint,
+			}
+			tempProvider, err := agent.NewRepositoryProvider(providerName, providerOpts)
+			if err != nil {
+				return err
+			}
+
+			repoInfo, err = tempProvider.DetectFromGit()
+			if err != nil {
+				return fmt.Errorf("检测仓库失败: %v\n请使用 --repo-id 手动指定", err)
+			}
 		}
 
-		if ctx.Owner == "" || ctx.Repo == "" {
-			return fmt.Errorf("需要 GitHub owner 和 repo，请使用 --owner 和 --repo 参数")
+		providerOpts := agent.ProviderOptions{
+			Endpoint: agentRepoEndpoint,
+		}
+		provider, err := agent.NewRepositoryProvider(providerName, providerOpts)
+		if err != nil {
+			return err
+		}
+
+		ctx.RepoProvider = provider
+		ctx.RepoInfo = repoInfo
+
+		// 验证 Provider
+		if err := provider.Validate(ctx); err != nil {
+			return fmt.Errorf("仓库提供商验证失败: %v", err)
 		}
 	}
 

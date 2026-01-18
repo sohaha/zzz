@@ -2,9 +2,7 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -64,26 +62,21 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 	}
 
 	util.Log.Printf("%s 正在创建 Pull Request...\n", display())
-	code, prOutput, stderr, _ := zshell.ExecCommand(context.Background(), []string{
-		"gh", "pr", "create",
-		"--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo),
-		"--title", commitTitle,
-		"--body", commitBody,
-		"--base", mainBranch,
-	}, nil, nil, nil)
 
-	if code != 0 {
+	// 使用 RepositoryProvider 抽象层创建 PR
+	prInfo, err := ctx.RepoProvider.CreatePullRequest(ctx, &PRCreateOptions{
+		Title:        commitTitle,
+		Body:         commitBody,
+		SourceBranch: branchName,
+		TargetBranch: mainBranch,
+	})
+
+	if err != nil {
 		CleanupBranch(branchName, mainBranch)
-		return fmt.Errorf("创建 PR 失败: %s", stderr)
+		return fmt.Errorf("创建 PR 失败: %v", err)
 	}
 
-	prNumberRe := regexp.MustCompile(`(?:pull/|#)(\d+)`)
-	matches := prNumberRe.FindStringSubmatch(prOutput)
-	if len(matches) < 2 {
-		CleanupBranch(branchName, mainBranch)
-		return fmt.Errorf("从输出中提取 PR 编号失败: %s", prOutput)
-	}
-	prNumber := matches[1]
+	prNumber := prInfo.ID
 
 	util.Log.Printf("%s PR #%s 已创建，等待 5 秒让 GitHub 准备...\n", display(), prNumber)
 	time.Sleep(5 * time.Second)
@@ -95,14 +88,14 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 				util.Log.Printf("%s CI 修复成功!\n", display())
 			} else {
 				util.Log.Warnf("%s CI 修复失败，正在关闭 PR 并删除远程分支...", display())
-				zshell.ExecCommand(context.Background(), []string{"gh", "pr", "close", prNumber, "--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo), "--delete-branch"}, nil, nil, nil)
+				ctx.RepoProvider.ClosePullRequest(ctx, prNumber, true)
 				CleanupBranch(branchName, mainBranch)
 				return fmt.Errorf("CI 修复尝试后 PR 检查仍失败")
 			}
 		} else {
 			util.Log.Warnf("%s PR 检查失败或超时，正在关闭 PR 并删除远程分支...", display())
-			if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"gh", "pr", "close", prNumber, "--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo), "--delete-branch"}, nil, nil, nil); code != 0 {
-				util.Log.Warnf("关闭 PR 失败")
+			if err := ctx.RepoProvider.ClosePullRequest(ctx, prNumber, true); err != nil {
+				util.Log.Warnf("关闭 PR 失败: %v", err)
 			}
 			CleanupBranch(branchName, mainBranch)
 			return fmt.Errorf("PR 检查失败")
@@ -124,25 +117,13 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 	for i := 0; i < maxIterations; i++ {
 		time.Sleep(10 * time.Second)
 
-		code, checksJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
-			"gh", "pr", "checks", prNumber,
-			"--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo),
-			"--json", "state,bucket",
-		}, nil, nil, nil)
-
-		var checks []PRCheckResult
+		checks, err := ctx.RepoProvider.GetPRChecks(ctx, prNumber)
 		noChecksConfigured := false
 
-		if code != 0 || checksJSON == "" {
-			if strings.Contains(checksJSON, "no checks") {
+		if err != nil {
+			if strings.Contains(err.Error(), "no checks") {
 				noChecksConfigured = true
 			} else {
-				continue
-			}
-		}
-
-		if !noChecksConfigured && checksJSON != "" {
-			if err := json.Unmarshal([]byte(strings.TrimSpace(checksJSON)), &checks); err != nil {
 				continue
 			}
 		}
@@ -177,26 +158,19 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 			}
 		}
 
-		code, prInfoJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
-			"gh", "pr", "view", prNumber,
-			"--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo),
-			"--json", "reviewDecision,reviewRequests",
-		}, nil, nil, nil)
-
-		var prInfo PRInfo
-		if code == 0 && prInfoJSON != "" {
-			if err := json.Unmarshal([]byte(strings.TrimSpace(prInfoJSON)), &prInfo); err != nil {
-				util.Log.Warnf("解析 PR 信息失败: %v", err)
-			}
+		reviewStatus, err := ctx.RepoProvider.GetPRReviewStatus(ctx, prNumber)
+		if err != nil {
+			util.Log.Warnf("获取 PR 审查状态失败: %v", err)
+			reviewStatus = &PRReviewStatus{}
 		}
 
 		reviewsPending := false
-		if prInfo.ReviewDecision == "REVIEW_REQUIRED" || len(prInfo.ReviewRequests) > 0 {
+		if reviewStatus.ReviewDecision == "REVIEW_REQUIRED" || len(reviewStatus.ReviewRequests) > 0 {
 			reviewsPending = true
 		}
 
 		currentState := fmt.Sprintf("checks:%d,success:%d,pending:%d,failed:%d,review:%s",
-			len(checks), successCount, pendingCount, failedCount, prInfo.ReviewDecision)
+			len(checks), successCount, pendingCount, failedCount, reviewStatus.ReviewDecision)
 
 		if currentState != prevState {
 			util.Log.Printf("%s 正在检查 PR 状态 (迭代 %d/%d)...\n", display(), i+1, maxIterations)
@@ -204,19 +178,19 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 			if len(checks) > 0 {
 				util.Log.Printf("   %d    %d    %d\n", successCount, pendingCount, failedCount)
 			}
-			reviewStatus := "None"
-			if prInfo.ReviewDecision != "" {
-				reviewStatus = prInfo.ReviewDecision
-			} else if len(prInfo.ReviewRequests) > 0 {
-				reviewStatus = fmt.Sprintf("已请求 %d 个审查", len(prInfo.ReviewRequests))
+			reviewStatusStr := "None"
+			if reviewStatus.ReviewDecision != "" {
+				reviewStatusStr = reviewStatus.ReviewDecision
+			} else if len(reviewStatus.ReviewRequests) > 0 {
+				reviewStatusStr = fmt.Sprintf("已请求 %d 个审查", len(reviewStatus.ReviewRequests))
 			}
-			util.Log.Printf("审查状态: %s\n", reviewStatus)
+			util.Log.Printf("审查状态: %s\n", reviewStatusStr)
 			prevState = currentState
 		}
 
 		if allCompleted && allSuccess {
-			if prInfo.ReviewDecision == "APPROVED" ||
-				(prInfo.ReviewDecision == "" && len(prInfo.ReviewRequests) == 0) {
+			if reviewStatus.ReviewDecision == "APPROVED" ||
+				(reviewStatus.ReviewDecision == "" && len(reviewStatus.ReviewRequests) == 0) {
 				util.Log.Printf("%s 所有 PR 检查和审查已通过\n", display())
 				return true
 			} else if reviewsPending {
@@ -229,7 +203,7 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 			return false
 		}
 
-		if prInfo.ReviewDecision == "CHANGES_REQUESTED" {
+		if reviewStatus.ReviewDecision == "CHANGES_REQUESTED" {
 			util.Log.Errorf("%s PR 审查要求修改", display())
 			return false
 		}
@@ -241,42 +215,31 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 
 func MergePRAndCleanup(ctx *Context, prNumber, branchName, mainBranch string, display func() string) error {
 	util.Log.Printf("%s 正在使用 main 最新内容更新分支...\n", display())
-	code, updateOutput, _, _ := zshell.ExecCommand(context.Background(), []string{
-		"gh", "pr", "update-branch", prNumber,
-		"--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo),
-	}, nil, nil, nil)
 
-	if code == 0 {
+	if err := ctx.RepoProvider.UpdatePRBranch(ctx, prNumber); err != nil {
+		util.Log.Warnf("%s 分支更新失败: %v", display(), err)
+		if !strings.Contains(err.Error(), "already up-to-date") && !strings.Contains(err.Error(), "is up to date") {
+			return fmt.Errorf("分支更新失败: %v", err)
+		}
+		util.Log.Printf("%s 分支已是最新\n", display())
+	} else {
 		util.Log.Printf("%s 分支已更新，重新检查 PR 状态...\n", display())
 		if !WaitForPRChecks(ctx, prNumber, display) {
 			return fmt.Errorf("分支更新后 PR 检查失败")
 		}
-	} else {
-		if strings.Contains(updateOutput, "already up-to-date") || strings.Contains(updateOutput, "is up to date") {
-			util.Log.Printf("%s 分支已是最新\n", display())
-		} else {
-			util.Log.Warnf("%s 分支更新失败: %s", display(), updateOutput)
-			return fmt.Errorf("分支更新失败")
-		}
 	}
 
-	mergeFlag := "--squash"
+	strategy := MergeStrategySquash
 	switch ctx.MergeStrategy {
 	case "merge":
-		mergeFlag = "--merge"
+		strategy = MergeStrategyMerge
 	case "rebase":
-		mergeFlag = "--rebase"
+		strategy = MergeStrategyRebase
 	}
 
 	util.Log.Printf("%s 正在使用 %s 策略合并 PR #%s...\n", display(), ctx.MergeStrategy, prNumber)
-	code, _, _, _ = zshell.ExecCommand(context.Background(), []string{
-		"gh", "pr", "merge", prNumber,
-		"--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo),
-		mergeFlag,
-	}, nil, nil, nil)
-
-	if code != 0 {
-		return fmt.Errorf("合并 PR 失败 (可能存在冲突或被阻止)")
+	if err := ctx.RepoProvider.MergePullRequest(ctx, prNumber, strategy); err != nil {
+		return fmt.Errorf("合并 PR 失败: %v", err)
 	}
 
 	util.Log.Printf("%s 正在从 main 拉取最新内容...\n", display())
@@ -290,49 +253,7 @@ func MergePRAndCleanup(ctx *Context, prNumber, branchName, mainBranch string, di
 }
 
 func GetFailedRunID(ctx *Context, prNumber string) (string, error) {
-	code, prInfoJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
-		"gh", "pr", "view", prNumber,
-		"--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo),
-		"--json", "headRefOid",
-	}, nil, nil, nil)
-
-	if code != 0 {
-		return "", fmt.Errorf("获取 PR 信息失败")
-	}
-
-	var prInfo PRInfo
-	if err := json.Unmarshal([]byte(strings.TrimSpace(prInfoJSON)), &prInfo); err != nil {
-		return "", err
-	}
-
-	headSHA := prInfo.HeadRefOid
-	if headSHA == "" {
-		return "", fmt.Errorf("未找到 head SHA")
-	}
-
-	code, runsJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
-		"gh", "run", "list",
-		"--repo", fmt.Sprintf("%s/%s", ctx.Owner, ctx.Repo),
-		"--commit", headSHA,
-		"--status", "failure",
-		"--limit", "1",
-		"--json", "databaseId",
-	}, nil, nil, nil)
-
-	if code != 0 {
-		return "", fmt.Errorf("列出运行记录失败")
-	}
-
-	var runs []WorkflowRun
-	if err := json.Unmarshal([]byte(strings.TrimSpace(runsJSON)), &runs); err != nil {
-		return "", err
-	}
-
-	if len(runs) == 0 {
-		return "", fmt.Errorf("未找到失败的运行记录")
-	}
-
-	return fmt.Sprintf("%d", runs[0].DatabaseId), nil
+	return ctx.RepoProvider.GetFailedWorkflowRun(ctx, prNumber)
 }
 
 func AttemptCIFixAndRecheck(ctx *Context, prNumber, branchName string, display func() string) bool {

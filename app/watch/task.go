@@ -160,16 +160,16 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 		stdout, err := cmd.StdoutPipe()
 		stderr, stderrErr := cmd.StderrPipe()
 		if err != nil {
-			util.Log.Println("错误: ", err.Error())
+			util.Log.Println("错误:", err.Error())
 			return nil
 		}
 		if stderrErr != nil {
-			util.Log.Println("错误: ", stderrErr.Error())
+			util.Log.Println("错误:", stderrErr.Error())
 			return nil
 		}
 		err = cmd.Start()
 		if err != nil {
-			util.Log.Println("命令错误: ", err)
+			util.Log.Println("命令错误:", err)
 			break
 		}
 

@@ -104,7 +104,7 @@ func RunCIFixIteration(ctx *Context, prNumber string, display func() string, att
 
 - Repository: %s/%s
 - PR Number: #%s
-- Branch: (current branch)`, PromptCIFixContext, ctx.Owner, ctx.Repo, prNumber)
+- Branch: (current branch)`, PromptCIFixContext, ctx.RepoInfo.Owner, ctx.RepoInfo.Repo, prNumber)
 
 	if failedRunID != "" {
 		ciFixPrompt += fmt.Sprintf("\n- 失败的运行 ID: %s (使用 'gh run view %s --log-failed' 查看)", failedRunID, failedRunID)

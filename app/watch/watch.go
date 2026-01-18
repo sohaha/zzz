@@ -17,7 +17,7 @@ func addWatcher() {
 		if _dir == "." {
 			_dir = projectFolder
 		}
-		util.Log.Println("监控: ", _dir)
+		util.Log.Println("监控:", _dir)
 		err := watcher.Add(dir)
 		if err != nil {
 			util.Log.Fatal(err)
@@ -39,7 +39,7 @@ func addNewWatcher(dir string) {
 
 	if !inStringArray(fullDir, watchDirs) {
 		watchDirs = append(watchDirs, fullDir)
-		util.Log.Println("监控: ", fullDir)
+		util.Log.Println("监控:", fullDir)
 		err := watcher.Add(fullDir)
 		if err != nil {
 			util.Log.Errorf("添加监控失败 %s: %v\n", fullDir, err)
@@ -69,10 +69,10 @@ func arrIncludeDirs() {
 		arr := dirParse2Array(includeDirs[i])
 		isD := strings.Index(arr[0], ".") == 0
 		if len(arr) < 1 || len(arr) > 2 {
-			util.Log.Fatal("监听文件路径错误: ", includeDirs[i])
+			util.Log.Fatal("监听文件路径错误:", includeDirs[i])
 		}
 		if strings.HasPrefix(arr[0], "/") {
-			util.Log.Fatal("监控目录必须是相对路径: ", includeDirs[i])
+			util.Log.Fatal("监控目录必须是相对路径:", includeDirs[i])
 		}
 		isAll := len(arr) == 2 && arr[1] == "*"
 
