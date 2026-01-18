@@ -3,12 +3,13 @@ dist/
 zzz-watch.yaml
 test
 zzz
-test-tem\
+test-tem
 zzz-stress.toml
 /zzz.exe
 .vscode
-/vendor/
+vendor/
 .DS_Store
 /zzz_*
 /tmpApp
 build/main
+node_modules/

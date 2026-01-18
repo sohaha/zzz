@@ -31,7 +31,11 @@ func Run(ctx *Context) error {
 		util.Log.Printf("最大时长: %s\n", FormatDuration(ctx.MaxDuration))
 	}
 
-	return runMainLoop(ctx)
+	err := runMainLoop(ctx)
+
+	ExecuteCallbacks(ctx, err)
+
+	return err
 }
 
 func runMainLoop(ctx *Context) error {

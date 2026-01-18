@@ -40,6 +40,11 @@ var (
 	agentRepoID       string
 	agentRepoAPIKey   string
 	agentRepoEndpoint string
+
+	// 回调命令
+	agentOnComplete string
+	agentOnError    string
+	agentOnFinish   string
 )
 
 var agentCmd = &cobra.Command{
@@ -85,6 +90,11 @@ func init() {
 	agentCmd.Flags().StringVar(&agentRepoID, "repo-id", "", "仓库 ID (格式: owner/repo)，不指定时从 git remote 自动检测")
 	agentCmd.Flags().StringVar(&agentRepoAPIKey, "repo-api-key", "", "API Key (或使用环境变量 COOL_API_KEY)")
 	agentCmd.Flags().StringVar(&agentRepoEndpoint, "repo-endpoint", "", "API 端点 (仅 API-based providers，如 https://api.cnb.cool)")
+
+	// 回调命令
+	agentCmd.Flags().StringVar(&agentOnComplete, "on-complete", "", "成功完成时执行的 shell 命令")
+	agentCmd.Flags().StringVar(&agentOnError, "on-error", "", "失败时执行的 shell 命令")
+	agentCmd.Flags().StringVar(&agentOnFinish, "on-finish", "", "完成时执行的命令 (无论成功/失败)")
 }
 
 func runAgentCommand(cmd *cobra.Command, args []string) error {
@@ -142,6 +152,9 @@ func runAgentCommand(cmd *cobra.Command, args []string) error {
 		CleanupWorktree:     agentCleanupWorktree,
 		Backend:             backend,
 		StartTime:           time.Now(),
+		OnComplete:          agentOnComplete,
+		OnError:             agentOnError,
+		OnFinish:            agentOnFinish,
 	}
 
 	if agentMaxDuration != "" {

@@ -42,6 +42,10 @@ type Context struct {
 	TotalCost            float64
 	CompletionCount      int
 	StartTime            time.Time
+
+	OnComplete string
+	OnError    string
+	OnFinish   string
 }
 
 type BackendResult struct {
