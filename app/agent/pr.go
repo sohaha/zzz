@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +10,10 @@ import (
 )
 
 func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func() string) error {
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+
 	hasChanges, err := CheckHasChanges()
 	if err != nil {
 		return err
@@ -30,9 +33,17 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 		return nil
 	}
 
+	if ctx.RepoProvider == nil || ctx.RepoInfo == nil {
+		CleanupBranch(branchName, mainBranch)
+		return fmt.Errorf("仓库提供商未初始化")
+	}
+
 	util.Log.Printf("%s 正在提交更改...\n", display())
 
 	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
+		if runContextDone(ctx) {
+			return runContextErr(ctx)
+		}
 		CleanupBranch(branchName, mainBranch)
 		return fmt.Errorf("提交更改失败: %v", err)
 	}
@@ -45,23 +56,43 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 
 	util.Log.Printf("%s 已在分支提交更改: %s\n", display(), branchName)
 
-	_, commitMsg, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "log", "-1", "--format=%B", branchName}, nil, nil, nil)
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+
+	_, commitMsg, _, _ := zshell.ExecCommand(runContext(ctx), []string{"git", "log", "-1", "--format=%B", branchName}, nil, nil, nil)
 	commitMsg = strings.TrimSpace(commitMsg)
 	lines := strings.Split(commitMsg, "\n")
 	commitTitle := lines[0]
 	commitBody := ""
-	if len(lines) > 3 {
-		commitBody = strings.Join(lines[3:], "\n")
+	if len(lines) > 1 {
+		start := 1
+		if lines[1] == "" {
+			start = 2
+		}
+		if start < len(lines) {
+			commitBody = strings.Join(lines[start:], "\n")
+		}
 	}
 
 	util.Log.Printf("%s 正在推送分支...\n", display())
-	code, _, stderr, _ := zshell.ExecCommand(context.Background(), []string{"git", "push", "-u", "origin", branchName}, nil, nil, nil)
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+
+	code, _, stderr, _ := zshell.ExecCommand(runContext(ctx), []string{"git", "push", "-u", "origin", branchName}, nil, nil, nil)
 	if code != 0 {
+		if runContextDone(ctx) {
+			return runContextErr(ctx)
+		}
 		CleanupBranch(branchName, mainBranch)
 		return fmt.Errorf("推送分支失败: %s", stderr)
 	}
 
 	util.Log.Printf("%s 正在创建 Pull Request...\n", display())
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
 
 	// 使用 RepositoryProvider 抽象层创建 PR
 	prInfo, err := ctx.RepoProvider.CreatePullRequest(ctx, &PRCreateOptions{
@@ -79,20 +110,31 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 	prNumber := prInfo.ID
 
 	util.Log.Printf("%s PR #%s 已创建，等待 5 秒让 GitHub 准备...\n", display(), prNumber)
-	time.Sleep(5 * time.Second)
+	if !sleepWithContext(ctx, 5*time.Second) {
+		return runContextErr(ctx)
+	}
 
 	if !WaitForPRChecks(ctx, prNumber, display) {
+		if runContextDone(ctx) {
+			return runContextErr(ctx)
+		}
 		if ctx.CIRetryEnabled {
 			util.Log.Printf("%s CI 检查失败，正在尝试自动修复...\n", display())
 			if AttemptCIFixAndRecheck(ctx, prNumber, branchName, display) {
 				util.Log.Printf("%s CI 修复成功!\n", display())
 			} else {
+				if runContextDone(ctx) {
+					return runContextErr(ctx)
+				}
 				util.Log.Warnf("%s CI 修复失败，正在关闭 PR 并删除远程分支...", display())
 				ctx.RepoProvider.ClosePullRequest(ctx, prNumber, true)
 				CleanupBranch(branchName, mainBranch)
 				return fmt.Errorf("CI 修复尝试后 PR 检查仍失败")
 			}
 		} else {
+			if runContextDone(ctx) {
+				return runContextErr(ctx)
+			}
 			util.Log.Warnf("%s PR 检查失败或超时，正在关闭 PR 并删除远程分支...", display())
 			if err := ctx.RepoProvider.ClosePullRequest(ctx, prNumber, true); err != nil {
 				util.Log.Warnf("关闭 PR 失败: %v", err)
@@ -115,7 +157,9 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 	prevState := ""
 
 	for i := 0; i < maxIterations; i++ {
-		time.Sleep(10 * time.Second)
+		if !sleepWithContext(ctx, 10*time.Second) {
+			return false
+		}
 
 		checks, err := ctx.RepoProvider.GetPRChecks(ctx, prNumber)
 		noChecksConfigured := false
@@ -214,6 +258,10 @@ func WaitForPRChecks(ctx *Context, prNumber string, display func() string) bool 
 }
 
 func MergePRAndCleanup(ctx *Context, prNumber, branchName, mainBranch string, display func() string) error {
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+
 	util.Log.Printf("%s 正在使用 main 最新内容更新分支...\n", display())
 
 	if err := ctx.RepoProvider.UpdatePRBranch(ctx, prNumber); err != nil {
@@ -243,11 +291,14 @@ func MergePRAndCleanup(ctx *Context, prNumber, branchName, mainBranch string, di
 	}
 
 	util.Log.Printf("%s 正在从 main 拉取最新内容...\n", display())
-	zshell.ExecCommand(context.Background(), []string{"git", "checkout", mainBranch}, nil, nil, nil)
-	zshell.ExecCommand(context.Background(), []string{"git", "pull", "origin", mainBranch}, nil, nil, nil)
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+	zshell.ExecCommand(runContext(ctx), []string{"git", "checkout", mainBranch}, nil, nil, nil)
+	zshell.ExecCommand(runContext(ctx), []string{"git", "pull", "origin", mainBranch}, nil, nil, nil)
 
 	util.Log.Printf(" %s 正在删除本地分支: %s\n", display(), branchName)
-	zshell.ExecCommand(context.Background(), []string{"git", "branch", "-d", branchName}, nil, nil, nil)
+	zshell.ExecCommand(runContext(ctx), []string{"git", "branch", "-d", branchName}, nil, nil, nil)
 
 	return nil
 }
@@ -258,20 +309,28 @@ func GetFailedRunID(ctx *Context, prNumber string) (string, error) {
 
 func AttemptCIFixAndRecheck(ctx *Context, prNumber, branchName string, display func() string) bool {
 	for attempt := 1; attempt <= ctx.CIRetryMax; attempt++ {
+		if runContextDone(ctx) {
+			return false
+		}
 		if err := RunCIFixIteration(ctx, prNumber, display, attempt); err != nil {
 			util.Log.Warnf("%s CI fix attempt %d failed: %v", display(), attempt, err)
 			continue
 		}
 
 		util.Log.Printf("%s 正在推送 CI 修复到分支...\n", display())
-		code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "push", "origin", branchName}, nil, nil, nil)
+		code, _, _, _ := zshell.ExecCommand(runContext(ctx), []string{"git", "push", "origin", branchName}, nil, nil, nil)
 		if code != 0 {
+			if runContextDone(ctx) {
+				return false
+			}
 			util.Log.Warnf("%s 推送 CI 修复失败", display())
 			continue
 		}
 
 		util.Log.Printf("%s CI 修复已推送，等待新的检查...\n", display())
-		time.Sleep(5 * time.Second)
+		if !sleepWithContext(ctx, 5*time.Second) {
+			return false
+		}
 
 		util.Log.Printf("%s 正在等待修复后的 CI 检查...\n", display())
 		if WaitForPRChecks(ctx, prNumber, display) {

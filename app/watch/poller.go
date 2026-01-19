@@ -33,15 +33,9 @@ func (w *filePoller) Add(name string) error {
 		return errPollerClosed
 	}
 
-	f, err := os.Open(name)
-	if err != nil {
-		w.mu.Unlock()
-		return err
-	}
 	fi, err := os.Stat(name)
 	if err != nil {
 		w.mu.Unlock()
-		f.Close()
 		return err
 	}
 
@@ -50,7 +44,6 @@ func (w *filePoller) Add(name string) error {
 	}
 	if _, exists := w.watches[name]; exists {
 		w.mu.Unlock()
-		f.Close()
 		return nil
 		// return fmt.Errorf("watch exists")
 	}
@@ -58,14 +51,27 @@ func (w *filePoller) Add(name string) error {
 	w.watches[name] = chClose
 	w.mu.Unlock()
 	if fi.IsDir() {
-		return filepath.Walk(f.Name(), func(path string, info os.FileInfo, err error) error {
-			if isIgnoreDirectory(info.Name()) {
-				return filepath.SkipDir
-			}
-			return w.Add(path)
-		})
+		if isIgnoreDirectory(name) {
+			_ = w.Remove(name)
+			return nil
+		}
+		entries, err := readDirEntries(name)
+		if err != nil {
+			_ = w.Remove(name)
+			return err
+		}
+		for entry := range entries {
+			_ = w.Add(filepath.Join(name, entry))
+		}
+		go w.watchDir(name, entries, chClose)
+		return nil
 	}
 
+	f, err := os.Open(name)
+	if err != nil {
+		_ = w.Remove(name)
+		return err
+	}
 	go w.watch(f, fi, chClose)
 	return nil
 }
@@ -168,7 +174,7 @@ func (w *filePoller) watch(f *os.File, lastFi os.FileInfo, chClose chan struct{}
 		}
 
 		if lastFi == nil {
-			if err := w.sendEvent(fsnotify.Event{Op: fsnotify.Create, Name: fi.Name()}, chClose); err != nil {
+			if err := w.sendEvent(fsnotify.Event{Op: fsnotify.Create, Name: f.Name()}, chClose); err != nil {
 				return
 			}
 			lastFi = fi
@@ -176,7 +182,7 @@ func (w *filePoller) watch(f *os.File, lastFi os.FileInfo, chClose chan struct{}
 		}
 
 		if fi.Mode() != lastFi.Mode() {
-			if err := w.sendEvent(fsnotify.Event{Op: fsnotify.Chmod, Name: fi.Name()}, chClose); err != nil {
+			if err := w.sendEvent(fsnotify.Event{Op: fsnotify.Chmod, Name: f.Name()}, chClose); err != nil {
 				return
 			}
 			lastFi = fi
@@ -184,11 +190,66 @@ func (w *filePoller) watch(f *os.File, lastFi os.FileInfo, chClose chan struct{}
 		}
 
 		if fi.ModTime() != lastFi.ModTime() || fi.Size() != lastFi.Size() {
-			if err := w.sendEvent(fsnotify.Event{Op: fsnotify.Write, Name: fi.Name()}, chClose); err != nil {
+			if err := w.sendEvent(fsnotify.Event{Op: fsnotify.Write, Name: f.Name()}, chClose); err != nil {
 				return
 			}
 			lastFi = fi
 			continue
 		}
+	}
+}
+
+func readDirEntries(dir string) (map[string]struct{}, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() && isIgnoreDirectory(filepath.Join(dir, name)) {
+			continue
+		}
+		result[name] = struct{}{}
+	}
+	return result, nil
+}
+
+func (w *filePoller) watchDir(dir string, lastEntries map[string]struct{}, chClose chan struct{}) {
+	timer := time.NewTimer(watchWaitTime)
+	if !timer.Stop() {
+		<-timer.C
+	}
+	defer timer.Stop()
+
+	for {
+		timer.Reset(watchWaitTime)
+
+		select {
+		case <-timer.C:
+		case <-chClose:
+			return
+		}
+
+		entries, err := readDirEntries(dir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				_ = w.sendEvent(fsnotify.Event{Op: fsnotify.Remove, Name: dir}, chClose)
+				_ = w.Remove(dir)
+				return
+			}
+			if w.sendErr(err, chClose) != nil {
+				return
+			}
+			continue
+		}
+
+		for name := range entries {
+			if _, exists := lastEntries[name]; !exists {
+				_ = w.Add(filepath.Join(dir, name))
+			}
+		}
+
+		lastEntries = entries
 	}
 }

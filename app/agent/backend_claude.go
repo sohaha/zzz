@@ -33,7 +33,9 @@ func (b *ClaudeCodeBackend) RunCommit(ctx *Context, prompt string) error {
 		return nil
 	}
 
-	code, _, _, _ := zshell.ExecCommand(context.Background(), []string{
+	commandCtx, cancel := commandContext(ctx)
+	defer cancel()
+	code, _, _, _ := zshell.ExecCommand(commandCtx, []string{
 		claudeCLICommand, "-p", prompt,
 		"--allowedTools", "Bash(git)",
 		"--dangerously-skip-permissions",
@@ -59,47 +61,44 @@ func (b *ClaudeCodeBackend) RunIteration(ctx *Context, prompt string, display fu
 		command = append(command, "--model", ctx.Model)
 	}
 
-	buffers, writeString := handleBuffers()
+	buffers, writeString := handleBuffers(ctx, display)
 	var lastResult BackendResult
-	exitCodeChan, _, err := zshell.CallbackRunContext(context.Background(), command,
-		func(line string, isStdout bool) {
-			if line, isStdout = writeString(line, isStdout); !isStdout {
+	commandCtx, cancel := commandContext(ctx)
+	defer cancel()
+	code, err := runStreamCommand(commandCtx, command, func(line string, isStdout bool) {
+		if line, isStdout = writeString(line, isStdout); !isStdout {
+			return
+		}
+
+		var result BackendResult
+		if err := json.Unmarshal([]byte(line), &result); err != nil {
+			return
+		}
+
+		lastResult = result
+
+		if result.Type == "assistant" {
+			var msg streamMessage
+			if err := json.Unmarshal([]byte(line), &msg); err != nil {
 				return
 			}
 
-			var result BackendResult
-			if err := json.Unmarshal([]byte(line), &result); err != nil {
-				return
-			}
-
-			lastResult = result
-
-			if result.Type == "assistant" {
-				var msg streamMessage
-				if err := json.Unmarshal([]byte(line), &msg); err != nil {
-					return
+			for _, content := range msg.Message.Content {
+				if content.Type != "text" || content.Text == "" {
+					continue
 				}
 
-				for _, content := range msg.Message.Content {
-					if content.Type != "text" || content.Text == "" {
-						continue
-					}
-
-					for _, textLine := range strings.Split(content.Text, "\n") {
-						if trimmed := strings.TrimSpace(textLine); trimmed != "" {
-							util.Log.Printf("%s %s\n", display(), trimmed)
-						}
+				for _, textLine := range strings.Split(content.Text, "\n") {
+					if trimmed := strings.TrimSpace(textLine); trimmed != "" {
+						util.Log.Printf("%s %s\n", display(), trimmed)
 					}
 				}
 			}
-		}, func(o *zshell.Options) {
-			o.CloseStdin = true
-		})
+		}
+	})
 	if err != nil {
 		return nil, fmt.Errorf("执行 Agent 失败: %v", err)
 	}
-
-	code := <-exitCodeChan
 
 	if code != 0 {
 		return nil, formatExitCodeError("Agent", code, &buffers.stderr)

@@ -1,24 +1,12 @@
 package agent
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/sohaha/zlsgo/zshell"
 )
 
 func ValidateRequirements(ctx *Context) error {
 	if err := ctx.Backend.Validate(); err != nil {
 		return err
-	}
-
-	if ctx.EnableCommits {
-		if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"gh", "--version"}, nil, nil, nil); code != 0 {
-			return fmt.Errorf("未安装 GitHub CLI (gh): https://cli.github.com")
-		}
-		if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"gh", "auth", "status"}, nil, nil, nil); code != 0 {
-			return fmt.Errorf("GitHub CLI 未认证，请运行 'gh auth login'")
-		}
 	}
 
 	if ctx.MergeStrategy != "squash" && ctx.MergeStrategy != "merge" && ctx.MergeStrategy != "rebase" {
@@ -31,6 +19,15 @@ func ValidateRequirements(ctx *Context) error {
 
 	if ctx.CIRetryMax < 1 {
 		ctx.CIRetryMax = 1
+	}
+
+	if ctx.EnableCommits && ctx.EnableBranches && !ctx.DryRun {
+		if ctx.RepoProvider == nil || ctx.RepoInfo == nil {
+			return fmt.Errorf("未初始化仓库提供商，请使用 --provider/--repo-id 或配置 git remote")
+		}
+		if err := ctx.RepoProvider.Validate(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil

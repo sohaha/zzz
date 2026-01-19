@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -45,7 +46,7 @@ func (p *CoolProvider) Validate(ctx *Context) error {
 }
 
 func (p *CoolProvider) DetectFromGit() (*RepositoryInfo, error) {
-	code, stdout, _, err := zshell.ExecCommand(nil,
+	code, stdout, _, err := zshell.ExecCommand(context.Background(),
 		[]string{"git", "remote", "get-url", "origin"}, nil, nil, nil)
 	if err != nil || code != 0 {
 		return nil, fmt.Errorf("获取 git remote 失败")

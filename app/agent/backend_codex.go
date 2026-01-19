@@ -42,7 +42,9 @@ func (b *CodexBackend) RunCommit(ctx *Context, prompt string) error {
 		prompt,
 	}
 
-	code, _, _, _ := zshell.ExecCommand(context.Background(), command, nil, nil, nil)
+	commandCtx, cancel := commandContext(ctx)
+	defer cancel()
+	code, _, _, _ := zshell.ExecCommand(commandCtx, command, nil, nil, nil)
 
 	if code != 0 {
 		return fmt.Errorf("提交失败")
@@ -67,39 +69,37 @@ func (b *CodexBackend) RunIteration(ctx *Context, prompt string, display func() 
 		command = append(command, "--model", ctx.Model)
 	}
 
-	buffers, writeString := handleBuffers()
+	buffers, writeString := handleBuffers(ctx, display)
 	var result BackendResult
-	exitCodeChan, _, err := zshell.CallbackRunContext(context.Background(), command,
-		func(line string, isStdout bool) {
-			if line, isStdout = writeString(line, isStdout); !isStdout {
-				return
-			}
+	commandCtx, cancel := commandContext(ctx)
+	defer cancel()
+	code, err := runStreamCommand(commandCtx, command, func(line string, isStdout bool) {
+		if line, isStdout = writeString(line, isStdout); !isStdout {
+			return
+		}
 
-			var event codexEvent
-			if err := json.Unmarshal([]byte(line), &event); err != nil {
-				return
-			}
+		var event codexEvent
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			return
+		}
 
-			switch event.Type {
-			case codexEventItemCompleted:
-				if event.Item != nil && event.Item.Text != "" {
-					result.Result = event.Item.Text
-					util.Log.Printf("%s %s\n", display(), event.Item.Text)
-				}
-			case codexEventError:
-				if event.Error != nil {
-					result.IsError = true
-					result.Result = fmt.Sprintf("[%s] %s", event.Error.Type, event.Error.Message)
-				}
+		switch event.Type {
+		case codexEventItemCompleted:
+			if event.Item != nil && event.Item.Text != "" {
+				result.Result = event.Item.Text
+				util.Log.Printf("%s %s\n", display(), event.Item.Text)
 			}
-		}, func(o *zshell.Options) {
-			o.CloseStdin = true
-		})
+		case codexEventError:
+			if event.Error != nil {
+				result.IsError = true
+				result.Result = fmt.Sprintf("[%s] %s", event.Error.Type, event.Error.Message)
+			}
+		}
+	})
 	if err != nil {
 		return nil, fmt.Errorf("执行 codex 失败: %v", err)
 	}
 
-	code := <-exitCodeChan
 	if code != 0 {
 		return nil, formatExitCodeError("codex", code, &buffers.stderr)
 	}

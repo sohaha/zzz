@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -10,6 +9,12 @@ import (
 )
 
 func Run(ctx *Context) error {
+	setupRunContext(ctx)
+
+	if ctx.RunCancel != nil {
+		defer ctx.RunCancel()
+	}
+
 	if err := ValidateRequirements(ctx); err != nil {
 		return err
 	}
@@ -50,6 +55,10 @@ func runMainLoop(ctx *Context) error {
 		util.Log.Printf("%s 开始迭代...\n", display())
 
 		if err := executeSingleIteration(ctx, iteration, display); err != nil {
+			if runContextDone(ctx) {
+				util.Log.Warnf("已达到最大时长限制: %s", FormatDuration(time.Since(ctx.StartTime)))
+				break
+			}
 			if err := handleIterationError(ctx, display, err); err != nil {
 				return err
 			}
@@ -62,7 +71,10 @@ func runMainLoop(ctx *Context) error {
 		}
 
 		iteration++
-		time.Sleep(IterationDelaySeconds * time.Second)
+		if !sleepWithContext(ctx, IterationDelaySeconds*time.Second) {
+			util.Log.Warnf("已达到最大时长限制: %s", FormatDuration(time.Since(ctx.StartTime)))
+			break
+		}
 	}
 
 	showCompletionSummary(ctx)
@@ -94,7 +106,12 @@ func shouldContinue(ctx *Context) bool {
 		return false
 	}
 
-	if ctx.MaxDuration > 0 {
+	if runContextDone(ctx) {
+		util.Log.Warnf("已达到最大时长限制: %s", FormatDuration(time.Since(ctx.StartTime)))
+		return false
+	}
+
+	if ctx.MaxDuration > 0 && ctx.RunContext == nil {
 		elapsed := time.Since(ctx.StartTime)
 		if elapsed >= ctx.MaxDuration {
 			util.Log.Warnf("已达到最大时长限制: %s", FormatDuration(elapsed))
@@ -107,6 +124,10 @@ func shouldContinue(ctx *Context) bool {
 
 func executeSingleIteration(ctx *Context, iteration int, display func() string) error {
 	var mainBranch, branchName string
+
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
 
 	if ctx.EnableCommits && ctx.EnableBranches {
 		var err error
@@ -121,6 +142,9 @@ func executeSingleIteration(ctx *Context, iteration int, display func() string) 
 	util.Log.Printf("%s 正在运行 %s Agent...\n", display(), ctx.Backend.Name())
 	result, err := ctx.Backend.RunIteration(ctx, enhancedPrompt, display)
 	if err != nil {
+		if runContextDone(ctx) {
+			return runContextErr(ctx)
+		}
 		CleanupBranch(branchName, mainBranch)
 		return err
 	}
@@ -145,14 +169,25 @@ func executeSingleIteration(ctx *Context, iteration int, display func() string) 
 		ctx.CompletionCount = 0
 	}
 
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+
 	if ctx.ReviewPrompt != "" {
 		if err := RunReviewerIteration(ctx, display); err != nil {
+			if runContextDone(ctx) {
+				return runContextErr(ctx)
+			}
 			CleanupBranch(branchName, mainBranch)
 			return fmt.Errorf("审查失败: %v", err)
 		}
 	}
 
 	util.Log.Printf("%s 工作完成\n", display())
+
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
 
 	if !ctx.EnableCommits {
 		util.Log.Printf("%s 跳过提交（未开启 --enable-commits）\n", display())
@@ -186,6 +221,4 @@ func showCompletionSummary(ctx *Context) {
 	} else {
 		util.Log.Printf("完成%s\n", elapsedMsg)
 	}
-
-	os.Remove(ctx.NotesFile)
 }
