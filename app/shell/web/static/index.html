@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Pocket Shell</title>
+  <link rel="stylesheet" href="app.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Safe area insets for iOS */
+      --sab: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eaeaea;
+      height: 100%;
+      overflow: hidden;
+      /* Hide scrollbar */
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    #app::-webkit-scrollbar,
+    .terminal-container::-webkit-scrollbar {
+      display: none; /* Chrome/Safari/Opera */
+    }
+
+    #app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .terminal-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      /* Smooth animation when keyboard appears/disappears */
+      transition: transform 0.25s ease-out;
+    }
+
+    /* Keyboard locked state - disable touch on terminal area */
+    #terminal-area.keyboard-locked {
+      pointer-events: none;
+    }
+
+    /* Selection mode - show selection handles and change cursor */
+    #terminal-area.selection-mode {
+      cursor: text;
+    }
+
+    #terminal-area.selection-mode .xterm-viewport {
+      cursor: text !important;
+    }
+
+    /* Highlight selection mode border */
+    #terminal-area.selection-mode::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 2px solid #4ecdc4;
+      border-radius: 4px;
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Selection mode button styles */
+    .shortcut-btn.select-btn {
+      background: #2d3748;
+      border-color: #4a5568;
+      color: #a0aec0;
+    }
+
+    .shortcut-btn.select-btn:hover {
+      background: #4a5568;
+    }
+
+    .shortcut-btn.select-btn.active {
+      background: #4ecdc4 !important;
+      color: #0f172a;
+      border-color: #4ecdc4;
+    }
+
+    /* Copy button styles */
+    .shortcut-btn.copy-btn {
+      background: #0f3460;
+      border-color: #1e4976;
+      color: #60a5fa;
+    }
+
+    .shortcut-btn.copy-btn:hover {
+      background: #1a4570;
+    }
+
+    /* Copy success animation */
+    .shortcut-btn.copy-btn.copied {
+      background: #059669 !important;
+      border-color: #059669;
+      color: #ffffff;
+    }
+
+    /* Login View */
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: #16213e;
+      padding: 40px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .login-title {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+      color: #4ecdc4;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid #3a3a5e;
+      border-radius: 8px;
+      background: #1a1a2e;
+      color: #eaeaea;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: #4ecdc4;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: #4ecdc4;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .login-btn:hover {
+      background: #3dbdb5;
+    }
+
+    .error-msg {
+      color: #ff6b6b;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    /* Login Terminal View - SSH style */
+    .login-terminal-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      background: #1a1a2e;
+    }
+
+    #login-terminal-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      height: 100%;
+      padding: 10px;
+    }
+
+    #login-terminal-area .xterm {
+      height: 100%;
+      padding: 0;
+    }
+
+    /* Terminal View */
+    #terminal-area {
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+    }
+
+    #terminal-area .xterm {
+      height: 100%;
+      padding: 0;
+    }
+
+    /* Ensure xterm canvas fills container properly (xterm v6 fix) */
+    #terminal-area .xterm .xterm-screen canvas {
+      display: block;
+    }
+
+    /* Hide xterm scrollbar visually but keep scroll functionality */
+    .xterm-viewport,
+    .xterm .xterm-viewport {
+      overflow-y: scroll !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+      -webkit-overflow-scrolling: touch;
+      background-color: transparent !important;
+    }
+
+    .xterm-viewport::-webkit-scrollbar,
+    .xterm .xterm-viewport::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+      -webkit-appearance: none !important;
+    }
+
+    /* Hide xterm's custom scrollbar element visually only */
+    .xterm .xterm-scrollable-element > .scrollbar,
+    .xterm .xterm-scrollable-element > .scrollbar.vertical {
+      opacity: 0 !important;
+      width: 0 !important;
+    }
+
+    /* Force xterm to use full width without scrollbar space */
+    .xterm .xterm-viewport {
+      width: 100% !important;
+      right: 0 !important;
+    }
+
+    .xterm .xterm-screen {
+      width: 100% !important;
+    }
+
+    /* Ensure proper sizing for WebGL canvas */
+    .xterm .xterm-screen canvas {
+      width: 100% !important;
+    }
+
+    /* Virtual Keyboard - Floating draggable overlay, exactly 2 rows */
+    .virtual-keyboard {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(22, 33, 62, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 6px 8px;
+      border: 1px solid rgba(45, 55, 72, 0.8);
+      border-radius: 10px;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      /* Allow touch events to pass through to children */
+    }
+
+    /* Drag handle - inline in row 1 */
+    .keyboard-drag-handle {
+      flex: 0 0 24px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .keyboard-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .keyboard-drag-handle::before {
+      content: '';
+      width: 4px;
+      height: 18px;
+      background: #4a5568;
+      border-radius: 2px;
+    }
+
+    /* Input row styles - Row 1 */
+    .input-row {
+      margin-bottom: 6px;
+      gap: 4px;
+      touch-action: manipulation;  /* Prevent zoom, allow tap */
+    }
+
+    .command-input {
+      flex: 1;
+      padding: 6px 8px;
+      background: #1a2438;
+      color: #e2e8f0;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      outline: none;
+      resize: none;
+      min-height: 32px;
+      max-height: 100px;
+    }
+
+    .command-input:focus {
+      border-color: #4ecdc4;
+    }
+
+    .command-input::placeholder {
+      color: #64748b;
+    }
+
+    /* Function buttons in input row */
+    .func-btn {
+      flex: 0 0 32px !important;
+      min-width: 32px;
+      max-width: 32px;
+      height: 32px;
+      font-size: 14px;
+      padding: 0;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .func-btn.minimize-btn {
+      background: #2d3748;
+      border-color: #4a5568;
+      color: #a0aec0;
+    }
+
+    .func-btn.minimize-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .func-btn.minimize-btn:hover {
+      background: #4a5568;
+      color: #e2e8f0;
+    }
+
+    .mode-btn {
+      background: #2d3748;
+      border-color: #4a5568;
+      color: #a0aec0;
+    }
+
+    .mode-btn:hover {
+      background: #4a5568;
+    }
+
+    .mode-btn.active {
+      background: #4ecdc4;
+      color: #0f172a;
+      border-color: #4ecdc4;
+    }
+
+    .send-btn {
+      background: #0f3460;
+      border-color: #1e4976;
+      color: #4ecdc4;
+    }
+
+    .send-btn:hover {
+      background: #1a4570;
+    }
+
+    /* Shortcuts row - Row 2, horizontally scrollable */
+    .shortcuts-row {
+      margin-bottom: 0;
+      overflow: hidden;
+    }
+
+    .shortcuts-scroll {
+      display: flex;
+      gap: 4px;
+      overflow-x: scroll;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+      padding: 2px 0;
+      touch-action: pan-x;
+      /* Clip content to hide any overflow */
+      clip-path: inset(0);
+    }
+
+    .shortcuts-scroll::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+    }
+
+    /* Buttons inside shortcuts must allow horizontal scroll */
+    .shortcuts-scroll .keyboard-btn {
+      touch-action: pan-x;
+      pointer-events: auto;
+    }
+
+    .shortcut-btn {
+      flex: 0 0 auto;
+      min-width: 32px;
+      height: 28px;
+      padding: 0 8px;
+      font-size: 12px;
+      border-radius: 5px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shortcut-btn.quick-btn {
+      background: #0f3460;
+      border-color: #1e4976;
+      color: #60a5fa;
+    }
+
+    .shortcut-btn.quick-btn:hover {
+      background: #1a4570;
+    }
+
+    .shortcut-btn.logout-btn {
+      background: #4a1a2a;
+      border-color: #6b2a3a;
+      color: #f87171;
+    }
+
+    .shortcut-btn.logout-btn:hover {
+      background: #5a2a3a;
+    }
+
+    .shortcut-btn.lock-btn {
+      background: #2d3748;
+      border-color: #4a5568;
+    }
+
+    .shortcut-btn.lock-btn.active {
+      background: #4ecdc4;
+      color: #0f172a;
+      border-color: #4ecdc4;
+    }
+
+    /* Minimized keyboard button - zoom restore icon */
+    .keyboard-minimized {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      background: rgba(22, 33, 62, 0.9);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid #4ecdc4;
+      border-radius: 12px;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      will-change: transform;
+    }
+
+    /* Zoom in/expand icon using SVG */
+    .keyboard-minimized::before {
+      content: '';
+      display: none;
+    }
+
+    .keyboard-minimized::after {
+      content: '';
+      width: 22px;
+      height: 22px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234ecdc4' stroke-width='2'%3E%3Cpath d='M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7'/%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    .keyboard-minimized:hover {
+      background: #1e293b;
+      transform: scale(1.05);
+    }
+
+    .keyboard-minimized:active {
+      transform: scale(0.95);
+    }
+
+    .keyboard-minimized.dragging {
+      cursor: grabbing;
+    }
+
+    .virtual-keyboard.dragging {
+      opacity: 0.95;
+    }
+
+    .keyboard-row {
+      display: flex;
+      gap: 4px;
+    }
+
+    .keyboard-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .keyboard-btn {
+      flex: 1;
+      padding: 6px;
+      background: #1a2438;
+      color: #e2e8f0;
+      border: 1px solid #2d3748;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease;
+    }
+
+    .keyboard-btn:hover {
+      background: #2d3748;
+    }
+
+    .keyboard-btn:active:not(.active):not(.locked) {
+      background: #1a202c;
+      transform: scale(0.96);
+    }
+
+    .keyboard-btn.active {
+      background: #4ecdc4 !important;
+      color: #0f172a;
+      border-color: #4ecdc4;
+      font-weight: 600;
+    }
+
+    /* Keep active style when button with .active class is pressed */
+    .keyboard-btn.active:active {
+      background: #3dbdb5 !important;
+      transform: scale(0.96);
+    }
+
+    /* Locked modifier state - different color to distinguish from single-press active */
+    .keyboard-btn.locked {
+      background: #f97316 !important;
+      color: #0f172a;
+      border-color: #f97316;
+      font-weight: 600;
+    }
+
+    .keyboard-btn.locked:active {
+      background: #ea580c !important;
+      transform: scale(0.96);
+    }
+
+    /* Special keys in shortcuts row */
+    .shortcuts-scroll .keyboard-btn {
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 480px) {
+      .login-box {
+        padding: 30px 24px;
+      }
+
+      .virtual-keyboard {
+        padding: 4px 6px;
+        border-radius: 8px;
+      }
+
+      .keyboard-btn {
+        padding: 4px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+
+      .keyboard-row {
+        gap: 4px;
+      }
+
+      .shortcut-btn {
+        min-width: 28px;
+        height: 24px;
+        padding: 0 6px;
+        font-size: 11px;
+      }
+
+      .keyboard-minimized {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+      }
+
+      .keyboard-minimized::before {
+        font-size: 22px;
+      }
+    }
+
+    /* Safe area for notched devices */
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .virtual-keyboard {
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+      }
+    }
+
+    /* Swipe Arrow Indicator - Visual feedback for long-press arrow gesture */
+    .swipe-arrow-indicator {
+      position: fixed;
+      width: 100px;
+      height: 100px;
+      margin-left: -50px;
+      margin-top: -50px;
+      border-radius: 50%;
+      background: rgba(78, 205, 196, 0.15);
+      border: 2px solid rgba(78, 205, 196, 0.5);
+      pointer-events: none;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: swipe-arrow-pulse 0.3s ease-out;
+    }
+
+    @keyframes swipe-arrow-pulse {
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Crosshair lines */
+    .swipe-arrow-crosshair {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    .swipe-arrow-crosshair::before,
+    .swipe-arrow-crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(78, 205, 196, 0.3);
+    }
+
+    /* Vertical line */
+    .swipe-arrow-crosshair::before {
+      left: 50%;
+      top: 20%;
+      width: 1px;
+      height: 60%;
+      transform: translateX(-50%);
+    }
+
+    /* Horizontal line */
+    .swipe-arrow-crosshair::after {
+      top: 50%;
+      left: 20%;
+      height: 1px;
+      width: 60%;
+      transform: translateY(-50%);
+    }
+
+    /* Direction indicator (the dot that follows finger) */
+    .swipe-arrow-direction {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #4ecdc4;
+      box-shadow: 0 0 10px rgba(78, 205, 196, 0.8);
+      transition: transform 0.05s ease-out;
+    }
+
+    /* Direction active states - show arrow shape */
+    .swipe-arrow-direction.direction-up,
+    .swipe-arrow-direction.direction-down,
+    .swipe-arrow-direction.direction-left,
+    .swipe-arrow-direction.direction-right {
+      background: #4ecdc4;
+      box-shadow: 0 0 15px rgba(78, 205, 196, 1);
+    }
+
+    /* Arrow icons using CSS triangles */
+    .swipe-arrow-direction.direction-up::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 8px solid #0f172a;
+    }
+
+    .swipe-arrow-direction.direction-down::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid #0f172a;
+    }
+
+    .swipe-arrow-direction.direction-left::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 8px solid #0f172a;
+    }
+
+    .swipe-arrow-direction.direction-right::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-left: 8px solid #0f172a;
+    }
+
+    /* Pulse animation for visual feedback (especially for iOS without haptic) */
+    .swipe-arrow-direction.pulse {
+      animation: swipe-arrow-key-pulse 0.15s ease-out;
+    }
+
+    @keyframes swipe-arrow-key-pulse {
+      0% {
+        transform: translate(var(--tx, 0), var(--ty, 0)) scale(1);
+        box-shadow: 0 0 15px rgba(78, 205, 196, 1);
+      }
+      50% {
+        transform: translate(var(--tx, 0), var(--ty, 0)) scale(1.3);
+        box-shadow: 0 0 25px rgba(78, 205, 196, 1), 0 0 40px rgba(78, 205, 196, 0.5);
+      }
+      100% {
+        transform: translate(var(--tx, 0), var(--ty, 0)) scale(1);
+        box-shadow: 0 0 15px rgba(78, 205, 196, 1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="login-container">
+      <div class="login-box">
+        <h1 class="login-title">Pocket Shell</h1>
+        <p style="text-align: center; color: #888;">Loading...</p>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

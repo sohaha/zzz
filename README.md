@@ -52,6 +52,14 @@ go install github.com/sohaha/zzz@latest
 npm i -g @sohaha/zzz
 ```
 
+## 开发工具链
+
+推荐使用 mise 统一工具链版本：
+
+```bash
+mise install
+```
+
 ## 使用
 
 ```shell
