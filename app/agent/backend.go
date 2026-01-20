@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/sohaha/zzz/util"
 )
@@ -41,18 +42,35 @@ func formatExitCodeError(command string, exitCode int, stderr *bytes.Buffer) err
 	return fmt.Errorf("%s 退出码 %d: %s", command, exitCode, errMsg)
 }
 
-func handleBuffers() (*streamBuffers, func(line string, isStdout bool) (string, bool)) {
+func handleBuffers(ctx *Context, display func() string) (*streamBuffers, func(line string, isStdout bool) (string, bool)) {
 	buffers := &streamBuffers{}
+	var mu sync.Mutex
 
 	writeString := func(line string, isStdout bool) (string, bool) {
+		if ctx != nil && ctx.Debug && line != "" {
+			stream := "stdout"
+			if !isStdout {
+				stream = "stderr"
+			}
+			if display != nil {
+				util.Log.Printf("%s [%s] %s\n", display(), stream, line)
+			} else {
+				util.Log.Printf("[%s] %s\n", stream, line)
+			}
+		}
+
 		if !isStdout {
+			mu.Lock()
 			buffers.stderr.WriteString(line)
 			buffers.stderr.WriteString("\n")
+			mu.Unlock()
 			return "", false
 		}
 
+		mu.Lock()
 		buffers.stdout.WriteString(line)
 		buffers.stdout.WriteString("\n")
+		mu.Unlock()
 
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -65,6 +83,10 @@ func handleBuffers() (*streamBuffers, func(line string, isStdout bool) (string, 
 }
 
 func RunReviewerIteration(ctx *Context, display func() string) error {
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+
 	util.Log.Printf("%s 正在运行审查流程...\n", display())
 
 	reviewPrompt := fmt.Sprintf(`%s
@@ -77,6 +99,9 @@ func RunReviewerIteration(ctx *Context, display func() string) error {
 
 	result, err := ctx.Backend.RunIteration(ctx, reviewPrompt, display)
 	if err != nil {
+		if runContextDone(ctx) {
+			return runContextErr(ctx)
+		}
 		return err
 	}
 
@@ -94,7 +119,16 @@ func RunReviewerIteration(ctx *Context, display func() string) error {
 }
 
 func RunCIFixIteration(ctx *Context, prNumber string, display func() string, attempt int) error {
+	if runContextDone(ctx) {
+		return runContextErr(ctx)
+	}
+
 	util.Log.Printf("%s 正在尝试修复 CI 失败 (尝试 %d/%d)...\n", display(), attempt, ctx.CIRetryMax)
+
+	startSHA, err := GetHeadSHA()
+	if err != nil {
+		return err
+	}
 
 	failedRunID, _ := GetFailedRunID(ctx, prNumber)
 
@@ -121,6 +155,9 @@ func RunCIFixIteration(ctx *Context, prNumber string, display func() string, att
 
 	result, err := ctx.Backend.RunIteration(ctx, ciFixPrompt, display)
 	if err != nil {
+		if runContextDone(ctx) {
+			return runContextErr(ctx)
+		}
 		return err
 	}
 
@@ -133,18 +170,26 @@ func RunCIFixIteration(ctx *Context, prNumber string, display func() string, att
 		util.Log.Printf("%s CI 修复成本: $%.3f\n", display(), result.TotalCostUSD)
 	}
 
-	hasChanges, _ := CheckHasChanges()
-	if !hasChanges {
-		return fmt.Errorf("CI 修复未做任何更改")
+	hasChanges, err := CheckHasChanges()
+	if err != nil {
+		return err
 	}
-
-	hasUncommitted, _ := CheckHasChanges()
-	if hasUncommitted {
+	if hasChanges {
 		util.Log.Printf("%s 正在提交 CI 修复...\n", display())
 		if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
 			return fmt.Errorf("提交 CI 修复失败: %v", err)
 		}
+		return nil
 	}
 
-	return nil
+	endSHA, err := GetHeadSHA()
+	if err != nil {
+		return err
+	}
+
+	if startSHA != endSHA {
+		return nil
+	}
+
+	return fmt.Errorf("CI 修复未做任何更改")
 }

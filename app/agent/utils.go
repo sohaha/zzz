@@ -21,11 +21,23 @@ func ParseDuration(s string) (time.Duration, error) {
 
 	var total time.Duration
 	re := regexp.MustCompile(`(\d+)([hms])`)
-	matches := re.FindAllStringSubmatch(s, -1)
-	if len(matches) == 0 {
+	indexes := re.FindAllStringIndex(s, -1)
+	if len(indexes) == 0 {
 		return 0, fmt.Errorf("无效的时长格式")
 	}
 
+	prevEnd := 0
+	for _, idx := range indexes {
+		if idx[0] != prevEnd {
+			return 0, fmt.Errorf("无效的时长格式")
+		}
+		prevEnd = idx[1]
+	}
+	if prevEnd != len(s) {
+		return 0, fmt.Errorf("无效的时长格式")
+	}
+
+	matches := re.FindAllStringSubmatch(s, -1)
 	for _, match := range matches {
 		val, _ := strconv.Atoi(match[1])
 		switch match[2] {
@@ -110,6 +122,14 @@ func GetCurrentBranch() string {
 		return "main"
 	}
 	return strings.TrimSpace(stdout)
+}
+
+func GetHeadSHA() (string, error) {
+	code, stdout, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "rev-parse", "HEAD"}, nil, nil, nil)
+	if code != 0 {
+		return "", fmt.Errorf("获取 HEAD 失败")
+	}
+	return strings.TrimSpace(stdout), nil
 }
 
 func GenerateRandomHash() string {

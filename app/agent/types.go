@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"time"
 )
 
@@ -22,6 +23,7 @@ type Context struct {
 	MergeStrategy       string
 	NotesFile           string
 	DryRun              bool
+	Debug               bool
 	CompletionSignal    string
 	CompletionThreshold int
 	ReviewPrompt        string
@@ -31,6 +33,8 @@ type Context struct {
 	WorktreeBaseDir     string
 	CleanupWorktree     bool
 	Backend             AIBackend
+	RunContext          context.Context
+	RunCancel           context.CancelFunc
 
 	// 仓库提供商抽象
 	RepoProvider RepositoryProvider

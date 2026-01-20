@@ -19,14 +19,14 @@ func (p *GitHubProvider) Name() string {
 
 func (p *GitHubProvider) Validate(ctx *Context) error {
 	// 检查 gh CLI 是否安装
-	code, _, _, _ := zshell.ExecCommand(context.Background(),
+	code, _, _, _ := zshell.ExecCommand(runContext(ctx),
 		[]string{"gh", "--version"}, nil, nil, nil)
 	if code != 0 {
 		return fmt.Errorf("gh CLI 未安装，请安装: https://cli.github.com/")
 	}
 
 	// 检查 gh 认证状态
-	code, _, _, _ = zshell.ExecCommand(context.Background(),
+	code, _, _, _ = zshell.ExecCommand(runContext(ctx),
 		[]string{"gh", "auth", "status"}, nil, nil, nil)
 	if code != 0 {
 		return fmt.Errorf("gh CLI 未认证，请运行: gh auth login")
@@ -67,7 +67,7 @@ func (p *GitHubProvider) DetectFromGit() (*RepositoryInfo, error) {
 }
 
 func (p *GitHubProvider) CreatePullRequest(ctx *Context, opts *PRCreateOptions) (*PullRequestInfo, error) {
-	code, prOutput, stderr, _ := zshell.ExecCommand(context.Background(), []string{
+	code, prOutput, stderr, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "pr", "create",
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 		"--title", opts.Title,
@@ -109,7 +109,7 @@ func (p *GitHubProvider) MergePullRequest(ctx *Context, prID string, strategy Me
 		mergeFlag = "--rebase"
 	}
 
-	code, _, stderr, _ := zshell.ExecCommand(context.Background(), []string{
+	code, _, stderr, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "pr", "merge", prID,
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 		mergeFlag,
@@ -124,7 +124,7 @@ func (p *GitHubProvider) MergePullRequest(ctx *Context, prID string, strategy Me
 }
 
 func (p *GitHubProvider) GetPRStatus(ctx *Context, prID string) (*PRStatus, error) {
-	code, output, _, _ := zshell.ExecCommand(context.Background(), []string{
+	code, output, _, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "pr", "view", prID,
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 		"--json", "state,statusCheckRollup",
@@ -185,7 +185,7 @@ func (p *GitHubProvider) SupportsCI() bool {
 }
 
 func (p *GitHubProvider) GetPRChecks(ctx *Context, prID string) ([]PRCheckResult, error) {
-	code, checksJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
+	code, checksJSON, _, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "pr", "checks", prID,
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 		"--json", "state,bucket",
@@ -204,7 +204,7 @@ func (p *GitHubProvider) GetPRChecks(ctx *Context, prID string) ([]PRCheckResult
 }
 
 func (p *GitHubProvider) GetPRReviewStatus(ctx *Context, prID string) (*PRReviewStatus, error) {
-	code, prInfoJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
+	code, prInfoJSON, _, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "pr", "view", prID,
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 		"--json", "reviewDecision,reviewRequests",
@@ -237,7 +237,7 @@ func (p *GitHubProvider) GetPRReviewStatus(ctx *Context, prID string) (*PRReview
 }
 
 func (p *GitHubProvider) UpdatePRBranch(ctx *Context, prID string) error {
-	code, updateOutput, _, _ := zshell.ExecCommand(context.Background(), []string{
+	code, updateOutput, _, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "pr", "update-branch", prID,
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 	}, nil, nil, nil)
@@ -261,7 +261,7 @@ func (p *GitHubProvider) ClosePullRequest(ctx *Context, prID string, deleteBranc
 		args = append(args, "--delete-branch")
 	}
 
-	code, _, stderr, _ := zshell.ExecCommand(context.Background(), args, nil, nil, nil)
+	code, _, stderr, _ := zshell.ExecCommand(runContext(ctx), args, nil, nil, nil)
 	if code != 0 {
 		return fmt.Errorf("关闭 PR 失败: %s", stderr)
 	}
@@ -270,7 +270,7 @@ func (p *GitHubProvider) ClosePullRequest(ctx *Context, prID string, deleteBranc
 }
 
 func (p *GitHubProvider) GetFailedWorkflowRun(ctx *Context, prID string) (string, error) {
-	code, prInfoJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
+	code, prInfoJSON, _, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "pr", "view", prID,
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 		"--json", "headRefOid",
@@ -292,7 +292,7 @@ func (p *GitHubProvider) GetFailedWorkflowRun(ctx *Context, prID string) (string
 		return "", fmt.Errorf("未找到 head SHA")
 	}
 
-	code, runsJSON, _, _ := zshell.ExecCommand(context.Background(), []string{
+	code, runsJSON, _, _ := zshell.ExecCommand(runContext(ctx), []string{
 		"gh", "run", "list",
 		"--repo", fmt.Sprintf("%s/%s", ctx.RepoInfo.Owner, ctx.RepoInfo.Repo),
 		"--commit", headSHA,

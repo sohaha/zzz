@@ -29,8 +29,10 @@ type cmdType struct {
 type taskType struct {
 	cmd        *exec.Cmd
 	cmdExt     map[string]*cmdType
+	cmdExtLock sync.RWMutex
 	lastTaskID int64
 	delay      int
+	cmdLock    sync.Mutex
 	putLock    sync.Mutex
 	runLock    sync.Mutex
 }
@@ -61,24 +63,36 @@ func (t *taskType) Put(cf *changedFile) {
 		return
 	}
 	t.putLock.Lock()
-	defer t.putLock.Unlock()
 	t.lastTaskID = cf.Changed
-	go func() {
-		<-time.Tick(time.Millisecond * time.Duration(t.delay))
-		if t.lastTaskID > cf.Changed {
+	t.putLock.Unlock()
+	go func(changed int64) {
+		<-time.After(time.Millisecond * time.Duration(t.delay))
+		t.putLock.Lock()
+		lastTaskID := t.lastTaskID
+		t.putLock.Unlock()
+		if lastTaskID > changed {
 			return
 		}
 		t.preRun(cf)
-	}()
+	}(cf.Changed)
 }
 
 func (t *taskType) preRun(cf *changedFile) {
-	cloes(t.cmd)
+	t.cmdLock.Lock()
+	currentCmd := t.cmd
+	t.cmdLock.Unlock()
+	cloes(currentCmd)
 	fileExt := zstring.Ucfirst(strings.TrimPrefix(cf.Ext, "."))
 	if fileExt != "" {
 		extCommand := v.GetStringSlice("command.exec" + fileExt)
-		if cmd, ok := t.cmdExt[fileExt]; ok {
-			cloes(cmd.cmd)
+		t.cmdExtLock.RLock()
+		extCmd := t.cmdExt[fileExt]
+		t.cmdExtLock.RUnlock()
+		if extCmd != nil {
+			extCmd.putLock.Lock()
+			extCmdCurrent := extCmd.cmd
+			extCmd.putLock.Unlock()
+			cloes(extCmdCurrent)
 		}
 		if !isIgnoreType(fileExt) {
 			go t.run(cf, execCommand, true)
@@ -99,17 +113,19 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 	var (
 		logPrefix string
 		fileExt   string
-		hasExtCmd bool
+		extCmd    *cmdType
 	)
 	if len(ext) > 0 {
 		fileExt = ext[0]
-		if extCmd, ok := t.cmdExt[fileExt]; ok {
-			hasExtCmd = true
-			extCmd.runLock.Lock()
-			defer func() {
-				extCmd.runLock.Unlock()
-			}()
+		t.cmdExtLock.Lock()
+		extCmd = t.cmdExt[fileExt]
+		if extCmd == nil {
+			extCmd = &cmdType{}
+			t.cmdExt[fileExt] = extCmd
 		}
+		t.cmdExtLock.Unlock()
+		extCmd.runLock.Lock()
+		defer extCmd.runLock.Unlock()
 	} else {
 		t.runLock.Lock()
 		defer func() {
@@ -142,14 +158,14 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 
 		cmd := command(fixCmd(carr))
 		if fileExt == "" {
+			t.cmdLock.Lock()
 			t.cmd = cmd
+			t.cmdLock.Unlock()
 			logPrefix = strings.Repeat(" ", 2)
 		} else {
-			if hasExtCmd {
-				t.cmdExt[fileExt].cmd = cmd
-			} else {
-				t.cmdExt[fileExt] = &cmdType{cmd: cmd}
-			}
+			extCmd.putLock.Lock()
+			extCmd.cmd = cmd
+			extCmd.putLock.Unlock()
 			logPrefixBuffer := zstring.Buffer()
 			logPrefixBuffer.WriteString("  ")
 			logPrefixBuffer.WriteString("[")

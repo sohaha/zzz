@@ -34,6 +34,7 @@ func ErrUnknownProvider(name string) error {
 // ProviderOptions 提供商初始化选项
 type ProviderOptions struct {
 	Endpoint string // API 端点 (可选，有默认值)
+	APIKey   string // API Key (可选)
 }
 
 // DetectProviderFromRemote 从 git remote URL 检测仓库提供商
@@ -150,8 +151,15 @@ func NewRepositoryProvider(providerName string, opts ProviderOptions) (Repositor
 		if endpoint == "" {
 			endpoint = "https://api.cnb.cool"
 		}
+		apiKey := opts.APIKey
+		if apiKey == "" {
+			apiKey = zutil.Getenv("COOL_API_KEY")
+		}
+		if apiKey == "" {
+			apiKey = zutil.Getenv("CNB_TOKEN")
+		}
 		return &CoolProvider{
-			apiKey:   zutil.Getenv("CNB_TOKEN"),
+			apiKey:   apiKey,
 			Endpoint: endpoint,
 		}, nil
 	default:

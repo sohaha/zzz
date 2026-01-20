@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -17,9 +16,9 @@ func CreateIterationBranch(ctx *Context, iteration int, display func() string) (
 	if strings.HasPrefix(mainBranch, ctx.BranchPrefix) {
 		originalBranch := mainBranch
 		util.Log.Warnf("%s 已在迭代分支上: %s", display(), mainBranch)
-		if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "checkout", "main"}, nil, nil, nil); code == 0 {
+		if code, _, _, _ := zshell.ExecCommand(runContext(ctx), []string{"git", "checkout", "main"}, nil, nil, nil); code == 0 {
 			mainBranch = "main"
-		} else if code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "checkout", "master"}, nil, nil, nil); code == 0 {
+		} else if code, _, _, _ := zshell.ExecCommand(runContext(ctx), []string{"git", "checkout", "master"}, nil, nil, nil); code == 0 {
 			mainBranch = "master"
 		} else {
 			return "", "", fmt.Errorf("无法切换到 main/master 分支，当前在迭代分支: %s", originalBranch)
@@ -37,7 +36,7 @@ func CreateIterationBranch(ctx *Context, iteration int, display func() string) (
 		return mainBranch, branchName, nil
 	}
 
-	code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "checkout", "-b", branchName}, nil, nil, nil)
+	code, _, _, _ := zshell.ExecCommand(runContext(ctx), []string{"git", "checkout", "-b", branchName}, nil, nil, nil)
 	if code != 0 {
 		return mainBranch, "", fmt.Errorf("创建分支失败")
 	}
@@ -63,6 +62,9 @@ func CommitOnCurrentBranch(ctx *Context, display func() string) error {
 	util.Log.Printf("%s 正在当前分支提交更改...\n", display())
 
 	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
+		if runContextDone(ctx) {
+			return runContextErr(ctx)
+		}
 		return fmt.Errorf("提交更改失败: %v", err)
 	}
 
@@ -71,7 +73,7 @@ func CommitOnCurrentBranch(ctx *Context, display func() string) error {
 		return fmt.Errorf("提交命令已执行但更改仍存在")
 	}
 
-	code, commitTitle, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "log", "-1", "--format=%s"}, nil, nil, nil)
+	code, commitTitle, _, _ := zshell.ExecCommand(runContext(ctx), []string{"git", "log", "-1", "--format=%s"}, nil, nil, nil)
 	if code == 0 {
 		util.Log.Printf("%s 已提交: %s\n", display(), strings.TrimSpace(commitTitle))
 	}

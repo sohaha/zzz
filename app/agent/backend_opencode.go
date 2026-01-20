@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	opencodeCLICommand = "opencode"
-	opencodeTypeText   = "text"
+	opencodeCLICommand     = "opencode"
+	opencodeTypeText       = "text"
 	opencodeTypeStepFinish = "step_finish"
 )
 
@@ -40,7 +40,9 @@ func (b *OpencodeBackend) RunCommit(ctx *Context, prompt string) error {
 		prompt,
 	}
 
-	code, _, _, _ := zshell.ExecCommand(context.Background(), command, nil, nil, nil)
+	commandCtx, cancel := commandContext(ctx)
+	defer cancel()
+	code, _, _, _ := zshell.ExecCommand(commandCtx, command, nil, nil, nil)
 
 	if code != 0 {
 		return fmt.Errorf("提交失败")
@@ -64,38 +66,36 @@ func (b *OpencodeBackend) RunIteration(ctx *Context, prompt string, display func
 		command = append(command, "--model", ctx.Model)
 	}
 
-	buffers, writeString := handleBuffers()
+	buffers, writeString := handleBuffers(ctx, display)
 	var result BackendResult
-	exitCodeChan, _, err := zshell.CallbackRunContext(context.Background(), command,
-		func(line string, isStdout bool) {
-			if line, isStdout = writeString(line, isStdout); !isStdout {
-				return
-			}
+	commandCtx, cancel := commandContext(ctx)
+	defer cancel()
+	code, err := runStreamCommand(commandCtx, command, func(line string, isStdout bool) {
+		if line, isStdout = writeString(line, isStdout); !isStdout {
+			return
+		}
 
-			var event opencodeEvent
-			if err := json.Unmarshal([]byte(line), &event); err != nil {
-				return
-			}
+		var event opencodeEvent
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			return
+		}
 
-			switch event.Type {
-			case opencodeTypeText:
-				if event.Part.Text != "" {
-					result.Result = event.Part.Text
-					util.Log.Printf("%s %s\n", display(), event.Part.Text)
-				}
-			case opencodeTypeStepFinish:
-				if event.Part.Reason == "error" {
-					result.IsError = true
-				}
+		switch event.Type {
+		case opencodeTypeText:
+			if event.Part.Text != "" {
+				result.Result = event.Part.Text
+				util.Log.Printf("%s %s\n", display(), event.Part.Text)
 			}
-		}, func(o *zshell.Options) {
-			o.CloseStdin = true
-		})
+		case opencodeTypeStepFinish:
+			if event.Part.Reason == "error" {
+				result.IsError = true
+			}
+		}
+	})
 	if err != nil {
 		return nil, fmt.Errorf("执行 opencode 失败: %v", err)
 	}
 
-	code := <-exitCodeChan
 	if code != 0 {
 		return nil, formatExitCodeError("opencode", code, &buffers.stderr)
 	}
