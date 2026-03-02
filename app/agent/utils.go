@@ -98,11 +98,29 @@ func DetectGitHubRepo() (owner, repo string, err error) {
 }
 
 func CheckHasChanges() (bool, error) {
-	code, output, _, _ := zshell.ExecCommand(context.Background(),
-		[]string{"git", "status", "--porcelain"}, nil, nil, nil)
-
+	ctx := context.Background()
+	code, _, _, _ := zshell.ExecCommand(ctx,
+		[]string{"git", "diff", "--quiet", "--ignore-submodules=dirty"}, nil, nil, nil)
+	if code == 1 {
+		return true, nil
+	}
 	if code != 0 {
-		return false, fmt.Errorf("git status 失败")
+		return false, fmt.Errorf("git diff 失败")
+	}
+
+	code, _, _, _ = zshell.ExecCommand(ctx,
+		[]string{"git", "diff", "--cached", "--quiet", "--ignore-submodules=dirty"}, nil, nil, nil)
+	if code == 1 {
+		return true, nil
+	}
+	if code != 0 {
+		return false, fmt.Errorf("git diff --cached 失败")
+	}
+
+	code, output, _, _ := zshell.ExecCommand(ctx,
+		[]string{"git", "ls-files", "--others", "--exclude-standard"}, nil, nil, nil)
+	if code != 0 {
+		return false, fmt.Errorf("git ls-files 失败")
 	}
 
 	return strings.TrimSpace(output) != "", nil

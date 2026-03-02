@@ -27,6 +27,7 @@ var (
 	agentKeepNotesFile       bool
 	agentDryRun              bool
 	agentDebug               bool
+	agentCompletionSignal    string
 	agentCompletionThreshold int
 	agentReviewPrompt        string
 	agentDisableCIRetry      bool
@@ -37,6 +38,8 @@ var (
 	agentListWorktrees       bool
 	agentBackendName         string
 
+	agentRepoOwner    string
+	agentRepoName     string
 	agentProvider     string
 	agentRepoID       string
 	agentRepoAPIKey   string
@@ -70,13 +73,14 @@ func init() {
 	agentCmd.Flags().Float64Var(&agentMaxCost, "max-cost", 0, "最大花费成本 (美元) (0 为无限)")
 	agentCmd.Flags().StringVar(&agentMaxDuration, "max-duration", "", "最大运行时长 (例如: 2h, 30m, 1h30m)")
 	agentCmd.Flags().BoolVar(&agentEnableCommits, "enable-commits", false, "启用自动提交")
-	agentCmd.Flags().BoolVar(&agentEnableBranches, "enable-branches", false, "启用分支迭代并自动创建 PR")
+	agentCmd.Flags().BoolVar(&agentEnableBranches, "enable-branches", false, "启用分支迭代并自动创建 PR (需同时启用 --enable-commits)")
 	agentCmd.Flags().StringVar(&agentBranchPrefix, "branch-prefix", "continuous/", "迭代分支名前缀")
 	agentCmd.Flags().StringVar(&agentMergeStrategy, "merge-strategy", "squash", "PR 合并策略: squash, merge 或 rebase")
 	agentCmd.Flags().StringVar(&agentNotesFile, "notes-file", "agent_notes.md", "迭代上下文共享笔记文件")
 	agentCmd.Flags().BoolVar(&agentKeepNotesFile, "keep-notes-file", false, "完成后保留 notes 文件")
 	agentCmd.Flags().BoolVar(&agentDryRun, "dry-run", false, "模拟执行不实际修改")
 	agentCmd.Flags().BoolVar(&agentDebug, "debug", false, "输出 AI 的完整返回数据")
+	agentCmd.Flags().StringVar(&agentCompletionSignal, "completion-signal", agent.CompletionSignal, "完成信号短语")
 	agentCmd.Flags().IntVar(&agentCompletionThreshold, "completion-threshold", 3, "提前停止所需的连续完成信号数")
 	agentCmd.Flags().StringVarP(&agentReviewPrompt, "review-prompt", "r", "", "每次迭代后运行审查以验证变更")
 	agentCmd.Flags().BoolVar(&agentDisableCIRetry, "disable-ci-retry", false, "禁用自动 CI 失败重试")
@@ -88,6 +92,8 @@ func init() {
 	agentCmd.Flags().StringVar(&agentBackendName, "agent", "claude-code", "AI 后端 [claude-code, codex, opencode]")
 
 	agentCmd.Flags().StringVar(&agentProvider, "provider", "", "仓库提供商 [github, cool]，不指定时从 git remote 自动检测")
+	agentCmd.Flags().StringVar(&agentRepoOwner, "owner", "", "仓库所有者 (owner)")
+	agentCmd.Flags().StringVar(&agentRepoName, "repo", "", "仓库名称 (repo)")
 	agentCmd.Flags().StringVar(&agentRepoID, "repo-id", "", "仓库 ID (格式: owner/repo)，不指定时从 git remote 自动检测")
 	agentCmd.Flags().StringVar(&agentRepoAPIKey, "repo-api-key", "", "API Key (或使用环境变量 COOL_API_KEY)")
 	agentCmd.Flags().StringVar(&agentRepoEndpoint, "repo-endpoint", "", "API 端点 (仅 API-based providers，如 https://api.cnb.cool)")
@@ -126,6 +132,29 @@ func runAgentCommand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("需要 --max-runs、--max-cost 或 --max-duration 中的至少一个参数")
 	}
 
+	if agentEnableBranches && !agentEnableCommits {
+		return fmt.Errorf("--enable-branches 需要同时启用 --enable-commits")
+	}
+
+	repoID := strings.TrimSpace(agentRepoID)
+	repoOwner := strings.TrimSpace(agentRepoOwner)
+	repoName := strings.TrimSpace(agentRepoName)
+
+	if repoID != "" && (repoOwner != "" || repoName != "") {
+		return fmt.Errorf("请不要同时使用 --repo-id 与 --owner/--repo")
+	}
+	if repoID == "" && (repoOwner != "" || repoName != "") {
+		if repoOwner == "" || repoName == "" {
+			return fmt.Errorf("需要同时指定 --owner 与 --repo")
+		}
+		repoID = fmt.Sprintf("%s/%s", repoOwner, repoName)
+	}
+
+	agentCompletionSignal = strings.TrimSpace(agentCompletionSignal)
+	if agentCompletionSignal == "" {
+		agentCompletionSignal = agent.CompletionSignal
+	}
+
 	backend, err := agent.NewBackend(agentBackendName)
 	if err != nil {
 		return err
@@ -143,7 +172,7 @@ func runAgentCommand(cmd *cobra.Command, args []string) error {
 		NotesFile:           agentNotesFile,
 		DryRun:              agentDryRun,
 		Debug:               agentDebug,
-		CompletionSignal:    agent.CompletionSignal,
+		CompletionSignal:    agentCompletionSignal,
 		CompletionThreshold: agentCompletionThreshold,
 		ReviewPrompt:        agentReviewPrompt,
 		CIRetryEnabled:      !agentDisableCIRetry,
@@ -167,7 +196,7 @@ func runAgentCommand(cmd *cobra.Command, args []string) error {
 	}
 
 	if ctx.EnableCommits && ctx.EnableBranches && !ctx.DryRun {
-		if err := agent.SetupRepoProvider(ctx, agentProvider, agentRepoID, agent.ProviderOptions{
+		if err := agent.SetupRepoProvider(ctx, agentProvider, repoID, agent.ProviderOptions{
 			Endpoint: agentRepoEndpoint,
 			APIKey:   agentRepoAPIKey,
 		}); err != nil {

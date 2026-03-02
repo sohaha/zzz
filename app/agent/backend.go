@@ -12,7 +12,7 @@ import (
 type AIBackend interface {
 	Validate() error
 	RunIteration(ctx *Context, prompt string, display func() string) (*BackendResult, error)
-	RunCommit(ctx *Context, prompt string) error
+	RunCommit(ctx *Context, prompt string, display func() string) error
 	Name() string
 }
 
@@ -38,13 +38,19 @@ func formatExitCodeError(command string, exitCode int, stderr *bytes.Buffer) err
 	errMsg := strings.TrimSpace(stderr.String())
 	if errMsg == "" {
 		errMsg = fmt.Sprintf("%s 以非零退出码退出但没有错误输出", command)
+	} else {
+		errMsg = truncateText(errMsg, logDetailLimit)
 	}
 	return fmt.Errorf("%s 退出码 %d: %s", command, exitCode, errMsg)
 }
 
-func handleBuffers(ctx *Context, display func() string) (*streamBuffers, func(line string, isStdout bool) (string, bool)) {
+func handleBuffers(ctx *Context, display func() string, tool string) (*streamBuffers, func(line string, isStdout bool) (string, bool)) {
 	buffers := &streamBuffers{}
 	var mu sync.Mutex
+	toolName := tool
+	if toolName == "" {
+		toolName = "tool"
+	}
 
 	writeString := func(line string, isStdout bool) (string, bool) {
 		if ctx != nil && ctx.Debug && line != "" {
@@ -52,11 +58,8 @@ func handleBuffers(ctx *Context, display func() string) (*streamBuffers, func(li
 			if !isStdout {
 				stream = "stderr"
 			}
-			if display != nil {
-				util.Log.Printf("%s [%s] %s\n", display(), stream, line)
-			} else {
-				util.Log.Printf("[%s] %s\n", stream, line)
-			}
+			prefix := displayPrefix(display)
+			util.Log.Printf("%s[%s][%s] %s\n", prefix, toolName, stream, line)
 		}
 
 		if !isStdout {
@@ -176,7 +179,7 @@ func RunCIFixIteration(ctx *Context, prNumber string, display func() string, att
 	}
 	if hasChanges {
 		util.Log.Printf("%s 正在提交 CI 修复...\n", display())
-		if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
+		if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage, display); err != nil {
 			return fmt.Errorf("提交 CI 修复失败: %v", err)
 		}
 		return nil

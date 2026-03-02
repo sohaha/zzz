@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/sohaha/zlsgo/zshell"
 	"github.com/sohaha/zzz/util"
@@ -28,20 +27,23 @@ func (b *ClaudeCodeBackend) Validate() error {
 	return nil
 }
 
-func (b *ClaudeCodeBackend) RunCommit(ctx *Context, prompt string) error {
+func (b *ClaudeCodeBackend) RunCommit(ctx *Context, prompt string, display func() string) error {
 	if ctx.DryRun {
 		return nil
 	}
 
+	toolName := fmt.Sprintf("%s commit", b.Name())
 	commandCtx, cancel := commandContext(ctx)
 	defer cancel()
-	code, _, _, _ := zshell.ExecCommand(commandCtx, []string{
+	started := logToolStart(display, toolName, formatToolDetail(ctx, prompt))
+	code, _, _, err := zshell.ExecCommand(commandCtx, []string{
 		claudeCLICommand, "-p", prompt,
 		"--allowedTools", "Bash(git)",
 		"--dangerously-skip-permissions",
 	}, nil, nil, nil)
+	logToolFinish(display, toolName, started, code, err, false)
 
-	if code != 0 {
+	if err != nil || code != 0 {
 		return fmt.Errorf("提交失败")
 	}
 
@@ -61,10 +63,13 @@ func (b *ClaudeCodeBackend) RunIteration(ctx *Context, prompt string, display fu
 		command = append(command, "--model", ctx.Model)
 	}
 
-	buffers, writeString := handleBuffers(ctx, display)
+	toolName := b.Name()
+	buffers, writeString := handleBuffers(ctx, display, toolName)
 	var lastResult BackendResult
+	hadError := false
 	commandCtx, cancel := commandContext(ctx)
 	defer cancel()
+	started := logToolStart(display, toolName, formatToolDetail(ctx, prompt))
 	code, err := runStreamCommand(commandCtx, command, func(line string, isStdout bool) {
 		if line, isStdout = writeString(line, isStdout); !isStdout {
 			return
@@ -76,6 +81,9 @@ func (b *ClaudeCodeBackend) RunIteration(ctx *Context, prompt string, display fu
 		}
 
 		lastResult = result
+		if result.IsError {
+			hadError = true
+		}
 
 		if result.Type == "assistant" {
 			var msg streamMessage
@@ -88,14 +96,11 @@ func (b *ClaudeCodeBackend) RunIteration(ctx *Context, prompt string, display fu
 					continue
 				}
 
-				for _, textLine := range strings.Split(content.Text, "\n") {
-					if trimmed := strings.TrimSpace(textLine); trimmed != "" {
-						util.Log.Printf("%s %s\n", display(), trimmed)
-					}
-				}
+				logToolOutputLines(display, content.Text)
 			}
 		}
 	})
+	logToolFinish(display, toolName, started, code, err, hadError)
 	if err != nil {
 		return nil, fmt.Errorf("执行 Agent 失败: %v", err)
 	}

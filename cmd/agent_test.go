@@ -118,3 +118,83 @@ func TestStdinBoundary(t *testing.T) {
 		})
 	}
 }
+
+func TestAgentEnableBranchesRequiresCommits(t *testing.T) {
+	restore := setAgentDefaults()
+	defer restore()
+
+	agentEnableBranches = true
+	agentEnableCommits = false
+
+	err := runAgentCommand(agentCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "--enable-branches 需要同时启用 --enable-commits") {
+		t.Fatalf("expected enable-branches error, got %v", err)
+	}
+}
+
+func TestAgentRepoIDConflict(t *testing.T) {
+	restore := setAgentDefaults()
+	defer restore()
+
+	agentRepoID = "owner/repo"
+	agentRepoOwner = "owner"
+	agentRepoName = "repo"
+
+	err := runAgentCommand(agentCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "请不要同时使用 --repo-id 与 --owner/--repo") {
+		t.Fatalf("expected repo-id conflict error, got %v", err)
+	}
+}
+
+func TestAgentOwnerRepoPairRequired(t *testing.T) {
+	restore := setAgentDefaults()
+	defer restore()
+
+	agentRepoOwner = "owner"
+	agentRepoName = ""
+
+	err := runAgentCommand(agentCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "需要同时指定 --owner 与 --repo") {
+		t.Fatalf("expected owner/repo pair error, got %v", err)
+	}
+}
+
+func setAgentDefaults() func() {
+	oldPrompt := agentPrompt
+	oldMaxRuns := agentMaxRuns
+	oldMaxCost := agentMaxCost
+	oldMaxDuration := agentMaxDuration
+	oldEnableCommits := agentEnableCommits
+	oldEnableBranches := agentEnableBranches
+	oldRepoID := agentRepoID
+	oldRepoOwner := agentRepoOwner
+	oldRepoName := agentRepoName
+	oldListWorktrees := agentListWorktrees
+	oldCompletionSignal := agentCompletionSignal
+
+	agentPrompt = "test"
+	agentMaxRuns = 1
+	agentMaxCost = 0
+	agentMaxDuration = ""
+	agentEnableCommits = false
+	agentEnableBranches = false
+	agentRepoID = ""
+	agentRepoOwner = ""
+	agentRepoName = ""
+	agentListWorktrees = false
+	agentCompletionSignal = ""
+
+	return func() {
+		agentPrompt = oldPrompt
+		agentMaxRuns = oldMaxRuns
+		agentMaxCost = oldMaxCost
+		agentMaxDuration = oldMaxDuration
+		agentEnableCommits = oldEnableCommits
+		agentEnableBranches = oldEnableBranches
+		agentRepoID = oldRepoID
+		agentRepoOwner = oldRepoOwner
+		agentRepoName = oldRepoName
+		agentListWorktrees = oldListWorktrees
+		agentCompletionSignal = oldCompletionSignal
+	}
+}

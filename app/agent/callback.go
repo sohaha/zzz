@@ -46,12 +46,13 @@ func executeCallback(agentCtx *Context, mainErr error, command string, hookType 
 	}
 
 	if code != 0 {
-		util.Log.Warnf("回调执行失败 (退出码 %d): %s\n", code, strings.TrimSpace(stdout+stderr))
+		detail := truncateText(strings.TrimSpace(stdout+stderr), logDetailLimit)
+		util.Log.Warnf("回调执行失败 (退出码 %d): %s\n", code, detail)
 		return
 	}
 
 	if trimmed := strings.TrimSpace(stdout); trimmed != "" {
-		util.Log.Printf("回调输出: %s\n", trimmed)
+		util.Log.Printf("回调输出: %s\n", truncateText(trimmed, logDetailLimit))
 	}
 }
 
@@ -74,10 +75,7 @@ func buildCallbackEnv(agentCtx *Context, mainErr error) map[string]string {
 		env["AGENT_EXIT_CODE"] = "1"
 
 		errMsg := strings.ReplaceAll(mainErr.Error(), "\n", " ")
-		if len(errMsg) > 1024 {
-			errMsg = errMsg[:1024] + "... (truncated)"
-		}
-		env["AGENT_ERROR"] = errMsg
+		env["AGENT_ERROR"] = truncateText(errMsg, logDetailLimit)
 	}
 
 	if agentCtx.Model != "" {

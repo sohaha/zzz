@@ -61,7 +61,7 @@ func CommitOnCurrentBranch(ctx *Context, display func() string) error {
 
 	util.Log.Printf("%s 正在当前分支提交更改...\n", display())
 
-	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
+	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage, display); err != nil {
 		if runContextDone(ctx) {
 			return runContextErr(ctx)
 		}

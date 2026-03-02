@@ -30,23 +30,28 @@ func (b *CodexBackend) Validate() error {
 	return nil
 }
 
-func (b *CodexBackend) RunCommit(ctx *Context, prompt string) error {
+func (b *CodexBackend) RunCommit(ctx *Context, prompt string, display func() string) error {
 	if ctx.DryRun {
 		return nil
 	}
 
+	toolName := fmt.Sprintf("%s commit", b.Name())
 	command := []string{
 		codexCLICommand, "exec",
 		"--json",
 		"--dangerously-bypass-approvals-and-sandbox",
+		"--ask-for-approval",
+		"never",
 		prompt,
 	}
 
 	commandCtx, cancel := commandContext(ctx)
 	defer cancel()
-	code, _, _, _ := zshell.ExecCommand(commandCtx, command, nil, nil, nil)
+	started := logToolStart(display, toolName, formatToolDetail(ctx, prompt))
+	code, _, _, err := zshell.ExecCommand(commandCtx, command, nil, nil, nil)
+	logToolFinish(display, toolName, started, code, err, false)
 
-	if code != 0 {
+	if err != nil || code != 0 {
 		return fmt.Errorf("提交失败")
 	}
 
@@ -69,10 +74,13 @@ func (b *CodexBackend) RunIteration(ctx *Context, prompt string, display func() 
 		command = append(command, "--model", ctx.Model)
 	}
 
-	buffers, writeString := handleBuffers(ctx, display)
+	toolName := b.Name()
+	buffers, writeString := handleBuffers(ctx, display, toolName)
 	var result BackendResult
+	hadError := false
 	commandCtx, cancel := commandContext(ctx)
 	defer cancel()
+	started := logToolStart(display, toolName, formatToolDetail(ctx, prompt))
 	code, err := runStreamCommand(commandCtx, command, func(line string, isStdout bool) {
 		if line, isStdout = writeString(line, isStdout); !isStdout {
 			return
@@ -87,15 +95,17 @@ func (b *CodexBackend) RunIteration(ctx *Context, prompt string, display func() 
 		case codexEventItemCompleted:
 			if event.Item != nil && event.Item.Text != "" {
 				result.Result = event.Item.Text
-				util.Log.Printf("%s %s\n", display(), event.Item.Text)
+				logToolOutputLines(display, event.Item.Text)
 			}
 		case codexEventError:
 			if event.Error != nil {
 				result.IsError = true
 				result.Result = fmt.Sprintf("[%s] %s", event.Error.Type, event.Error.Message)
+				hadError = true
 			}
 		}
 	})
+	logToolFinish(display, toolName, started, code, err, hadError)
 	if err != nil {
 		return nil, fmt.Errorf("执行 codex 失败: %v", err)
 	}

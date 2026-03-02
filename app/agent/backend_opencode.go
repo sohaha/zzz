@@ -29,11 +29,12 @@ func (b *OpencodeBackend) Validate() error {
 	return nil
 }
 
-func (b *OpencodeBackend) RunCommit(ctx *Context, prompt string) error {
+func (b *OpencodeBackend) RunCommit(ctx *Context, prompt string, display func() string) error {
 	if ctx.DryRun {
 		return nil
 	}
 
+	toolName := fmt.Sprintf("%s commit", b.Name())
 	command := []string{
 		opencodeCLICommand, "run",
 		"--format", "json",
@@ -42,9 +43,11 @@ func (b *OpencodeBackend) RunCommit(ctx *Context, prompt string) error {
 
 	commandCtx, cancel := commandContext(ctx)
 	defer cancel()
-	code, _, _, _ := zshell.ExecCommand(commandCtx, command, nil, nil, nil)
+	started := logToolStart(display, toolName, formatToolDetail(ctx, prompt))
+	code, _, _, err := zshell.ExecCommand(commandCtx, command, nil, nil, nil)
+	logToolFinish(display, toolName, started, code, err, false)
 
-	if code != 0 {
+	if err != nil || code != 0 {
 		return fmt.Errorf("提交失败")
 	}
 
@@ -66,10 +69,13 @@ func (b *OpencodeBackend) RunIteration(ctx *Context, prompt string, display func
 		command = append(command, "--model", ctx.Model)
 	}
 
-	buffers, writeString := handleBuffers(ctx, display)
+	toolName := b.Name()
+	buffers, writeString := handleBuffers(ctx, display, toolName)
 	var result BackendResult
+	hadError := false
 	commandCtx, cancel := commandContext(ctx)
 	defer cancel()
+	started := logToolStart(display, toolName, formatToolDetail(ctx, prompt))
 	code, err := runStreamCommand(commandCtx, command, func(line string, isStdout bool) {
 		if line, isStdout = writeString(line, isStdout); !isStdout {
 			return
@@ -84,14 +90,16 @@ func (b *OpencodeBackend) RunIteration(ctx *Context, prompt string, display func
 		case opencodeTypeText:
 			if event.Part.Text != "" {
 				result.Result = event.Part.Text
-				util.Log.Printf("%s %s\n", display(), event.Part.Text)
+				logToolOutputLines(display, event.Part.Text)
 			}
 		case opencodeTypeStepFinish:
 			if event.Part.Reason == "error" {
 				result.IsError = true
+				hadError = true
 			}
 		}
 	})
+	logToolFinish(display, toolName, started, code, err, hadError)
 	if err != nil {
 		return nil, fmt.Errorf("执行 opencode 失败: %v", err)
 	}

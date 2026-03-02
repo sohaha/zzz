@@ -40,7 +40,7 @@ func CommitAndCreatePR(ctx *Context, branchName, mainBranch string, display func
 
 	util.Log.Printf("%s 正在提交更改...\n", display())
 
-	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage); err != nil {
+	if err := ctx.Backend.RunCommit(ctx, PromptCommitMessage, display); err != nil {
 		if runContextDone(ctx) {
 			return runContextErr(ctx)
 		}
