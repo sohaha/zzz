@@ -159,6 +159,38 @@ func (g *Git) Remove(filename string) error {
 	return nil
 }
 
+func (g *Git) RemoveCached(path string) error {
+	cmd := exec.Command("git", "rm", "-r", "--cached", "--ignore-unmatch", path)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return &GitCommandError{
+			Command: fmt.Sprintf("git rm -r --cached --ignore-unmatch %s", path),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return nil
+}
+
+func (g *Git) RestoreStaged(path string) error {
+	cmd := exec.Command("git", "restore", "--staged", "--", path)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return &GitCommandError{
+			Command: fmt.Sprintf("git restore --staged -- %s", path),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return nil
+}
+
 func (g *Git) Commit(message string) error {
 	if message == "" {
 		message = "lnk: automated commit"
@@ -631,6 +663,27 @@ func (g *Git) HasChanges() (bool, error) {
 	hasUntracked := strings.TrimSpace(string(output)) != ""
 
 	return err1 != nil || err2 != nil || hasUntracked, nil
+}
+
+func (g *Git) Diff(color bool) (string, error) {
+	colorFlag := "--color=never"
+	if color {
+		colorFlag = "--color=always"
+	}
+
+	cmd := exec.Command("git", "diff", colorFlag)
+	cmd.Dir = g.repoPath
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", &GitCommandError{
+			Command: fmt.Sprintf("git diff %s", colorFlag),
+			Output:  string(output),
+			Err:     err,
+		}
+	}
+
+	return string(output), nil
 }
 
 func (g *Git) ListBranches() ([]string, error) {

@@ -85,6 +85,8 @@ func init() {
 	lnkCmd.AddCommand(newAddCmd())
 	lnkCmd.AddCommand(newRmCmd())
 	lnkCmd.AddCommand(newListCmd())
+	lnkCmd.AddCommand(newDiffCmd())
+	lnkCmd.AddCommand(newDoctorCmd())
 	lnkCmd.AddCommand(newStatusCmd())
 	lnkCmd.AddCommand(newPushCmd())
 	lnkCmd.AddCommand(newPullCmd())
@@ -222,7 +224,10 @@ func newAddCmd() *cobra.Command {
 }
 
 func newRmCmd() *cobra.Command {
-	var host string
+	var (
+		host  string
+		force bool
+	)
 
 	cmd := &cobra.Command{
 		Use:          "rm <file>... [flags]",
@@ -235,6 +240,9 @@ func newRmCmd() *cobra.Command {
   # 移除多个文件
   zzz lnk rm ~/.bashrc ~/.vimrc
 
+  # 强制从跟踪中移除（符号链接缺失时使用）
+  zzz lnk rm ~/.bashrc --force
+
   # 移除特定主机的配置
   zzz lnk rm ~/.bashrc --host workstation`,
 		Args: cobra.MinimumNArgs(1),
@@ -243,6 +251,14 @@ func newRmCmd() *cobra.Command {
 
 			if !lnk.IsInitialized() {
 				return fmt.Errorf("lnk 仓库未初始化，请先运行 'zzz lnk init'")
+			}
+
+			if force {
+				if err := lnk.RemoveForceMultiple(args); err != nil {
+					return fmt.Errorf("强制移除文件失败: %w", err)
+				}
+				util.Log.Successf("成功强制移除文件的跟踪记录\n")
+				return nil
 			}
 
 			if len(args) > 1 {
@@ -288,6 +304,7 @@ func newRmCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&host, "host", "H", "", "指定主机名（默认使用系统主机名）")
+	cmd.Flags().BoolVarP(&force, "force", "f", false, "强制从跟踪中移除文件（即使符号链接已不存在）")
 
 	return cmd
 }
