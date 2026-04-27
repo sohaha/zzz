@@ -13,6 +13,11 @@ import (
 )
 
 func eventDispatcher(event fsnotify.Event) {
+	isLinkDir, err := isSymlinkDirectory(event.Name)
+	if err == nil && isLinkDir {
+		return
+	}
+
 	ext := path.Ext(event.Name)
 	event.Name = zfile.RealPath(event.Name)
 	isDir := zfile.DirExist(event.Name)

@@ -77,6 +77,16 @@ func arrIncludeDirs() {
 		isAll := len(arr) == 2 && arr[1] == "*"
 
 		addFiles := func(dir string) {
+			isLinkDir, err := isSymlinkDirectory(dir)
+			if err != nil {
+				util.Log.Warnf("跳过无法解析的目录 %s: %v\n", dir, err)
+				return
+			}
+			if isLinkDir {
+				util.Log.Warnf("跳过软链接目录: %s\n", dir)
+				return
+			}
+
 			dir = zfile.RealPath(dir)
 
 			if isExcept(exceptDirs, dir) {
@@ -111,6 +121,17 @@ func arrIncludeDirs() {
 			addFiles(arr[0])
 		} else {
 			md := arr[0]
+			if zfile.DirExist(md) {
+				isLinkDir, err := isSymlinkDirectory(md)
+				if err != nil {
+					util.Log.Warnf("跳过无法解析的目录 %s: %v\n", md, err)
+					continue
+				}
+				if isLinkDir {
+					util.Log.Warnf("跳过软链接目录: %s\n", md)
+					continue
+				}
+			}
 			md = zfile.RealPath(md)
 			if len(arr) == 2 && arr[1] == "*" {
 				watchDirs = arrayUniqueAdd(watchDirs, md)

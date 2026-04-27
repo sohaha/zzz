@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -54,6 +55,26 @@ func isIgnoreDirectory(folder string) bool {
 		}
 	}
 	return false
+}
+
+func isSymlinkDirectory(path string) (bool, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return false, err
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		return false, nil
+	}
+
+	targetInfo, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return targetInfo.IsDir(), nil
 }
 
 func listFile(folder string, fun func(string)) {

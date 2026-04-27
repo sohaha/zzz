@@ -33,6 +33,16 @@ func (w *filePoller) Add(name string) error {
 		return errPollerClosed
 	}
 
+	isLinkDir, err := isSymlinkDirectory(name)
+	if err != nil {
+		w.mu.Unlock()
+		return err
+	}
+	if isLinkDir {
+		w.mu.Unlock()
+		return nil
+	}
+
 	fi, err := os.Stat(name)
 	if err != nil {
 		w.mu.Unlock()
@@ -207,6 +217,14 @@ func readDirEntries(dir string) (map[string]struct{}, error) {
 	result := make(map[string]struct{}, len(entries))
 	for _, entry := range entries {
 		name := entry.Name()
+		fullPath := filepath.Join(dir, name)
+		isLinkDir, err := isSymlinkDirectory(fullPath)
+		if err != nil {
+			return nil, err
+		}
+		if isLinkDir {
+			continue
+		}
 		if entry.IsDir() && isIgnoreDirectory(filepath.Join(dir, name)) {
 			continue
 		}
