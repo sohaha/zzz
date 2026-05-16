@@ -1,3 +1,4 @@
 include:
   - https://cnb.cool/zls-tools/vm/-/blob/main/tools/sync-github-sohaha.yml
+  - https://cnb.cool/zls-tools/vm/-/blob/main/ide.yml
 
