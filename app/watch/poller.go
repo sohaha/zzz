@@ -264,7 +264,17 @@ func (w *filePoller) watchDir(dir string, lastEntries map[string]struct{}, chClo
 
 		for name := range entries {
 			if _, exists := lastEntries[name]; !exists {
-				_ = w.Add(filepath.Join(dir, name))
+				fullPath := filepath.Join(dir, name)
+				_ = w.Add(fullPath)
+				_ = w.sendEvent(fsnotify.Event{Op: fsnotify.Create, Name: fullPath}, chClose)
+			}
+		}
+
+		for name := range lastEntries {
+			if _, exists := entries[name]; !exists {
+				fullPath := filepath.Join(dir, name)
+				_ = w.Remove(fullPath)
+				_ = w.sendEvent(fsnotify.Event{Op: fsnotify.Remove, Name: fullPath}, chClose)
 			}
 		}
 
