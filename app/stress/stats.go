@@ -96,6 +96,9 @@ func CreateRequestsStats(requestStats []RequestStat) RequestStatSummary {
 
 	summary.avgDataTransferred = summary.totalDataTransferred / nonErrCount
 
-	summary.avgRPS = float64(nonErrCount) / float64(summary.endTime.Sub(summary.startTime))
+	elapsed := summary.endTime.Sub(summary.startTime)
+	if elapsed > 0 {
+		summary.avgRPS = float64(nonErrCount) / float64(elapsed)
+	}
 	return summary
 }
