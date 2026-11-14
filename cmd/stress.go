@@ -145,7 +145,7 @@ var stressCmd = &cobra.Command{
 					stressCfg.Targets[i].KeepAlive, _ = cmd.Flags().GetBool("keepalive")
 				}
 				if _, set := targetMapVals["FollowRedirects"]; !set {
-					stressCfg.Targets[i].FollowRedirects, _ = cmd.Flags().GetBool("followredirects")
+					stressCfg.Targets[i].FollowRedirects, _ = cmd.Flags().GetBool("follow-redirects")
 				}
 				if _, set := targetMapVals["NoHTTP2"]; !set {
 					stressCfg.Targets[i].NoHTTP2, _ = cmd.Flags().GetBool("no-http2")
