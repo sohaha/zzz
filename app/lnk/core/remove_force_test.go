@@ -21,7 +21,8 @@ func TestRemoveForceMultipleCommitsOnce(t *testing.T) {
 	runGit(t, repoDir, "config", "user.name", "Test")
 
 	lnk := NewLnk(WithRepoPath(repoDir))
-	workDir := t.TempDir()
+	workDir, _ := os.MkdirTemp("/tmp", "lnk-work-*")
+	t.Cleanup(func() { os.RemoveAll(workDir) })
 	targetA := filepath.Join(workDir, "a.conf")
 	targetB := filepath.Join(workDir, "b.conf")
 	repoA := filepath.Join(repoDir, filepath.Base(targetA))
@@ -76,7 +77,8 @@ func TestRemoveForceMultipleRollsBackOnFailure(t *testing.T) {
 	runGit(t, repoDir, "config", "user.name", "Test")
 
 	lnk := NewLnk(WithRepoPath(repoDir))
-	workDir := t.TempDir()
+	workDir, _ := os.MkdirTemp("/tmp", "lnk-work-*")
+	t.Cleanup(func() { os.RemoveAll(workDir) })
 	targetA := filepath.Join(workDir, "a.conf")
 	targetB := filepath.Join(workDir, "b.conf")
 	repoA := filepath.Join(repoDir, filepath.Base(targetA))
@@ -136,7 +138,8 @@ func TestRemoveForceMultipleRestoresMissingFileCacheState(t *testing.T) {
 	runGit(t, repoDir, "config", "user.name", "Test")
 
 	lnk := NewLnk(WithRepoPath(repoDir))
-	workDir := t.TempDir()
+	workDir, _ := os.MkdirTemp("/tmp", "lnk-work-*")
+	t.Cleanup(func() { os.RemoveAll(workDir) })
 	targetA := filepath.Join(workDir, "a.conf")
 	targetB := filepath.Join(workDir, "b.conf")
 	targetC := filepath.Join(workDir, "c.conf")
