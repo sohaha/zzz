@@ -100,7 +100,7 @@ func (l *Lnk) RestoreSymlinks() error {
 		}
 
 		if l.fs.IsSymlink(absPath) {
-			target, err := l.fs.ReadSymlink(absPath)
+			target, err := l.fs.ReadResolvedSymlink(absPath)
 			if err == nil && target == repoFilePath {
 				restoredCount++
 				continue
@@ -203,7 +203,7 @@ func (l *Lnk) RestoreSymlinksForHost(hostName string) error {
 
 		if l.fs.FileExists(absPath) {
 			if l.fs.IsSymlink(absPath) {
-				target, err := l.fs.ReadSymlink(absPath)
+				target, err := l.fs.ReadResolvedSymlink(absPath)
 				if err == nil && target == repoFilePath {
 					restoredCount++
 					continue

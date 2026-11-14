@@ -130,13 +130,9 @@ func isValidSoftlink(l *Lnk, absPath, repoFilePath string) bool {
 		return false
 	}
 
-	target, err := l.fs.ReadSymlink(absPath)
+	target, err := l.fs.ReadResolvedSymlink(absPath)
 	if err != nil {
 		return false
-	}
-
-	if !filepath.IsAbs(target) {
-		target = filepath.Join(filepath.Dir(absPath), target)
 	}
 
 	target = filepath.Clean(target)

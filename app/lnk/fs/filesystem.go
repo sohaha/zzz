@@ -379,6 +379,19 @@ func (fs *FileSystem) ReadSymlink(linkPath string) (string, error) {
 	return target, nil
 }
 
+// ReadResolvedSymlink 读取符号链接并把相对目标解析为绝对路径。
+// 相对目标是相对于链接所在目录的，而非进程工作目录。
+func (fs *FileSystem) ReadResolvedSymlink(linkPath string) (string, error) {
+	target, err := fs.ReadSymlink(linkPath)
+	if err != nil {
+		return "", err
+	}
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(filepath.Dir(linkPath), target)
+	}
+	return filepath.Clean(target), nil
+}
+
 func (fs *FileSystem) RemoveFile(filePath string) error {
 	realPath := zfile.RealPath(filePath)
 	if realPath == "" {

@@ -742,7 +742,7 @@ func (l *Lnk) ValidateRepository() error {
 			errors = append(errors, fmt.Sprintf("不是符号链接: %s", absPath))
 			continue
 		}
-		target, err := l.fs.ReadSymlink(absPath)
+		target, err := l.fs.ReadResolvedSymlink(absPath)
 		if err != nil || !l.fs.FileExists(target) {
 			errors = append(errors, fmt.Sprintf("符号链接目标不存在或无效: %s", absPath))
 			continue
