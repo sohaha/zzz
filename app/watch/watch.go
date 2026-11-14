@@ -67,10 +67,14 @@ func otherWatcher(name string, event fsnotify.Op) {
 func arrIncludeDirs() {
 	for i := 0; i < len(includeDirs); i++ {
 		arr := dirParse2Array(includeDirs[i])
-		isD := strings.Index(arr[0], ".") == 0
-		if len(arr) < 1 || len(arr) > 2 {
+		if len(arr) < 1 {
+			util.Log.Warnf("忽略空的监听目录配置: %q\n", includeDirs[i])
+			continue
+		}
+		if len(arr) > 2 {
 			util.Log.Fatal("监听文件路径错误:", includeDirs[i])
 		}
+		isD := strings.Index(arr[0], ".") == 0
 		if strings.HasPrefix(arr[0], "/") {
 			util.Log.Fatal("监控目录必须是相对路径:", includeDirs[i])
 		}

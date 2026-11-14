@@ -49,7 +49,21 @@ func VersionCompare(version1, version2, operator string) bool {
 			} else {
 				p2, ver2 = ver2[:n2], ver2[n2+1:]
 			}
-			if (p1[0] >= '0' && p1[0] <= '9') && (p2[0] >= '0' && p2[0] <= '9') { // all isdigit
+			if p1 == "" && p2 == "" { // both exhausted (trailing separator)
+				compare = 0
+			} else if p1 == "" { // v1 exhausted: remainder of v2 decides
+				if p2[0] >= '0' && p2[0] <= '9' {
+					compare = -1
+				} else {
+					compare = special("#N#", p2)
+				}
+			} else if p2 == "" { // v2 exhausted: remainder of v1 decides
+				if p1[0] >= '0' && p1[0] <= '9' {
+					compare = 1
+				} else {
+					compare = special(p1, "#N#")
+				}
+			} else if (p1[0] >= '0' && p1[0] <= '9') && (p2[0] >= '0' && p2[0] <= '9') { // all isdigit
 				l1, _ := strconv.Atoi(p1)
 				l2, _ := strconv.Atoi(p2)
 				if l1 > l2 {
