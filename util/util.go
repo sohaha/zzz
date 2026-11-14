@@ -2,13 +2,11 @@ package util
 
 import (
 	"os"
-	"os/exec"
 	"strings"
 	"sync"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zlog"
-	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/zutil"
 )
 
@@ -66,20 +64,6 @@ func IsInstall() (exist bool) {
 
 func GetInstallPath() string {
 	return installPath
-}
-
-func ExecCommand(commandName string, arg ...string) (string, error) {
-	var data string
-	c := exec.Command(commandName, arg...)
-	c.Env = os.Environ()
-	out, err := c.CombinedOutput()
-	if out != nil {
-		data = zstring.Bytes2String(out)
-	}
-	if err != nil {
-		return data, err
-	}
-	return data, nil
 }
 
 func CheckIfError(err error) {
