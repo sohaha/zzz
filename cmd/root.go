@@ -204,19 +204,29 @@ func updateDetectionTime(now int64) {
 	_ = viper.WriteConfig()
 }
 
+// checkInterval 为两次版本检测之间的最小间隔（秒）。
+const checkInterval = 60 * 60 * 24
+
+// shouldCheckForUpdate 判断是否需要进行版本检测。
+// lastNow 为上次成功检测时间，0 表示从未检测过。
+func shouldCheckForUpdate(lastNow, now int64) bool {
+	return lastNow == 0 || (now-lastNow) >= checkInterval
+}
+
 func GetNewVersion() {
 	now := time.Now().Unix()
 	lastNow := viper.GetInt64("core.detection_time")
-	if lastNow != 0 && ((now - lastNow) < 60*60*24) {
+	if !shouldCheckForUpdate(lastNow, now) {
 		return
 	}
-	updateDetectionTime(now)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(zstring.RandInt(1, 3))*time.Second)
 	defer cancel()
 	res, err := zhttp.Get("https://api.github.com/repos/sohaha/zzz/releases/latest", ctx)
 	if err != nil {
 		return
 	}
+	// 只有成功取到响应才刷新检测时间，避免网络失败锁住 24h 不重试
+	updateDetectionTime(now)
 	json := zjson.ParseBytes(res.Bytes())
 	version := strings.TrimPrefix(json.Get("tag_name").String(), "v")
 	if util.VersionCompare(util.Version, version, "<") {
