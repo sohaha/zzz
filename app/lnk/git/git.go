@@ -217,6 +217,23 @@ func (g *Git) Commit(message string) error {
 }
 
 func (g *Git) Push() error {
+	// 首次推送：分支尚未设置 upstream 时自动带上 -u。
+	// 不用错误输出匹配，因为 git 输出受区域设置影响。
+	if !g.hasUpstream() {
+		if branch, branchErr := g.getCurrentBranch(); branchErr == nil && branch != "" {
+			return g.PushBranch(branch)
+		}
+	}
+	return g.push()
+}
+
+func (g *Git) hasUpstream() bool {
+	cmd := exec.Command("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+	cmd.Dir = g.repoPath
+	return cmd.Run() == nil
+}
+
+func (g *Git) push() error {
 	cmd := exec.Command("git", "push")
 	cmd.Dir = g.repoPath
 
@@ -235,16 +252,6 @@ func (g *Git) Push() error {
 			strings.Contains(string(output), "Permission denied") {
 			return &AuthenticationError{
 				Err: err,
-			}
-		}
-
-		// 首次推送：分支尚未设置 upstream 时自动带上 -u
-		if strings.Contains(string(output), "has no upstream branch") {
-			branch, branchErr := g.getCurrentBranch()
-			if branchErr == nil {
-				if pushErr := g.PushBranch(branch); pushErr == nil {
-					return nil
-				}
 			}
 		}
 
