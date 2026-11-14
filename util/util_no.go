@@ -7,14 +7,14 @@ import (
 	"syscall"
 )
 
-func SetLimit(l uint64) {
+func SetLimit(l int) {
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
 		return
 	}
-	rLimit.Max = l
-	rLimit.Cur = l
+	rLimit.Max = uint64(l)
+	rLimit.Cur = uint64(l)
 	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
 		return
