@@ -1,7 +1,7 @@
 package watch
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zzz/app/root"
@@ -42,5 +42,5 @@ func initCfg(path string) error {
 	version := util.Version
 	config := root.GetExampleWatchConfig(version)
 
-	return ioutil.WriteFile(path, []byte(config), 0644)
+	return os.WriteFile(path, []byte(config), 0644)
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -112,7 +111,7 @@ func RunStress(s StressConfig, w io.Writer) ([][]RequestStat, error) {
 						}
 						if stat.Error == nil {
 							if !s.Verbose {
-								_, _ = io.Copy(ioutil.Discard, response.Body)
+								_, _ = io.Copy(io.Discard, response.Body)
 							}
 							err = response.Body.Close()
 						}

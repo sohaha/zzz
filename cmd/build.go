@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,7 +86,7 @@ var buildCmd = &cobra.Command{
 						referencedAsset.PackageName+"_static_resources.go",
 					)
 					targetFiles = append(targetFiles, targetFile)
-					err = ioutil.WriteFile(targetFile, []byte(packfileData), 0o644)
+					err = os.WriteFile(targetFile, []byte(packfileData), 0o644)
 					util.CheckIfError(err)
 				}
 			}

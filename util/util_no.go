@@ -7,10 +7,6 @@ import (
 	"syscall"
 )
 
-func hideFile(path string) error {
-	return nil
-}
-
 func SetLimit(l uint64) {
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)

@@ -1,7 +1,7 @@
 package stress
 
 import (
-	"io/ioutil"
+	"os"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zzz/app/root"
@@ -40,5 +40,5 @@ func init() {
 
 func initCfg(path string) error {
 	config := root.GetExampleStressConfig("")
-	return ioutil.WriteFile(path, []byte(config), 0o644)
+	return os.WriteFile(path, []byte(config), 0o644)
 }

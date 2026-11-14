@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -195,7 +194,7 @@ func createCfg(cfgFilepath string) error {
 	if !zfile.FileExist(cfgFilepath) {
 		config := root.GetExampleConfig(version)
 		zfile.RealPathMkdir(filepath.Dir(cfgFilepath))
-		return ioutil.WriteFile(cfgFilepath, []byte(config), 0o644)
+		return os.WriteFile(cfgFilepath, []byte(config), 0o644)
 	}
 	return nil
 }

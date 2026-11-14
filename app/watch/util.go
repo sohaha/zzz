@@ -2,7 +2,6 @@ package watch
 
 import (
 	"errors"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -89,7 +88,7 @@ func listFile(folder string, fun func(string)) {
 		return
 	}
 
-	files, err := ioutil.ReadDir(folder)
+	files, err := os.ReadDir(folder)
 	if err != nil {
 		util.Log.Errorf("读取目录失败 %s: %v\n", folder, err)
 		return

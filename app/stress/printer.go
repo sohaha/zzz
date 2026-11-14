@@ -3,7 +3,6 @@ package stress
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sort"
 	"sync"
@@ -109,7 +108,7 @@ func (p *printer) printVerbose(req *http.Request, response *http.Response) {
 	requestInfo = requestInfo + fmt.Sprintf("响应:\n%+v\n\n", response)
 
 	// reponse body
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		requestInfo = requestInfo + fmt.Sprintf("读取响应体失败: %s\n", err.Error())
 	} else {

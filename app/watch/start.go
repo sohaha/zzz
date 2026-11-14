@@ -10,7 +10,6 @@ import (
 
 	"github.com/sohaha/zlsgo/zstring"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,7 +30,7 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 			if !zfile.FileExist(cfgPath) {
 				oldCfg := "./zls-watch.yaml"
 				if !zfile.FileExist(oldCfg) {
-					homePath, homePathErr := homedir.Dir()
+					homePath, homePathErr := os.UserHomeDir()
 					if homePathErr == nil {
 						v.AddConfigPath(homePath)
 						v.SetConfigName("zzz-watch")

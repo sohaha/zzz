@@ -8,7 +8,6 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/lucasjones/reggen v0.0.0-20200904144131-37ba4fa293bb
 	github.com/manifoldco/promptui v0.9.0
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sohaha/gconf v1.0.3
 	github.com/sohaha/zlsgo v1.7.22
 	github.com/sohaha/zstatic v0.2.3

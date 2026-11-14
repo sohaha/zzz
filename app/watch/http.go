@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -229,7 +228,7 @@ func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
 	shouldInject := httpType == "web" && strings.Contains(strings.ToLower(contentType), "text/html")
 
 	if shouldInject {
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}

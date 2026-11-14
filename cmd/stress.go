@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 
@@ -191,7 +190,7 @@ var stressCmd = &cobra.Command{
 			filename := viper.GetString("output-json")
 			fmt.Print("正在将完整结果数据写入: " + filename + " ...")
 			json, _ := json.MarshalIndent(globalStats, "", "    ")
-			err = ioutil.WriteFile(filename, json, 0644)
+			err = os.WriteFile(filename, json, 0644)
 			if err != nil {
 				return errors.New("写入完整结果数据失败: " +
 					filename + ": " + err.Error())
@@ -232,7 +231,7 @@ var stressCmd = &cobra.Command{
 			filename := viper.GetString("output-xml")
 			fmt.Print("正在写入 XML 结果到: " + filename + " ...")
 			xml, _ := xml.MarshalIndent(globalStats, "", "    ")
-			err = ioutil.WriteFile(viper.GetString("output-xml"), xml, 0644)
+			err = os.WriteFile(viper.GetString("output-xml"), xml, 0644)
 			if err != nil {
 				return errors.New("写入完整结果数据失败: " +
 					filename + ": " + err.Error())

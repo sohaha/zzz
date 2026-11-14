@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -97,7 +96,7 @@ func RunUPX(file string, level string) error {
 }
 
 func StripUPXHeaders(filePath string) error {
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return errors.New("读取文件失败: " + err.Error())
 	}
@@ -139,7 +138,7 @@ func StripUPXHeaders(filePath string) error {
 		patchBytes(data, v, randomString)
 	}
 
-	err = ioutil.WriteFile(filePath, data, 0o644)
+	err = os.WriteFile(filePath, data, 0o644)
 	return err
 }
 

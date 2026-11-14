@@ -2,7 +2,6 @@ package util
 
 import (
 	"math/rand"
-	"time"
 )
 
 var List = []string{
@@ -1231,7 +1230,6 @@ var List = []string{
 }
 
 func GetLineDujt() string {
-	rand.Seed(time.Now().UnixNano())
 	n := rand.Intn(len(List))
 	return List[n]
 }

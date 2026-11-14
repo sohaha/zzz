@@ -2,7 +2,6 @@ package build
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +13,7 @@ import (
 
 func ReadMod(pwd string) string {
 	if zfile.FileExist(pwd + "go.mod") {
-		content, _ := ioutil.ReadFile(pwd + "go.mod")
+		content, _ := os.ReadFile(pwd + "go.mod")
 		return zstring.Bytes2String(content)
 	}
 	return ""

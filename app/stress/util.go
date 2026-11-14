@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -87,7 +87,7 @@ func buildRequest(t Target) (http.Request, error) {
 	//setup the request
 	var req *http.Request
 	if t.BodyFilename != "" {
-		fileContents, fileErr := ioutil.ReadFile(t.BodyFilename)
+		fileContents, fileErr := os.ReadFile(t.BodyFilename)
 		if fileErr != nil {
 			return http.Request{}, errors.New("读取文件内容失败 " + t.BodyFilename + ": " + fileErr.Error())
 		}

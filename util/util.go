@@ -6,8 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mitchellh/go-homedir"
-
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/zlog"
 	"github.com/sohaha/zlsgo/zstring"
@@ -34,7 +32,7 @@ func init() {
 	once.Do(func() {
 		Log = zlog.New()
 		Log.ResetFlags(zlog.BitLevel)
-		homePath, _ = homedir.Dir()
+		homePath, _ = os.UserHomeDir()
 		var defInstallPath string
 		var installName string
 		envPath := zutil.Getenv("PATH")
