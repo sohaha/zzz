@@ -32,8 +32,11 @@ func init() {
 		Log.ResetFlags(zlog.BitLevel)
 		var homeErr error
 		homePath, homeErr = os.UserHomeDir()
-		if homeErr != nil || homePath == "" {
+		switch {
+		case homeErr != nil:
 			Log.Warnf("无法获取用户主目录，配置路径可能不可用: %v", homeErr)
+		case homePath == "":
+			Log.Warn("用户主目录为空，配置路径可能不可用")
 		}
 		var defInstallPath string
 		var installName string
