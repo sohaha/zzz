@@ -238,6 +238,16 @@ func (g *Git) Push() error {
 			}
 		}
 
+		// 首次推送：分支尚未设置 upstream 时自动带上 -u
+		if strings.Contains(string(output), "has no upstream branch") {
+			branch, branchErr := g.getCurrentBranch()
+			if branchErr == nil {
+				if pushErr := g.PushBranch(branch); pushErr == nil {
+					return nil
+				}
+			}
+		}
+
 		return &GitCommandError{
 			Command: "git push",
 			Output:  string(output),
