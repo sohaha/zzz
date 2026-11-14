@@ -1,6 +1,7 @@
 package static
 
 import (
+	"os"
 	"testing"
 
 	"github.com/sohaha/zlsgo"
@@ -10,9 +11,10 @@ import (
 func TestStatic(t *testing.T) {
 	tt := zlsgo.NewTest(t)
 
-	tt.EqualExit(true, zfile.FileExist("../../LICENSE"))
+	wd, _ := os.Getwd()
+	tt.EqualExit(true, zfile.FileExist(wd+"/../../LICENSE"))
 
-	g, _ := Group("../../")
+	g, _ := Group(wd + "/../..")
 	// g.SetCaller(2)
 	s, err := g.MustString("LICENSE")
 	tt.EqualNil(err)
