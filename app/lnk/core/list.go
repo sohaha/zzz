@@ -175,7 +175,15 @@ func (l *Lnk) checkSymlinkStatus(entries []TrackedEntry) []string {
 			continue
 		}
 		target, err := l.fs.ReadSymlink(absPath)
-		if err != nil || !l.fs.FileExists(target) {
+		if err != nil {
+			brokenLinks = append(brokenLinks, absPath)
+			continue
+		}
+		// 相对目标是相对于链接所在目录解析的，而非进程工作目录
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(filepath.Dir(absPath), target)
+		}
+		if !l.fs.FileExists(target) {
 			brokenLinks = append(brokenLinks, absPath)
 			continue
 		}
