@@ -3,6 +3,7 @@ package watch
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/sohaha/zlsgo/zfile"
@@ -122,7 +123,7 @@ func TestEventDispatcherCreateFileTriggersChange(t *testing.T) {
 		if want, _ := filepath.Rel(projectFolder, zfile.RealPath(file)); got != filepath.ToSlash(want) {
 			t.Fatalf("triggered path = %q, want %q", got, want)
 		}
-	default:
+	case <-time.After(time.Second):
 		t.Fatal("expected created .go file to trigger a change")
 	}
 }
