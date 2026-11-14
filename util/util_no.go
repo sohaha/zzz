@@ -8,6 +8,9 @@ import (
 )
 
 func SetLimit(l int) {
+	if l <= 0 {
+		return
+	}
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {

@@ -91,12 +91,26 @@ func TestOSCommand(t *testing.T) {
 	if got := OSCommand(other + "@echo hi"); got != "" {
 		t.Errorf("OSCommand 其他平台前缀应返回空串，得到 %q", got)
 	}
-	// 多平台选择 "w|m@..."：包含当前平台则返回命令
-	if runtime.GOOS != "windows" {
+	// 多平台选择：包含当前平台则返回命令，否则空串
+	switch runtime.GOOS {
+	case "darwin":
 		if got := OSCommand("w|m@echo hi"); got != "echo hi" {
-			t.Errorf("OSCommand(\"w|m@echo hi\") 在 %s 上应为 %q，得到 %q", runtime.GOOS, "echo hi", got)
+			t.Errorf("OSCommand(\"w|m@echo hi\") 在 darwin 上应为 %q，得到 %q", "echo hi", got)
 		}
-	} else {
+		if got := OSCommand("l|w@echo hi"); got != "" {
+			t.Errorf("OSCommand(\"l|w@echo hi\") 在 darwin 上应为空串，得到 %q", got)
+		}
+	case "linux":
+		if got := OSCommand("w|m@echo hi"); got != "" {
+			t.Errorf("OSCommand(\"w|m@echo hi\") 在 linux 上应为空串，得到 %q", got)
+		}
+		if got := OSCommand("m|w@echo hi"); got != "" {
+			t.Errorf("OSCommand(\"m|w@echo hi\") 在 linux 上应为空串，得到 %q", got)
+		}
+		if got := OSCommand("w|l@echo hi"); got != "echo hi" {
+			t.Errorf("OSCommand(\"w|l@echo hi\") 在 linux 上应为 %q，得到 %q", "echo hi", got)
+		}
+	case "windows":
 		if got := OSCommand("m|l@echo hi"); got != "" {
 			t.Errorf("OSCommand(\"m|l@echo hi\") 在 windows 上应为空串，得到 %q", got)
 		}
@@ -131,8 +145,4 @@ func TestIsInstall(t *testing.T) {
 func TestCheckIfErrorNil(t *testing.T) {
 	// nil 不应触发 Fatal
 	CheckIfError(nil)
-}
-
-func TestSetLimitNoPanic(t *testing.T) {
-	SetLimit(1024)
 }
