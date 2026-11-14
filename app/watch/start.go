@@ -29,15 +29,16 @@ func StartCmd(watchCmd *cobra.Command) (app *cobra.Command) {
 			}
 			if !zfile.FileExist(cfgPath) {
 				oldCfg := "./zls-watch.yaml"
-				if !zfile.FileExist(oldCfg) {
-					homePath, homePathErr := os.UserHomeDir()
-					if homePathErr == nil {
-						v.AddConfigPath(homePath)
-						v.SetConfigName("zzz-watch")
-						v.SetConfigName("zls-watch")
-					}
-				} else {
+				if zfile.FileExist(oldCfg) {
 					cfgPath = oldCfg
+				} else if homePath, homePathErr := os.UserHomeDir(); homePathErr == nil {
+					homeCfg := filepath.Join(homePath, "zzz-watch.yaml")
+					homeOldCfg := filepath.Join(homePath, "zls-watch.yaml")
+					if zfile.FileExist(homeCfg) {
+						cfgPath = homeCfg
+					} else if zfile.FileExist(homeOldCfg) {
+						cfgPath = homeOldCfg
+					}
 				}
 			}
 			if cfgPath != "" {

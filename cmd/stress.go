@@ -35,12 +35,10 @@ var stressCmd = &cobra.Command{
 		viper.SetConfigName("zzz-stress")
 		viper.AddConfigPath(".")
 		err := viper.ReadInConfig()
-		if err != nil {
-			if _, ok := err.(v.ConfigParseError); ok {
-				fmt.Println("解析配置文件失败: " + viper.ConfigFileUsed())
-				fmt.Println(err)
-				os.Exit(-1)
-			}
+		if parseErr, ok := err.(v.ConfigParseError); ok {
+			fmt.Println("解析配置文件失败: " + viper.ConfigFileUsed())
+			fmt.Println(parseErr)
+			os.Exit(-1)
 		}
 		if viper.ConfigFileUsed() != "" {
 			fmt.Println("使用配置文件: " + viper.ConfigFileUsed())
@@ -176,9 +174,7 @@ var stressCmd = &cobra.Command{
 		// combine individual targets to a total one
 		globalStats := make([]stress.RequestStat, 0)
 		for i := range stressCfg.Targets {
-			for j := range targetRequestStats[i] {
-				globalStats = append(globalStats, targetRequestStats[i][j])
-			}
+			globalStats = append(globalStats, targetRequestStats[i]...)
 		}
 		if len(stressCfg.Targets) > 1 {
 			fmt.Println("----全局统计----")

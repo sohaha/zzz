@@ -39,7 +39,7 @@ func (p *CoolProvider) Validate(ctx *Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Cool API 返回错误状态: %d", resp.StatusCode)
+		return fmt.Errorf("cool API 返回错误状态: %d", resp.StatusCode)
 	}
 
 	return nil

@@ -88,7 +88,7 @@ func CleanupWorktree(ctx *Context) {
 
 	util.Log.Printf("正在清理 worktree '%s'...\n", ctx.WorktreeName)
 
-	code, gitCommonDir, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "rev-parse", "--git-common-dir"}, nil, nil, nil)
+	_, gitCommonDir, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "rev-parse", "--git-common-dir"}, nil, nil, nil)
 	gitCommonDir = strings.TrimSpace(gitCommonDir)
 
 	if gitCommonDir != "" {
@@ -98,7 +98,7 @@ func CleanupWorktree(ctx *Context) {
 		}
 	}
 
-	code, _, _, _ = zshell.ExecCommand(context.Background(), []string{"git", "worktree", "remove", worktreePath, "--force"}, nil, nil, nil)
+	code, _, _, _ := zshell.ExecCommand(context.Background(), []string{"git", "worktree", "remove", worktreePath, "--force"}, nil, nil, nil)
 	if code == 0 {
 		util.Log.Printf("Worktree 移除成功\n")
 	} else {

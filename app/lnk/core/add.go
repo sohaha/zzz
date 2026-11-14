@@ -315,7 +315,6 @@ func (l *Lnk) AddRecursiveWithProgress(paths []string, progressCallback Progress
 		return fmt.Errorf("创建主机目录失败: %w", err)
 	}
 
-	var processedFiles []string
 	var gitFilesToAdd []string
 	var rollbackActions []func() error
 	rollback := func() {
@@ -378,8 +377,6 @@ func (l *Lnk) AddRecursiveWithProgress(paths []string, progressCallback Progress
 
 		relPath := l.getRelativePathInRepo(l.toTrackingPath(filePath))
 		gitFilesToAdd = append(gitFilesToAdd, relPath)
-
-		processedFiles = append(processedFiles, filePath)
 	}
 
 	if len(gitFilesToAdd) > 0 {

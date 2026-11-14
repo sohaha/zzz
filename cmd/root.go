@@ -199,10 +199,6 @@ func createCfg(cfgFilepath string) error {
 	return nil
 }
 
-func updateCfg(cfgFilepath string) error {
-	return viper.WriteConfigAs(cfgFilepath)
-}
-
 func updateDetectionTime(now int64) {
 	viper.Set("core.detection_time", now)
 	_ = viper.WriteConfig()

@@ -151,7 +151,7 @@ func executeSingleIteration(ctx *Context, iteration int, display func() string) 
 
 	if result.IsError {
 		CleanupBranch(branchName, mainBranch)
-		return fmt.Errorf("Agent 返回错误: %s", result.Result)
+		return fmt.Errorf("agent 返回错误: %s", result.Result)
 	}
 
 	if result.TotalCostUSD > 0 {

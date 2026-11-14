@@ -18,12 +18,8 @@ import (
 )
 
 var (
-	createUes   = "init"
-	createName  string
-	createForce bool
-	createList  bool
-	gitType     = "github"
-	createCmd   = &cobra.Command{
+	createUes = "init"
+	createCmd = &cobra.Command{
 		Use:   createUes,
 		Short: "初始化新项目模板",
 		Long:  ``,

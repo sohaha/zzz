@@ -25,13 +25,27 @@ func eventDispatcher(event fsnotify.Event) {
 	case fsnotify.Create:
 		if isDir {
 			addNewWatcher(event.Name)
+			return
 		}
+		if !isTypeWatched(ext) {
+			return
+		}
+		fileChange(event)
 	case fsnotify.Remove:
 		removeWatcher(event.Name)
+		if isDir {
+			_ = watcher.Remove(event.Name)
+		}
 		return
 	case fsnotify.Rename:
+		removeWatcher(event.Name)
+		if isDir {
+			_ = watcher.Remove(event.Name)
+			return
+		}
+		fileChange(event)
 	case fsnotify.Write:
-		if len(types) > 0 && types[0] != ".*" && !inStringArray(ext, types) {
+		if !isTypeWatched(ext) {
 			return
 		}
 		fileChange(event)
@@ -40,9 +54,16 @@ func eventDispatcher(event fsnotify.Event) {
 	}
 }
 
+func isTypeWatched(ext string) bool {
+	if len(types) == 0 || types[0] == ".*" {
+		return true
+	}
+	return inStringArray(ext, types)
+}
+
 func fileChange(event fsnotify.Event) {
 	switch event.Op {
-	case fsnotify.Write, fsnotify.Remove, fsnotify.Rename:
+	case fsnotify.Create, fsnotify.Write, fsnotify.Remove, fsnotify.Rename:
 		if strings.HasSuffix(event.Name, "_static_resources.go") {
 			return
 		}

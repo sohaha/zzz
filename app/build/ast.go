@@ -47,10 +47,6 @@ func (r *ReferencedAssets) HasAsset(name string) bool {
 	return false
 }
 
-func clearPath(file, baseDir, rootDir string) string {
-	return strings.TrimPrefix(file, strings.TrimPrefix(baseDir, rootDir)+"/")
-}
-
 // GetReferencedAssets gets a list of referenced assets from the AST
 func GetReferencedAssets(filenames []string) ([]*ReferencedAssets, error) {
 	var result []*ReferencedAssets

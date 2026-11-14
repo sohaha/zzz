@@ -328,17 +328,6 @@ func (l *Lnk) readTrackingFile() ([]string, error) {
 	return files, nil
 }
 
-func (l *Lnk) writeTrackingFile(files []string) error {
-	entries := make([]TrackedEntry, 0, len(files))
-	for _, p := range files {
-		if p == "" {
-			continue
-		}
-		entries = append(entries, TrackedEntry{Path: p, Type: LinkTypeSoft})
-	}
-	return l.writeTrackingEntries(entries)
-}
-
 func (l *Lnk) addToTrackingFile(filePath string) error {
 	entries, err := l.readTrackingEntries()
 	if err != nil {
@@ -428,29 +417,6 @@ func (l *Lnk) getRepoFilePath(originalPath string) string {
 	return filepath.Join(l.repoPath, relPath)
 }
 
-func (l *Lnk) getOriginalFilePath(repoPath string) string {
-	fileName := filepath.Base(repoPath)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fileName
-	}
-
-	commonPaths := []string{
-		filepath.Join(homeDir, fileName),
-		filepath.Join(homeDir, ".config", fileName),
-		filepath.Join(homeDir, "."+fileName),
-	}
-
-	for _, path := range commonPaths {
-		if l.fs.FileExists(path) {
-			return path
-		}
-	}
-
-	return filepath.Join(homeDir, fileName)
-}
-
 func (l *Lnk) validateRepoPath() error {
 	realPath := zfile.RealPath(l.repoPath)
 	if realPath == "" {
@@ -533,25 +499,6 @@ func (l *Lnk) toTrackingPath(path string) string {
 	return abs
 }
 
-func (l *Lnk) isValidFileName(name string) bool {
-	invalidChars := []string{"\x00", "/", "\\", ":", "*", "?", "\"", "<", ">", "|"}
-	for _, char := range invalidChars {
-		if strings.Contains(name, char) {
-			return false
-		}
-	}
-
-	reservedNames := []string{".", "..", "CON", "PRN", "AUX", "NUL"}
-	upperName := strings.ToUpper(name)
-	for _, reserved := range reservedNames {
-		if upperName == reserved {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (l *Lnk) createBackup(filePath string) (string, error) {
 	backupPath := filePath + ".lnk.backup"
 
@@ -569,15 +516,6 @@ func (l *Lnk) createBackup(filePath string) (string, error) {
 	}
 
 	return backupPath, nil
-}
-
-func (l *Lnk) restoreBackup(backupPath, originalPath string) error {
-	info, err := l.fs.GetFileInfo(backupPath)
-	if err != nil {
-		return err
-	}
-
-	return l.fs.Move(backupPath, originalPath, info)
 }
 
 func (l *Lnk) Init() error {
