@@ -396,12 +396,6 @@ func (l *Lnk) AddRecursiveWithProgress(paths []string, progressCallback Progress
 		return fmt.Errorf("添加跟踪文件到 Git 失败: %w", err)
 	}
 
-	// commitMsg := fmt.Sprintf("lnk: 递归添加 %d 个文件", len(processedFiles))
-	// if err := l.git.Commit(commitMsg); err != nil {
-	// 	rollback()
-	// 	return fmt.Errorf("提交变更失败: %w", err)
-	// }
-
 	return nil
 }
 
