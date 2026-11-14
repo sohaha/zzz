@@ -50,7 +50,10 @@ func (l *Lnk) consolidateDirectory(dirPath string) error {
 	var allFiles []string
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
+		}
+		if info == nil {
+			return fmt.Errorf("无法读取文件信息: %s", path)
 		}
 		if info.IsDir() {
 			return nil

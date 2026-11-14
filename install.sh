@@ -6,6 +6,7 @@ set -e
 os=$(uname -s)
 arch=$(uname -m)
 current=$PWD
+no_china="${NoChina:-0}"
 
 # 创建随机临时目录（兼容 macOS/Linux）
 tmp_dir=""
@@ -20,7 +21,7 @@ cd "$tmp_dir"
 isChinaProxy=""
 echo "检测网络环境..."
 isChina=$(curl --silent --connect-timeout 5 "cip.cc" | grep "中国" || echo "")
-if [[ -z $isChina || "--no-china" == $1 || "1" == $NoChina ]]; then
+if [[ -z $isChina || "--no-china" == "$1" || "1" == "$no_china" ]]; then
   echo "使用国际网络"
   isChinaProxy=""
 else
@@ -33,10 +34,8 @@ MAX_RETRY=3
 retry_count=0
 LAST_VERSION=""
 
-auth_header=""
 if [[ -n "$GITHUB_TOKEN" ]]; then
   echo "使用 GitHub Token 进行 API 请求"
-  auth_header="-H \"Authorization: token $GITHUB_TOKEN\""
 fi
 
 while [[ -z $LAST_VERSION && $retry_count -lt $MAX_RETRY ]]; do
@@ -60,13 +59,13 @@ fi
 
 echo "最新版本: v${LAST_VERSION}"
 
-if [[ "aarch64" == $arch ]]; then
+if [[ "aarch64" == "$arch" ]]; then
   arch="arm64"
-elif [[ "x86_64" == $arch ]]; then
+elif [[ "x86_64" == "$arch" ]]; then
   arch="amd64"
-elif [[ "i386" == $arch ]]; then
+elif [[ "i386" == "$arch" ]]; then
   arch="386"
-elif [[ "armv7l" == $arch ]]; then
+elif [[ "armv7l" == "$arch" ]]; then
   arch="arm"
 fi
 

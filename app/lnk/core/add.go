@@ -404,7 +404,7 @@ func (l *Lnk) collectFilesRecursively(dirPath string) ([]string, error) {
 
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
 
 		if info.IsDir() {

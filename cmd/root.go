@@ -204,11 +204,10 @@ func updateDetectionTime(now int64) {
 	_ = viper.WriteConfig()
 }
 
-func GetNewVersion(c chan struct{}) {
+func GetNewVersion() {
 	now := time.Now().Unix()
 	lastNow := viper.GetInt64("core.detection_time")
 	if lastNow != 0 && ((now - lastNow) < 60*60*24) {
-		c <- struct{}{}
 		return
 	}
 	updateDetectionTime(now)
@@ -216,7 +215,6 @@ func GetNewVersion(c chan struct{}) {
 	defer cancel()
 	res, err := zhttp.Get("https://api.github.com/repos/sohaha/zzz/releases/latest", ctx)
 	if err != nil {
-		c <- struct{}{}
 		return
 	}
 	json := zjson.ParseBytes(res.Bytes())
@@ -224,5 +222,4 @@ func GetNewVersion(c chan struct{}) {
 	if util.VersionCompare(util.Version, version, "<") {
 		util.Log.Warnf("New version (v%v) is released, please go to GitHub to update: https://github.com/sohaha/zzz\n", version)
 	}
-	c <- struct{}{}
 }

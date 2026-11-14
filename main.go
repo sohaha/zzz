@@ -11,8 +11,6 @@ func init() {
 }
 
 func main() {
-	var c = make(chan struct{}, 1)
-	go cmd.GetNewVersion(c)
+	go cmd.GetNewVersion()
 	cmd.Execute()
-	<-c
 }

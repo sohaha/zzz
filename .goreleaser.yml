@@ -1,3 +1,5 @@
+version: 2
+
 project_name: zzz
 
 builds:
@@ -8,28 +10,27 @@ builds:
       - windows
       - linux
       - darwin
-    # goarch:
-    goarm:
-      - 6
-      - 7
+    goarch:
+      - amd64
+      - arm64
+      - '386'
     ignore:
+      - goos: darwin
+        goarch: '386'
     env:
       - CGO_ENABLED=0
-      - GO111MODULE=on
 
-# archives:
-#   - replacements:
-#       darwin: Darwin
-#       linux: Linux
-#       windows: Windows
-#       386: i386
-#       amd64: x86_64
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- .Os }}_{{ .Arch }}
+    formats: [tar.gz]
 
 checksum:
   name_template: 'checksums.txt'
 
 snapshot:
-  name_template: 'next'
+  version_template: '{{ incpatch .Version }}-next'
 
 changelog:
   # skip: true
