@@ -32,7 +32,11 @@ func init() {
 	once.Do(func() {
 		Log = zlog.New()
 		Log.ResetFlags(zlog.BitLevel)
-		homePath, _ = os.UserHomeDir()
+		var homeErr error
+		homePath, homeErr = os.UserHomeDir()
+		if homeErr != nil || homePath == "" {
+			Log.Warnf("无法获取用户主目录，配置路径可能不可用: %v", homeErr)
+		}
 		var defInstallPath string
 		var installName string
 		envPath := zutil.Getenv("PATH")
