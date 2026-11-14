@@ -30,26 +30,26 @@ func TestGetLineDujt(t *testing.T) {
 }
 
 func TestJudge(t *testing.T) {
-	cases := map[string][]string{
-		"windows": {"win", "windows", "w"},
-		"darwin":  {"mac", "macOS", "macos", "m"},
-		"linux":   {"linux", "l"},
+	// 从共享别名表派生断言，与实现同源，避免双表不同步
+	byPlatform := map[string][]string{}
+	for alias, plat := range osAliasPlatforms {
+		byPlatform[plat] = append(byPlatform[plat], alias)
 	}
-	aliases, ok := cases[runtime.GOOS]
-	if !ok {
+	plat := map[string]string{"windows": "windows", "darwin": "darwin", "linux": "linux"}[runtime.GOOS]
+	if plat == "" {
 		t.Skipf("未覆盖的平台: %s", runtime.GOOS)
 	}
-	for _, alias := range aliases {
+	for _, alias := range byPlatform[plat] {
 		if !judge(alias) {
 			t.Errorf("judge(%q) 在 %s 上应为 true", alias, runtime.GOOS)
 		}
 	}
 	// 当前平台之外的别名应为 false
-	for goos, otherAliases := range cases {
-		if goos == runtime.GOOS {
+	for otherPlat, aliases := range byPlatform {
+		if otherPlat == plat {
 			continue
 		}
-		for _, alias := range otherAliases {
+		for _, alias := range aliases {
 			if judge(alias) {
 				t.Errorf("judge(%q) 在 %s 上应为 false", alias, runtime.GOOS)
 			}

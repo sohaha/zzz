@@ -81,13 +81,21 @@ func GetHome() string {
 	return homePath + "/"
 }
 
+// osAliasPlatforms 是平台别名到平台的唯一映射，judge 与 OSCommand 共用，
+// 新增别名只需修改此表。
+var osAliasPlatforms = map[string]string{
+	"win": "windows", "windows": "windows", "w": "windows",
+	"mac": "darwin", "macOS": "darwin", "macos": "darwin", "m": "darwin",
+	"linux": "linux", "l": "linux",
+}
+
 func judge(osName string) (ok bool) {
-	switch osName {
-	case "win", "windows", "w":
+	switch osAliasPlatforms[osName] {
+	case "windows":
 		ok = zutil.IsWin()
-	case "mac", "macOS", "macos", "m":
+	case "darwin":
 		ok = zutil.IsMac()
-	case "linux", "l":
+	case "linux":
 		ok = zutil.IsLinux()
 	}
 	return
@@ -100,10 +108,9 @@ func OSCommand(command string) (ncommand string) {
 	}
 
 	ok := false
-	switch str[0] {
-	case "win", "windows", "w", "mac", "macOS", "macos", "m", "linux", "l":
+	if _, isAlias := osAliasPlatforms[str[0]]; isAlias {
 		ok = judge(str[0])
-	default:
+	} else {
 		if strings.Contains(str[0], "|") && (strings.Contains(str[0], "w") || strings.Contains(str[0], "m") || strings.Contains(str[0], "l")) {
 			for _, v := range strings.Split(str[0], "|") {
 				ok = judge(v)
