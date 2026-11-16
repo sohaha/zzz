@@ -28,7 +28,7 @@ func TestGetNewVersionSkipsRecentCheckWithoutBlocking(t *testing.T) {
 func TestShouldCheckForUpdate(t *testing.T) {
 	now := time.Now().Unix()
 	cases := []struct {
-		name   string
+		name    string
 		lastNow int64
 		now     int64
 		want    bool
