@@ -57,6 +57,31 @@ func initTask() {
 	})
 }
 
+// snapshotCommands returns the currently running main and extension commands.
+// Shutdown runs on the signal goroutine while run() goroutines may still be
+// replacing these fields, so every read has to happen under the matching lock.
+func (t *taskType) snapshotCommands() (main *exec.Cmd, ext []*exec.Cmd) {
+	t.cmdLock.Lock()
+	main = t.cmd
+	t.cmdLock.Unlock()
+
+	t.cmdExtLock.RLock()
+	extCmds := make([]*cmdType, 0, len(t.cmdExt))
+	for _, c := range t.cmdExt {
+		extCmds = append(extCmds, c)
+	}
+	t.cmdExtLock.RUnlock()
+
+	for _, c := range extCmds {
+		c.putLock.Lock()
+		if c.cmd != nil {
+			ext = append(ext, c.cmd)
+		}
+		c.putLock.Unlock()
+	}
+	return main, ext
+}
+
 func (t *taskType) Put(cf *changedFile) {
 	if t.delay < 1 {
 		t.preRun(cf)
@@ -214,7 +239,7 @@ func (t *taskType) run(cf *changedFile, commands []string, outpuContent bool, ex
 				show(line)
 			}
 		}
-		lastPid = cmd.Process.Pid
+		lastPid.Store(int64(cmd.Process.Pid))
 		if outpuContent {
 			go func(stdout io.Reader) {
 				ch <- exportStd(stdout)

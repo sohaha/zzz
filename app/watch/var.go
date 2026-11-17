@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/sohaha/zlsgo/zfile"
 
@@ -23,13 +24,15 @@ var (
 	projectFolder      = "."
 	watcher            FileWatcher
 	watchDirs          = make([]string, 0)
+	watchDirSet        = make(map[string]struct{})
+	watchDirsMu        sync.RWMutex
 	exceptDirs         = make([]string, 0)
 	types              = make([]string, 0)
 	includeDirs        = make([]string, 0)
 	globalErr          error
 	done               = make(chan bool, 1)
 	signalChan         = make(chan os.Signal, 1)
-	lastPid            int
+	lastPid            atomic.Int64
 	task               *taskType
 	execCommand        []string
 	execFileExt        []string

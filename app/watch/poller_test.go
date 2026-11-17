@@ -8,6 +8,29 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+func TestReadDirEntriesSkipsBrokenSymlinks(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "ok.txt"), []byte("ok"), 0o644); err != nil {
+		t.Fatalf("write ok.txt: %v", err)
+	}
+	// A symlink that points to itself makes os.Stat fail with ELOOP. One bad
+	// entry must not abort the whole directory scan.
+	if err := os.Symlink("loop", filepath.Join(root, "loop")); err != nil {
+		t.Fatalf("symlink loop: %v", err)
+	}
+
+	entries, err := readDirEntries(root)
+	if err != nil {
+		t.Fatalf("readDirEntries: %v", err)
+	}
+	if _, ok := entries["ok.txt"]; !ok {
+		t.Fatalf("expected healthy entry to be kept, got entries=%v", entries)
+	}
+	if _, ok := entries["loop"]; ok {
+		t.Fatalf("expected broken symlink to be skipped, got entries=%v", entries)
+	}
+}
+
 func TestReadDirEntriesSkipsSymlinkDirectories(t *testing.T) {
 	root := t.TempDir()
 	target := filepath.Join(root, "target")

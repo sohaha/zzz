@@ -220,12 +220,14 @@ func readDirEntries(dir string) (map[string]struct{}, error) {
 		fullPath := filepath.Join(dir, name)
 		isLinkDir, err := isSymlinkDirectory(fullPath)
 		if err != nil {
-			return nil, err
+			// A single unreadable or self-referencing entry must not abort the
+			// whole directory scan; skip it and keep watching the rest.
+			continue
 		}
 		if isLinkDir {
 			continue
 		}
-		if entry.IsDir() && isIgnoreDirectory(filepath.Join(dir, name)) {
+		if entry.IsDir() && isIgnoreDirectory(fullPath) {
 			continue
 		}
 		result[name] = struct{}{}

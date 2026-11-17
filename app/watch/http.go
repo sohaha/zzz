@@ -1,7 +1,6 @@
 package watch
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,10 +11,10 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
 	"github.com/sohaha/zlsgo/znet"
-	"github.com/sohaha/zlsgo/zstring"
 	"github.com/sohaha/zlsgo/ztype"
 	"gopkg.in/olahol/melody.v1"
 
@@ -31,6 +30,7 @@ var (
 	httpOpenBrowser bool
 	httpCloseLocal  bool
 	ws              *melody.Melody
+	httpProxyClient = &http.Client{Timeout: 30 * time.Second}
 )
 
 func initHTTP() {
@@ -53,7 +53,12 @@ func httpRun() {
 	httpPath = filepath.ToSlash(filepath.Clean(projectFolder + "/" + httpRoot))
 	port, pErr := getPort(httpPort, false)
 	if pErr != nil {
-		log.Fatalln(pErr)
+		util.Log.Warnf("HTTP 端口 %d 不可用: %v，尝试自动分配端口\n", httpPort, pErr)
+		port, pErr = getPort(0, true)
+		if pErr != nil {
+			util.Log.Errorf("无法启动 HTTP 服务: %v\n", pErr)
+			return
+		}
 	}
 	httpPort = port
 	// isSap = strings.ToLower(httpType) == "vue-spa"
@@ -96,14 +101,30 @@ func httpRun() {
 	znet.Run()
 }
 
-func sendChang(data *changedFile) {
-	if !strings.HasPrefix(data.Path, httpPath) {
-		return
+// changePayload builds the browser payload for files under the HTTP root.
+// The event object is shared with the command runner, so the HTTP-relative
+// name is written to a copy instead of mutating the original.
+func changePayload(data *changedFile) ([]byte, bool) {
+	if data == nil {
+		return nil, false
 	}
-	relativePath := strings.TrimPrefix(data.Path, httpPath)
-	data.Name = strings.TrimPrefix(relativePath, "/")
-	_json, _ := json.Marshal(data)
-	send(_json)
+	root := strings.TrimSuffix(httpPath, "/")
+	if root == "" || !strings.HasPrefix(data.Path, root+"/") {
+		return nil, false
+	}
+	payload := *data
+	payload.Name = strings.TrimPrefix(strings.TrimPrefix(data.Path, root), "/")
+	msg, err := json.Marshal(&payload)
+	if err != nil {
+		return nil, false
+	}
+	return msg, true
+}
+
+func sendChang(data *changedFile) {
+	if msg, ok := changePayload(data); ok {
+		send(msg)
+	}
 }
 
 func send(msg []byte) {
@@ -116,6 +137,20 @@ func send(msg []byte) {
 	}
 }
 
+// resolveStaticPath maps a request path onto httpPath. It rejects paths that
+// would escape the served root (for example "/../../etc/passwd").
+func resolveStaticPath(urlPath string) (string, bool) {
+	urlPath = strings.ReplaceAll(urlPath, "\\", "/")
+	clean := path.Clean("/" + urlPath)
+	root := filepath.Clean(httpPath)
+	pullPath := filepath.Join(root, filepath.FromSlash(clean))
+	rel, err := filepath.Rel(root, pullPath)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return filepath.ToSlash(pullPath), true
+}
+
 func httpEntrance(c *znet.Context) {
 	var err error
 	method := c.Request.Method
@@ -126,7 +161,11 @@ func httpEntrance(c *znet.Context) {
 		urlPath = "/index.html"
 	}
 
-	pullPath := httpPath + urlPath
+	pullPath, ok := resolveStaticPath(urlPath)
+	if !ok {
+		c.String(404, "file not found")
+		return
+	}
 	if !httpCloseLocal && zfile.FileExist(pullPath) {
 		ext := path.Ext(pullPath)
 		ext = strings.ToLower(ext)
@@ -147,41 +186,27 @@ func httpEntrance(c *znet.Context) {
 	}
 }
 
-func injectingCode(file string) (data string) {
-	inputFile, inputError := os.Open(file)
-	if inputError != nil {
-		util.Log.Printf("%s\n", inputError)
-		return
+func injectingCode(file string) string {
+	content, err := os.ReadFile(file)
+	if err != nil {
+		util.Log.Printf("%s\n", err)
+		return ""
 	}
-	defer inputFile.Close()
-	inputReader := bufio.NewReader(inputFile)
-	isEnd := false
-	isHTML := false
-	html := zstring.Buffer()
-	for !isEnd {
-		inputString, readerError := inputReader.ReadString('\n')
-		if !isHTML && strings.ContainsAny(inputString, "</html>") {
-			isHTML = true
-		}
-		html.WriteString(inputString)
-		if readerError == io.EOF {
-			isEnd = true
-		}
-	}
-	html.WriteString("<script>")
 
+	var js string
 	switch httpType {
 	case "web":
-		html.WriteString(webJs)
+		js = webJs
 	case "vue-spa":
-		html.WriteString(vueSpaJs)
+		js = vueSpaJs
 	case "vue-run":
-		html.WriteString(vueHotReload)
-		// html.WriteString(vueRunExport)
+		js = vueHotReload
 	}
-	html.WriteString("</script>")
-	data = html.String()
-	return
+	if js == "" {
+		return string(content)
+	}
+
+	return injectJavaScriptToHTML(string(content), js)
 }
 
 func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
@@ -211,7 +236,7 @@ func proxy(_ string, w http.ResponseWriter, r *http.Request) (err error) {
 
 	proxyReq.Host = host
 
-	client := &http.Client{}
+	client := httpProxyClient
 	resp, err := client.Do(proxyReq)
 	if err != nil {
 		return err
@@ -278,6 +303,9 @@ func getInjectJS() string {
 }
 
 func urlParse(httpProxy string) (string, string) {
+	if !strings.Contains(httpProxy, "://") {
+		httpProxy = "http://" + httpProxy
+	}
 	var host, scheme string
 	p, err := url.Parse(httpProxy)
 	if err != nil {

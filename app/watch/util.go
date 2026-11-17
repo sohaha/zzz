@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sohaha/zlsgo/zfile"
@@ -113,16 +114,10 @@ func listFile(folder string, fun func(string)) {
 	}
 }
 
-func arrayUniqueAdd(a []string, add string) []string {
-	if inStringArray(add, a) || isExcept(exceptDirs, add) {
-		return a
-	}
-	return append(a, add)
-}
-
 func isExcept(e []string, path string) bool {
+	normalizedPath := filepath.ToSlash(path)
+	baseName := filepath.Base(normalizedPath)
 	for _, pattern := range e {
-		normalizedPath := filepath.ToSlash(path)
 		normalizedPattern := filepath.ToSlash(pattern)
 
 		if normalizedPattern == ".,*" || normalizedPattern == "*" {
@@ -136,12 +131,7 @@ func isExcept(e []string, path string) bool {
 				if matched, _ := filepath.Match(subPattern, strings.Join(pathParts[i:], "/")); matched {
 					return true
 				}
-				if strings.Contains(subPattern, "/") {
-					remainingPath := strings.Join(pathParts[i:], "/")
-					if matched, _ := filepath.Match(subPattern, remainingPath); matched {
-						return true
-					}
-				} else {
+				if !strings.Contains(subPattern, "/") {
 					if matched, _ := filepath.Match(subPattern, part); matched {
 						return true
 					}
@@ -161,7 +151,6 @@ func isExcept(e []string, path string) bool {
 			return true
 		}
 
-		baseName := filepath.Base(normalizedPath)
 		if matched, err := filepath.Match(normalizedPattern, baseName); err == nil && matched {
 			return true
 		}
@@ -292,10 +281,24 @@ func matchRecursivePattern(path, pattern string) bool {
 
 	regexPattern := strings.ReplaceAll(pattern, "**", ".*")
 	regexPattern = strings.ReplaceAll(regexPattern, "*", "[^/]*")
-	regexPattern = "^" + regexPattern + "$"
 
-	matched, err := regexp.MatchString(regexPattern, path)
-	return err == nil && matched
+	return recursiveRegexMatch(path, "^"+regexPattern+"$")
+}
+
+// recursiveRegexCache keeps compiled "**" patterns; isExcept runs for every
+// file event and directory, so recompiling per call shows up in profiles.
+var recursiveRegexCache sync.Map
+
+func recursiveRegexMatch(path, pattern string) bool {
+	if cached, ok := recursiveRegexCache.Load(pattern); ok {
+		return cached.(*regexp.Regexp).MatchString(path)
+	}
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return false
+	}
+	recursiveRegexCache.Store(pattern, re)
+	return re.MatchString(path)
 }
 
 func isIgnoreType(fileExt string) (yes bool) {

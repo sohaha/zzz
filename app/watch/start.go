@@ -144,17 +144,18 @@ func start() {
 				cloes(v)
 			}
 		}
-		for _, v := range task.cmdExt {
-			cloes(v.cmd)
+		mainCmd, extCmds := task.snapshotCommands()
+		for _, v := range extCmds {
+			cloes(v)
 		}
-		cloes(task.cmd)
+		cloes(mainCmd)
 
 		if fileDebouncer != nil {
 			fileDebouncer.stop()
 		}
 
-		if lastPid > 0 {
-			p, e := os.FindProcess(-lastPid)
+		if pid := lastPid.Load(); pid > 0 {
+			p, e := os.FindProcess(int(-pid))
 			if e == nil {
 				_ = p.Signal(syscall.SIGINT)
 			}
