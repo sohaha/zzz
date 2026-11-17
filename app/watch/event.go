@@ -43,6 +43,9 @@ func eventDispatcher(event fsnotify.Event) {
 			_ = watcher.Remove(event.Name)
 			return
 		}
+		if !isTypeWatched(ext) {
+			return
+		}
 		fileChange(event)
 	case fsnotify.Write:
 		if !isTypeWatched(ext) {
